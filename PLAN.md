@@ -1,6 +1,6 @@
 # LifeHub — Plan de desarrollo
 
-> Estado: **Fase 4 (Calendario y recordatorios) completada** el 2026-10-15. Fase 5 pendiente de aprobación explícita.
+> Estado: **Fase 5 (Notas, diario y búsqueda global) completada** el 2026-10-15. Fase 6 pendiente de aprobación explícita.
 
 ## Estado de las fases
 
@@ -10,7 +10,7 @@
 | 2   | Tareas, Inbox, captura rápida, Dashboard v1 | ✅ Completada |
 | 3   | Proyectos e hitos                           | ✅ Completada |
 | 4   | Calendario y recordatorios                  | ✅ Completada |
-| 5   | Notas, diario y búsqueda global             | Pendiente     |
+| 5   | Notas, diario y búsqueda global             | ✅ Completada |
 | 6   | Hábitos y rutinas; dashboard configurable   | Pendiente     |
 | 7   | Ajustes, exportación, copias y restauración | Pendiente     |
 | 8   | QA, accesibilidad y pulido                  | Pendiente     |
@@ -334,3 +334,30 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - Redimensionar/arrastrar eventos directamente en la rejilla (por ahora se crean con doble clic y se editan por formulario).
 - Eventos de varios días con hora (el formulario asume que un evento con hora empieza y termina el mismo día; uno de día completo sí admite varios días).
 - Gestionar un recordatorio ya existente de un evento desde el propio formulario de evento (se crea uno nuevo al crear el evento; para editarlo o añadir más, por ahora solo desde el detalle de una tarea). Se documenta como simplificación deliberada de esta fase.
+
+## Fase 5 — Notas, diario y búsqueda global (completada el 2026-10-15)
+
+**Implementado:**
+
+- Editor de texto enriquecido (`RichTextEditor`, TipTap) con formato básico: títulos, listas, checklist, negrita/cursiva, enlaces, código, citas — tal como se previó en los riesgos de la fase 1. El contenido se guarda en **Markdown real** (decisión de la fase 1): `marked` convierte Markdown→HTML al cargar y `turndown` HTML→Markdown al guardar.
+- Guardado automático con debounce (800ms) y un indicador de estado ("Guardando…"/"Guardado"/"Error al guardar"); se fuerza un guardado pendiente al desmontar o cerrar la pestaña para no perder texto.
+- Módulo de notas (`src/server/modules/notes`): crear, editar, archivar, fijar, marcar como favorita, etiquetas (reutilizando el helper de etiquetas de tareas — extraído a `src/server/lib/tags.ts` para no duplicar lógica), papelera con restauración, vínculo con un proyecto, **vínculo bidireccional con tareas** (visible y desvinculable desde ambos lados).
+- Diario: una entrada por fecha (restricción ya existente desde la fase 1), con un error 409 claro si se intenta duplicar.
+- **Búsqueda global** (`src/server/modules/search`) sobre el índice FTS5 ya preparado en la fase 1: busca en tareas, notas, proyectos y eventos a la vez, con coincidencia por prefijo, filtro por tipo y fragmento resaltado; excluye automáticamente elementos borrados o archivados (lo hacían ya los triggers de la fase 1).
+- Cliente: `/notes` (lista con filtros Todas/Fijadas/Favoritas/Archivadas y búsqueda local), `/notes/:id` (editor), `/journal` (navegación por fecha), `/search` (página dedicada con filtro por tipo y estado "sin resultados"), y la **paleta de comandos ampliada** con búsqueda de contenido en vivo (pendiente anotado desde la fase 2).
+- Pestaña "Notas" de un proyecto ahora muestra contenido real (antes era un aviso de "llega en la fase 5"); selector de proyecto compartido extraído a `ProjectSelectField` para no duplicarlo entre tareas y notas.
+
+**Probado** (comandos ejecutados en esta sesión, todos en verde):
+
+- `npx tsc --noEmit`, `npx eslint .` — sin errores.
+- `npx vitest run` — 59/59 tests (14 nuevos: 9 de notas —fijar/favorita/archivar, reutilización de etiquetas, diario único por fecha, vínculo bidireccional con tareas, notas de un proyecto, papelera— y 5 de búsqueda global sobre FTS5 real, incluyendo que lo borrado/archivado no aparece).
+- `npx playwright test` — 28/28 ejecutados (38 omitidos a propósito, mismo criterio que fases anteriores): crear una nota con formato básico y verificar que persiste tras recargar (incluida la negrita), fijar/favorita/archivar moviendo entre filtros, diario persistente, vincular nota↔tarea y desvincular desde ambos lados, búsqueda global desde la paleta de comandos y la página dedicada con estado sin resultados.
+- Verificado manualmente con `curl` contra una base de datos real: creación con etiquetas reutilizadas, diario duplicado (409), archivado excluyendo de la lista y de la búsqueda, notas de un proyecto, vínculo bidireccional con tareas, validación de etiquetas vacías.
+- **Bug real encontrado y corregido durante la verificación manual**: crear una segunda entrada de diario para la misma fecha devolvía un 500 genérico (el error de restricción `UNIQUE` de SQLite no se traducía); corregido comprobando la existencia de la entrada antes de insertar y devolviendo un 409 con un mensaje claro.
+
+**Pendiente / fuera de alcance de esta fase:**
+
+- Verificación visual en navegador real (sin extensión de Chrome conectada en este entorno).
+- División de código del bundle cliente: TipTap + marked + turndown duplicaron aproximadamente el tamaño del JS (653 KB → 1,13 MB sin comprimir). Sigue sin ser bloqueante para una app local, pero se revisará en la fase 8 como estaba previsto.
+- Deep-link directo a un evento o a una ocurrencia concreta desde un resultado de búsqueda (los eventos abren el calendario en general, no el día exacto); los resultados de tipo tarea sí abren directamente el detalle correcto gracias a `?open=`.
+- Editor de comentarios o wiki colaborativa: deliberadamente fuera de alcance (ver PLAN.md, módulo D).

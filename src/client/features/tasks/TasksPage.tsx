@@ -33,11 +33,19 @@ const EMPTY_COPY: Record<TaskView, { title: string; description: string }> = {
 /** Lista + selección por teclado de una vista. Se remonta al cambiar de vista
  *  (vía `key`), así la selección siempre empieza en el primer elemento sin
  *  necesitar un efecto que la reinicie desde fuera. */
-function TaskListPanel({ view, tasks }: { view: TaskView; tasks: TaskDto[] }) {
+function TaskListPanel({
+  view,
+  tasks,
+  initialOpenTaskId,
+}: {
+  view: TaskView;
+  tasks: TaskDto[];
+  initialOpenTaskId: string | null;
+}) {
   const today = useToday();
   const updateTask = useUpdateTask();
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const [openTaskId, setOpenTaskId] = useState<string | null>(initialOpenTaskId);
   const clampedIndex = Math.min(selectedIndex, Math.max(tasks.length - 1, 0));
 
   useEffect(() => {
@@ -97,6 +105,7 @@ export function TasksPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedView = searchParams.get("view");
   const view = (VIEWS.some((v) => v.value === requestedView) ? requestedView : "today") as TaskView;
+  const openTaskIdFromUrl = searchParams.get("open");
 
   const { data: taskList, isLoading } = useTaskList(view);
   const tasks = taskList ?? [];
@@ -161,7 +170,11 @@ export function TasksPage() {
         </div>
       )}
 
-      {isLoading ? <div className="flex-1" /> : <TaskListPanel key={view} view={view} tasks={tasks} />}
+      {isLoading ? (
+        <div className="flex-1" />
+      ) : (
+        <TaskListPanel key={view} view={view} tasks={tasks} initialOpenTaskId={openTaskIdFromUrl} />
+      )}
     </div>
   );
 }

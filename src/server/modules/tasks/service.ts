@@ -6,6 +6,7 @@ import { todayISODate } from "@shared/domain/dates";
 import { presetToRRule, rruleToPreset } from "@shared/domain/recurrence";
 import { nextDueDate } from "../../domain/recurrence";
 import { getSettings } from "../settings/service";
+import { ensureTagIds } from "../../lib/tags";
 import type {
   TaskCreateInput,
   TaskPatchInput,
@@ -109,17 +110,10 @@ function getTaskRow(id: string): TaskRow {
   return row;
 }
 
-/** Devuelve o crea las etiquetas por nombre y sincroniza las asociaciones de la tarea. */
+/** Sincroniza las etiquetas (por nombre) asociadas a una tarea. */
 function syncTags(taskId: string, tagNames: string[]): void {
   const db = getDb();
-  const uniqueNames = [...new Set(tagNames.map((n) => n.trim()).filter(Boolean))];
-
-  const tagIds = uniqueNames.map((name) => {
-    const existing = db.select().from(tags).where(eq(tags.name, name)).get();
-    if (existing) return existing.id;
-    const created = db.insert(tags).values({ name }).returning().get();
-    return created.id;
-  });
+  const tagIds = ensureTagIds(tagNames);
 
   db.delete(taskTags).where(eq(taskTags.taskId, taskId)).run();
   if (tagIds.length > 0) {

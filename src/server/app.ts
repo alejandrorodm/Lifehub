@@ -9,6 +9,8 @@ import { inboxRoutes } from "./modules/inbox/routes";
 import { projectsRoutes } from "./modules/projects/routes";
 import { eventsRoutes } from "./modules/events/routes";
 import { remindersRoutes } from "./modules/reminders/routes";
+import { notesRoutes } from "./modules/notes/routes";
+import { searchRoutes } from "./modules/search/routes";
 import { config } from "./config";
 
 export function createApp(): Hono {
@@ -35,7 +37,9 @@ export function createApp(): Hono {
     .route("/inbox", inboxRoutes)
     .route("/projects", projectsRoutes)
     .route("/events", eventsRoutes)
-    .route("/reminders", remindersRoutes);
+    .route("/reminders", remindersRoutes)
+    .route("/notes", notesRoutes)
+    .route("/search", searchRoutes);
 
   app.route("/api", api);
 

@@ -9,6 +9,7 @@ import {
   ChecklistItemPatchSchema,
 } from "@shared/schemas/tasks";
 import * as service from "./service";
+import { listNotesForTask } from "../notes/service";
 
 export const tasksRoutes = new Hono()
   .get("/", (c) => {
@@ -39,6 +40,7 @@ export const tasksRoutes = new Hono()
   })
   .get("/:id", (c) => c.json(service.getTask(c.req.param("id"))))
   .get("/:id/subtasks", (c) => c.json(service.listSubtasks(c.req.param("id"))))
+  .get("/:id/notes", (c) => c.json(listNotesForTask(c.req.param("id"))))
   .patch("/:id", async (c) => {
     const body = parseOrThrow(TaskPatchSchema, await c.req.json().catch(() => ({})));
     return c.json(service.updateTask(c.req.param("id"), body));

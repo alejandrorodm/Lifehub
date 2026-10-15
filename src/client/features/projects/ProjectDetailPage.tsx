@@ -22,6 +22,7 @@ import {
   useDeleteMilestone,
 } from "./useProjects";
 import { PROJECT_STATUS_LABELS } from "./projectDisplay";
+import { ProjectNotesTab } from "./ProjectNotesTab";
 import type { ProjectDto, ProjectStatus } from "@shared/schemas/projects";
 import type { TaskPriority } from "@shared/schemas/tasks";
 
@@ -297,13 +298,7 @@ function ProjectDetailView({ project }: { project: ProjectDto }) {
 
       <div className="flex-1">
         {tab === "tasks" && <ProjectTasksTab projectId={id} />}
-        {tab === "notes" && (
-          <EmptyState
-            icon={StickyNote}
-            title="Las notas del proyecto llegan en la fase 5"
-            description="Podrás vincular notas a este proyecto cuando exista el módulo de notas."
-          />
-        )}
+        {tab === "notes" && <ProjectNotesTab projectId={id} />}
         {tab === "calendar" && (
           <EmptyState
             icon={CalendarIcon}

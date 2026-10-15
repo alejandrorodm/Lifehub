@@ -6,6 +6,8 @@ import { InboxPage } from "@client/features/inbox/InboxPage";
 import { TasksPage } from "@client/features/tasks/TasksPage";
 import { CalendarPage } from "@client/features/calendar/CalendarPage";
 import { NotesPage } from "@client/features/notes/NotesPage";
+import { NoteEditorPage } from "@client/features/notes/NoteEditorPage";
+import { SearchPage } from "@client/features/search/SearchPage";
 import { JournalPage } from "@client/features/journal/JournalPage";
 import { ProjectsPage } from "@client/features/projects/ProjectsPage";
 import { ProjectDetailPage } from "@client/features/projects/ProjectDetailPage";
@@ -23,6 +25,8 @@ export const router = createBrowserRouter([
       { path: "tasks", element: <TasksPage /> },
       { path: "calendar", element: <CalendarPage /> },
       { path: "notes", element: <NotesPage /> },
+      { path: "notes/:id", element: <NoteEditorPage /> },
+      { path: "search", element: <SearchPage /> },
       { path: "journal", element: <JournalPage /> },
       { path: "projects", element: <ProjectsPage /> },
       { path: "projects/:id", element: <ProjectDetailPage /> },

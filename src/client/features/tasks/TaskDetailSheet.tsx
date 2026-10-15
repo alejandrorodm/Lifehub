@@ -8,9 +8,10 @@ import { useToast } from "@client/components/ui/Toast";
 import { TagEditor } from "./TagEditor";
 import { ChecklistEditor } from "./ChecklistEditor";
 import { TaskReminderSection } from "./TaskReminderSection";
+import { TaskLinkedNotes } from "./TaskLinkedNotes";
 import { PRIORITY_LABELS } from "./taskDisplay";
 import { useTask, useSubtasks, useUpdateTask, useDeleteTask, useCreateTask } from "./useTasks";
-import { useProjectList } from "@client/features/projects/useProjects";
+import { ProjectSelectField } from "@client/features/projects/ProjectSelectField";
 import type { TaskDto, TaskPriority } from "@shared/schemas/tasks";
 
 const PRIORITY_OPTIONS = (Object.keys(PRIORITY_LABELS) as TaskPriority[]).map((value) => ({
@@ -25,30 +26,6 @@ const RECURRENCE_OPTIONS: { value: "none" | "daily" | "weekly" | "monthly" | "ye
   { value: "monthly", label: "Cada mes" },
   { value: "yearly", label: "Cada año" },
 ];
-
-function ProjectSelect({
-  projectId,
-  onChange,
-}: {
-  taskId: string;
-  projectId: string | null;
-  onChange: (projectId: string | null) => void;
-}) {
-  const { data: allProjects } = useProjectList();
-  const options = [
-    { value: "none", label: "Sin proyecto" },
-    ...(allProjects ?? []).map((p) => ({ value: p.id, label: p.name })),
-  ];
-
-  return (
-    <Select
-      aria-label="Proyecto"
-      value={projectId ?? "none"}
-      onValueChange={(value) => onChange(value === "none" ? null : value)}
-      options={options}
-    />
-  );
-}
 
 interface TaskDetailSheetProps {
   taskId: string | null;
@@ -174,8 +151,7 @@ function TaskDetailForm({ task, onClose }: { task: TaskDto; onClose: () => void 
 
         <div>
           <Label htmlFor="task-project">Proyecto</Label>
-          <ProjectSelect
-            taskId={task.id}
+          <ProjectSelectField
             projectId={task.projectId}
             onChange={(projectId) => patch({ id: task.id, patch: { projectId } })}
           />
@@ -233,6 +209,8 @@ function TaskDetailForm({ task, onClose }: { task: TaskDto; onClose: () => void 
             />
           </div>
         </div>
+
+        <TaskLinkedNotes taskId={task.id} />
 
         <TaskReminderSection taskId={task.id} taskTitle={task.title} />
       </div>

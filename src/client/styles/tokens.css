@@ -9,6 +9,10 @@
  * duplicar lógica. El espaciado usa la escala de 4px propia de Tailwind.
  */
 
+/* El tema se controla con el atributo data-theme (no con la clase .dark de
+   Tailwind): este variant redirige `dark:` a ese atributo para quien lo use. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @theme {
   /* Neutros (piedra) */
   --color-bg: #fafaf9;
