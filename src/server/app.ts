@@ -11,6 +11,8 @@ import { eventsRoutes } from "./modules/events/routes";
 import { remindersRoutes } from "./modules/reminders/routes";
 import { notesRoutes } from "./modules/notes/routes";
 import { searchRoutes } from "./modules/search/routes";
+import { habitsRoutes } from "./modules/habits/routes";
+import { routinesRoutes } from "./modules/routines/routes";
 import { config } from "./config";
 
 export function createApp(): Hono {
@@ -39,7 +41,9 @@ export function createApp(): Hono {
     .route("/events", eventsRoutes)
     .route("/reminders", remindersRoutes)
     .route("/notes", notesRoutes)
-    .route("/search", searchRoutes);
+    .route("/search", searchRoutes)
+    .route("/habits", habitsRoutes)
+    .route("/routines", routinesRoutes);
 
   app.route("/api", api);
 
