@@ -1,0 +1,107 @@
+/*
+ * Tokens de diseño de LifeHub.
+ * Base neutra cálida (piedra) + un único acento (índigo) + colores
+ * semánticos para prioridad y estado.
+ *
+ * Los colores y radios se declaran dentro de @theme para que Tailwind
+ * genere utilidades (bg-accent, text-muted, rounded-md…) que referencian
+ * estas variables; el tema oscuro solo redefine las mismas variables, sin
+ * duplicar lógica. El espaciado usa la escala de 4px propia de Tailwind.
+ */
+
+@theme {
+  /* Neutros (piedra) */
+  --color-bg: #fafaf9;
+  --color-bg-elevated: #ffffff;
+  --color-bg-subtle: #f1f0ee;
+  --color-border: #e4e1dc;
+  --color-border-strong: #d2cec6;
+  --color-text: #1c1b19;
+  --color-text-muted: #6b6762;
+  --color-text-subtle: #908c85;
+
+  /* Acento */
+  --color-accent: #4338ca;
+  --color-accent-hover: #3730a3;
+  --color-accent-contrast: #ffffff;
+  --color-accent-soft: #eef2ff;
+
+  /* Semánticos */
+  --color-success: #15803d;
+  --color-success-soft: #ecfdf3;
+  --color-warning: #b45309;
+  --color-warning-soft: #fffbeb;
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fef2f2;
+  --color-info: #0369a1;
+  --color-info-soft: #f0f9ff;
+
+  /* Prioridad */
+  --color-priority-low: #6b7280;
+  --color-priority-normal: #0369a1;
+  --color-priority-high: #b45309;
+  --color-priority-urgent: #b91c1c;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
+}
+
+:root {
+  /* Sombras (sutiles, sin decoración gratuita) */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.08);
+  --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.14);
+
+  --z-sidebar: 10;
+  --z-overlay: 40;
+  --z-dialog: 50;
+  --z-toast: 60;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #15141a;
+  --color-bg-elevated: #1c1b22;
+  --color-bg-subtle: #23222a;
+  --color-border: #322f3a;
+  --color-border-strong: #43404d;
+  --color-text: #efedf3;
+  --color-text-muted: #a8a3b3;
+  --color-text-subtle: #7c7788;
+
+  --color-accent: #818cf8;
+  --color-accent-hover: #a5b0fb;
+  --color-accent-contrast: #15131f;
+  --color-accent-soft: #292560;
+
+  --color-success: #4ade80;
+  --color-success-soft: #0f2a1a;
+  --color-warning: #fbbf24;
+  --color-warning-soft: #332305;
+  --color-danger: #f87171;
+  --color-danger-soft: #341315;
+  --color-info: #38bdf8;
+  --color-info-soft: #0b2436;
+
+  --color-priority-low: #9ca3af;
+  --color-priority-normal: #38bdf8;
+  --color-priority-high: #fbbf24;
+  --color-priority-urgent: #f87171;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+  }
+}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LifeHub</title>
+    <meta name="description" content="LifeHub — tu centro de organización personal." />
+  </head>
+  <body>
+    <script>
+      // Pinta el tema conocido antes del primer render para evitar parpadeos.
+      // La fuente de verdad sigue siendo el servidor; esto es solo una caché
+      // de pintado para este navegador, nunca el único lugar donde se guarda.
+      (function () {
+        try {
+          var cached = localStorage.getItem("lifehub:theme");
+          var theme = cached === "light" || cached === "dark" ? cached : null;
+          if (!theme) {
+            theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (_) {
+          /* localStorage puede no estar disponible; se usará el tema por defecto. */
+        }
+      })();
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/main.tsx"></script>
+  </body>
+</html>

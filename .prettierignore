@@ -1,0 +1,7 @@
+dist
+node_modules
+src/server/db/migrations
+coverage
+playwright-report
+test-results
+package-lock.json

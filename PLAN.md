@@ -1,29 +1,60 @@
 # LifeHub — Plan de desarrollo
 
-> Estado: **Fase 0 (planificación) completada.** Implementación pendiente de aprobación explícita.
+> Estado: **Fase 1 (Fundamentos) completada** el 2026-10-15. Fase 2 pendiente de aprobación explícita.
 
 ## Estado de las fases
 
-| # | Fase | Estado |
-|---|---|---|
-| 1 | Fundamentos | Pendiente |
-| 2 | Tareas, Inbox, captura rápida, Dashboard v1 | Pendiente |
-| 3 | Proyectos e hitos | Pendiente |
-| 4 | Calendario y recordatorios | Pendiente |
-| 5 | Notas, diario y búsqueda global | Pendiente |
-| 6 | Hábitos y rutinas; dashboard configurable | Pendiente |
-| 7 | Ajustes, exportación, copias y restauración | Pendiente |
-| 8 | QA, accesibilidad y pulido | Pendiente |
+| #   | Fase                                        | Estado        |
+| --- | ------------------------------------------- | ------------- |
+| 1   | Fundamentos                                 | ✅ Completada |
+| 2   | Tareas, Inbox, captura rápida, Dashboard v1 | Pendiente     |
+| 3   | Proyectos e hitos                           | Pendiente     |
+| 4   | Calendario y recordatorios                  | Pendiente     |
+| 5   | Notas, diario y búsqueda global             | Pendiente     |
+| 6   | Hábitos y rutinas; dashboard configurable   | Pendiente     |
+| 7   | Ajustes, exportación, copias y restauración | Pendiente     |
+| 8   | QA, accesibilidad y pulido                  | Pendiente     |
 
 ## Situación inicial
 
 Directorio vacío (sin archivos ni git) a 2026-10-15. Entorno: Linux, Node v24.15.0, npm 11.12.1; `ollama` no está en el PATH (se verificará en la fase de IA; no bloquea el núcleo).
+
+## Fase 1 — Fundamentos (completada el 2026-10-15)
+
+**Implementado:**
+
+- Scaffold completo: TypeScript estricto, Vite + React 19, Tailwind v4 (tokens en `src/client/styles/tokens.css`), ESLint (flat config), Prettier, Vitest, Playwright.
+- Modelo de datos completo (20 tablas + FTS5) en `src/server/db/schema/*.ts`, migraciones generadas con drizzle-kit, aplicadas automáticamente al arrancar (`src/server/db/migrate.ts`).
+- Servidor Hono (`src/server/app.ts`) con manejo de errores centralizado (`AppError` → `{ error: { code, message, fields? } }`), validación Zod compartida cliente/servidor.
+- Primer módulo real de extremo a extremo (ajustes: tema, inicio de semana, zona horaria) — sirve de plantilla para el resto de módulos.
+- Copias de seguridad automáticas al arrancar (`src/server/backup/snapshot.ts`, API de backup online de SQLite) con rotación; listado de solo lectura en Ajustes.
+- Shell de navegación responsive (sidebar en escritorio/tablet, barra inferior en móvil), con las 8 secciones enlazadas; las que aún no tienen módulo muestran un estado vacío honesto indicando en qué fase llegarán.
+- Dashboard "Hoy" con saludo, fecha y widgets en estado vacío real (sin datos simulados).
+- Tema claro/oscuro/sistema persistido en el servidor, aplicado sin parpadeo (caché de pintado en `localStorage`, fuente de verdad en la BD).
+- Sistema de toasts (Radix) conectado al `QueryClient` global: cualquier error de API se muestra de forma legible.
+- Componentes de UI base: `Button`, `Select`, `Toast`, `EmptyState`, `Skeleton`.
+
+**Probado** (comandos ejecutados en esta sesión, todos en verde):
+
+- `npx tsc --noEmit` — sin errores.
+- `npx eslint .` — sin errores ni avisos.
+- `npx vitest run` — 14/14 tests (esquema de ajustes, `AppError`/`parseOrThrow`, servicio de ajustes contra SQLite real con migraciones aplicadas, `EmptyState`, toast-on-error).
+- `npx playwright test` — 9/9 tests en Desktop (1440px)/Tablet (768px)/Mobile (390px): navegación por teclado a las 8 secciones, persistencia del tema tras recargar, barra inferior visible en móvil.
+- Arranque manual del servidor y del cliente (dev y producción/`vite build`): API de ajustes (GET/PATCH con validación 400, 404 en rutas inexistentes), proxy cliente→servidor, estáticos + fallback SPA en producción, copia de seguridad creada al arrancar — todo verificado con `curl` contra una base de datos real.
+
+**Pendiente / fuera de alcance de esta fase** (según PLAN.md, se abordará en fases siguientes):
+
+- Verificación visual en un navegador real (este entorno no tiene la extensión de Chrome conectada); se recomienda abrir `npm run dev` y revisarlo manualmente.
+- Paleta de comandos, atajos "G + letra" y captura rápida (fase 2).
+- Exportación, copia manual y restauración de datos (fase 7).
+- División de código del bundle cliente (Vite avisa de un chunk >500 kB con Radix+TipTap; no es bloqueante, se revisará en la fase 8).
 
 ## 1. Requisitos
 
 **Funcionales** — módulos A–I tal como los especificó el usuario (Dashboard Today, Calendario, Tareas, Notas y diario, Proyectos y objetivos, Hábitos y rutinas, Inbox, Búsqueda global, Ajustes y datos). Sin integraciones externas simuladas.
 
 **No funcionales**
+
 - Local-first: un proceso Node en `127.0.0.1`, una base SQLite en disco. Sin nube, sin Docker, sin cuentas.
 - Arranque con `npm install && npm run dev` (o `npm start` tras `build`).
 - TypeScript estricto extremo a extremo; validación con el mismo esquema Zod en cliente y servidor.
@@ -35,24 +66,24 @@ Directorio vacío (sin archivos ni git) a 2026-10-15. Entorno: Linux, Node v24.1
 
 ## 2. Stack y justificación
 
-| Capa | Elección | Por qué |
-|---|---|---|
-| Lenguaje | TypeScript (strict) | Tipado compartido cliente/servidor. |
-| Frontend | React 19 + Vite | Ecosistema maduro, HMR rápido, SPA suficiente (sin SEO ni SSR). |
-| Routing | React Router (modo SPA) | Rutas anidadas, URL como estado (filtros, fecha visible). |
-| Estado servidor | TanStack Query | Caché, invalidación entre módulos (completar tarea → dashboard/proyecto se actualizan), optimistic updates. |
-| Estilos | Tailwind CSS v4 + tokens CSS propios | Sistema de diseño con variables (claro/oscuro) sin CSS disperso. |
-| Primitivas UI | Radix UI (dialog, popover, dropdown, tooltip…) + componentes propios | Accesibilidad resuelta sin imponer estética. |
-| Iconos | lucide-react | Consistentes, tree-shakeable, sin emojis. |
-| Editor | TipTap (ProseMirror) con contenido guardado en **Markdown** | Formato portable, exportable y legible por un LLM. |
-| Fechas | date-fns + @date-fns/tz | Funcional, inmutable, soporte IANA. |
-| Recurrencia | `rrule` (RFC 5545) | Estándar probado; evita implementar recurrencias a mano. |
-| Servidor | Hono sobre `@hono/node-server` | Ligero, tipado, validador Zod integrado, cliente RPC tipado. |
-| BD | SQLite (`better-sqlite3`) + Drizzle ORM y drizzle-kit | Archivo único, transacciones síncronas, FTS5 para búsqueda, migraciones SQL versionadas. |
-| Validación | Zod | Un esquema en `src/shared` usado por formularios y endpoints. |
-| Formularios | react-hook-form + resolver Zod | Validación cómoda y errores por campo. |
-| Tests | Vitest (unidad + API con BD en memoria), Testing Library, Playwright (E2E y viewports) | Cubren los flujos de la sección 9. |
-| Calidad | ESLint + Prettier, `tsc --noEmit` | Comprobación en cada fase. |
+| Capa            | Elección                                                                               | Por qué                                                                                                     |
+| --------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Lenguaje        | TypeScript (strict)                                                                    | Tipado compartido cliente/servidor.                                                                         |
+| Frontend        | React 19 + Vite                                                                        | Ecosistema maduro, HMR rápido, SPA suficiente (sin SEO ni SSR).                                             |
+| Routing         | React Router (modo SPA)                                                                | Rutas anidadas, URL como estado (filtros, fecha visible).                                                   |
+| Estado servidor | TanStack Query                                                                         | Caché, invalidación entre módulos (completar tarea → dashboard/proyecto se actualizan), optimistic updates. |
+| Estilos         | Tailwind CSS v4 + tokens CSS propios                                                   | Sistema de diseño con variables (claro/oscuro) sin CSS disperso.                                            |
+| Primitivas UI   | Radix UI (dialog, popover, dropdown, tooltip…) + componentes propios                   | Accesibilidad resuelta sin imponer estética.                                                                |
+| Iconos          | lucide-react                                                                           | Consistentes, tree-shakeable, sin emojis.                                                                   |
+| Editor          | TipTap (ProseMirror) con contenido guardado en **Markdown**                            | Formato portable, exportable y legible por un LLM.                                                          |
+| Fechas          | date-fns + @date-fns/tz                                                                | Funcional, inmutable, soporte IANA.                                                                         |
+| Recurrencia     | `rrule` (RFC 5545)                                                                     | Estándar probado; evita implementar recurrencias a mano.                                                    |
+| Servidor        | Hono sobre `@hono/node-server`                                                         | Ligero, tipado, validador Zod integrado, cliente RPC tipado.                                                |
+| BD              | SQLite (`better-sqlite3`) + Drizzle ORM y drizzle-kit                                  | Archivo único, transacciones síncronas, FTS5 para búsqueda, migraciones SQL versionadas.                    |
+| Validación      | Zod                                                                                    | Un esquema en `src/shared` usado por formularios y endpoints.                                               |
+| Formularios     | react-hook-form + resolver Zod                                                         | Validación cómoda y errores por campo.                                                                      |
+| Tests           | Vitest (unidad + API con BD en memoria), Testing Library, Playwright (E2E y viewports) | Cubren los flujos de la sección 9.                                                                          |
+| Calidad         | ESLint + Prettier, `tsc --noEmit`                                                      | Comprobación en cada fase.                                                                                  |
 
 Versiones: se fijan las últimas estables al instalar (lockfile versionado). Descartados: Next.js (SSR innecesario, mezcla capas), IndexedDB puro (sin validación de servidor ni punto seguro para el asistente IA), Electron/Tauri (empaquetado extra; posible ampliación futura), Prisma (motor binario más pesado).
 
@@ -73,6 +104,7 @@ Servidor Hono
 ```
 
 Principios:
+
 - **Los services son la única puerta a los datos.** Las rutas no contienen SQL; el futuro asistente tampoco. Así validación, reglas (progreso, rachas, recurrencia) y auditoría viven en un solo sitio.
 - Lógica pura (cálculo de rachas, progreso, expansión de recurrencias, detección de conflictos) en `src/shared/domain` o `src/server/domain`, sin I/O, testeable con unidad.
 - Errores: clase `AppError` (`code`, `status`, `details`) + middleware único → respuesta `{ error: { code, message, fields? } }`; el cliente la traduce a toasts o errores de campo. Error boundary por ruta.
@@ -163,16 +195,16 @@ Identidad visual: base neutra cálida (grises piedra), un único color de acento
 
 Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el eje al que se vinculan tareas, eventos y notas; hacerlo tarde obligaría a rehacer formularios y vistas) y el **dashboard crece en cada fase** en vez de construirse de una vez. Cada fase termina con la app arrancando, tests en verde y README actualizado.
 
-| # | Fase | Depende de |
-|---|---|---|
-| 1 | Fundamentos: scaffold, tokens/tema, componentes UI base, shell y navegación responsive, BD+migraciones, manejo de errores, ajustes de tema, snapshot automático de BD, infra de tests, `git init` | — |
-| 2 | Tareas + etiquetas + Inbox + captura rápida + Dashboard v1 (tareas) + paleta de comandos (navegación) | 1 |
-| 3 | Proyectos e hitos, vinculación tarea↔proyecto, progreso, dashboard: proyectos activos | 2 |
-| 4 | Calendario (3 vistas, recurrencia, bloques, conflictos, tareas programadas) + recordatorios + dashboard: agenda | 3 |
-| 5 | Notas, diario, autoguardado, vínculos nota↔tarea/proyecto, búsqueda global FTS | 3 |
-| 6 | Hábitos, rutinas, estadísticas; dashboard configurable completo | 2 |
-| 7 | Ajustes y datos: preferencias, exportar JSON, restaurar con validación, papelera, borrado total | 1–6 |
-| 8 | QA: E2E completos, accesibilidad, responsive, rendimiento, pulido visual, auditoría de "botones sin función", README final | 1–7 |
+| #   | Fase                                                                                                                                                                                              | Depende de |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 1   | Fundamentos: scaffold, tokens/tema, componentes UI base, shell y navegación responsive, BD+migraciones, manejo de errores, ajustes de tema, snapshot automático de BD, infra de tests, `git init` | —          |
+| 2   | Tareas + etiquetas + Inbox + captura rápida + Dashboard v1 (tareas) + paleta de comandos (navegación)                                                                                             | 1          |
+| 3   | Proyectos e hitos, vinculación tarea↔proyecto, progreso, dashboard: proyectos activos                                                                                                             | 2          |
+| 4   | Calendario (3 vistas, recurrencia, bloques, conflictos, tareas programadas) + recordatorios + dashboard: agenda                                                                                   | 3          |
+| 5   | Notas, diario, autoguardado, vínculos nota↔tarea/proyecto, búsqueda global FTS                                                                                                                    | 3          |
+| 6   | Hábitos, rutinas, estadísticas; dashboard configurable completo                                                                                                                                   | 2          |
+| 7   | Ajustes y datos: preferencias, exportar JSON, restaurar con validación, papelera, borrado total                                                                                                   | 1–6        |
+| 8   | QA: E2E completos, accesibilidad, responsive, rendimiento, pulido visual, auditoría de "botones sin función", README final                                                                        | 1–7        |
 
 ### Criterios de aceptación por fase
 
@@ -202,13 +234,13 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 
 ## 11. Riesgos y decisiones
 
-| Riesgo | Mitigación |
-|---|---|
-| `better-sqlite3` es nativo (compilación) | Node 24 tiene binarios precompilados; si falla, documentar `build-essential`/`python3`. Alternativa: `node:sqlite`. |
-| Recurrencias + zonas horarias + DST | `rrule` + `@date-fns/tz`, expansión en servidor, tests específicos de DST. |
-| Editor rico ↔ Markdown con pérdidas | Limitar a formato básico (títulos, listas, checklist, negrita/cursiva, enlaces, código, citas) con tests de ida y vuelta. |
-| Calendario hecho a mano es costoso | Vistas propias (sin librería pesada) acotadas a mes/semana/día; arrastrar para crear/mover en semana/día; redimensionar como mejora posterior si se complica. |
-| Recordatorios sin la app abierta | Limitación declarada; posible ampliación con PWA/servicio de sistema. |
-| Alcance amplio | Fases cortas, cada una usable; nada de funciones "a medias" visibles en la UI. |
-| Pérdida de datos | Papelera, deshacer, snapshots, autoguardado, confirmaciones, migraciones con snapshot previo. |
-| Exposición en red | Servidor ligado a 127.0.0.1; sin CORS abierto. |
+| Riesgo                                   | Mitigación                                                                                                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `better-sqlite3` es nativo (compilación) | Node 24 tiene binarios precompilados; si falla, documentar `build-essential`/`python3`. Alternativa: `node:sqlite`.                                           |
+| Recurrencias + zonas horarias + DST      | `rrule` + `@date-fns/tz`, expansión en servidor, tests específicos de DST.                                                                                    |
+| Editor rico ↔ Markdown con pérdidas      | Limitar a formato básico (títulos, listas, checklist, negrita/cursiva, enlaces, código, citas) con tests de ida y vuelta.                                     |
+| Calendario hecho a mano es costoso       | Vistas propias (sin librería pesada) acotadas a mes/semana/día; arrastrar para crear/mover en semana/día; redimensionar como mejora posterior si se complica. |
+| Recordatorios sin la app abierta         | Limitación declarada; posible ampliación con PWA/servicio de sistema.                                                                                         |
+| Alcance amplio                           | Fases cortas, cada una usable; nada de funciones "a medias" visibles en la UI.                                                                                |
+| Pérdida de datos                         | Papelera, deshacer, snapshots, autoguardado, confirmaciones, migraciones con snapshot previo.                                                                 |
+| Exposición en red                        | Servidor ligado a 127.0.0.1; sin CORS abierto.                                                                                                                |
