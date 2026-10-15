@@ -45,7 +45,7 @@ export const routinesRoutes = new Hono()
     return c.json(service.updateStep(c.req.param("id"), c.req.param("stepId"), body));
   })
   .delete("/:id/steps/:stepId", (c) => c.json(service.deleteStep(c.req.param("id"), c.req.param("stepId"))))
-  .put("/:id/steps/:stepId/logs/:date", (c) => {
+  .post("/:id/steps/:stepId/logs/:date", (c) => {
     assertDate(c.req.param("date"));
     return c.json(service.setStepLog(c.req.param("id"), c.req.param("stepId"), c.req.param("date"), true));
   })

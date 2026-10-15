@@ -24,7 +24,7 @@ export const habitsRoutes = new Hono()
     return c.body(null, 204);
   })
   .post("/:id/restore", (c) => c.json(service.restoreHabit(c.req.param("id"))))
-  .put("/:id/logs/:date", (c) => {
+  .post("/:id/logs/:date", (c) => {
     const date = c.req.param("date");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       throw AppError.validation("Fecha inválida (se espera AAAA-MM-DD).");
