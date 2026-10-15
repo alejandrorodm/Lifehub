@@ -36,9 +36,9 @@ export default tseslint.config(
     },
   },
   {
-    // Primitivas de UI reutilizables: es habitual exportar el componente
-    // junto con su hook o tipos asociados en el mismo archivo.
-    files: ["src/client/components/ui/**/*.tsx"],
+    // Primitivas de UI y proveedores de contexto: es habitual exportar el
+    // componente junto con su hook o tipos asociados en el mismo archivo.
+    files: ["src/client/components/ui/**/*.tsx", "src/client/app/shortcuts/ShortcutsContext.tsx"],
     rules: {
       "react-refresh/only-export-components": "off",
     },

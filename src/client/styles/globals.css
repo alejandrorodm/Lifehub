@@ -16,6 +16,13 @@
     color-scheme: dark;
   }
 
+  html,
+  body {
+    /* Red de seguridad: ningún elemento interno debe poder empujar el ancho
+       de la página y descolocar la navegación fija, sobre todo en móvil. */
+    overflow-x: hidden;
+  }
+
   body {
     margin: 0;
     background-color: var(--color-bg);

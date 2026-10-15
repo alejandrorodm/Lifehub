@@ -1,6 +1,22 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { Search, Plus } from "lucide-react";
 import { primaryNavItems, secondaryNavItems, type NavItem } from "./navigation";
 import { cn } from "@client/lib/utils";
+import { useInboxCount } from "@client/features/inbox/useInbox";
+import { ShortcutsProvider, useShortcuts } from "./shortcuts/ShortcutsContext";
+
+function NavBadge({ item }: { item: NavItem }) {
+  const { data } = useInboxCount();
+  if (item.to !== "/inbox" || !data || data.open === 0) return null;
+  return (
+    <span
+      aria-hidden="true"
+      className="ml-auto rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-semibold leading-none text-accent-contrast"
+    >
+      {data.open}
+    </span>
+  );
+}
 
 function SidebarLink({ item }: { item: NavItem }) {
   const Icon = item.icon;
@@ -17,6 +33,7 @@ function SidebarLink({ item }: { item: NavItem }) {
     >
       <Icon className="size-4.5 shrink-0" aria-hidden />
       <span>{item.label}</span>
+      <NavBadge item={item} />
     </NavLink>
   );
 }
@@ -29,7 +46,7 @@ function BottomNavLink({ item }: { item: NavItem }) {
       end={item.to === "/"}
       className={({ isActive }) =>
         cn(
-          "flex min-w-16 flex-col items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium",
+          "relative flex min-w-16 flex-col items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium",
           isActive ? "text-accent" : "text-text-muted",
         )
       }
@@ -40,10 +57,35 @@ function BottomNavLink({ item }: { item: NavItem }) {
   );
 }
 
-export function AppShell() {
+function ShellHeaderActions() {
+  const { openPalette, openCapture } = useShortcuts();
+  return (
+    <div className="flex items-center gap-1 px-1 pb-3">
+      <button
+        type="button"
+        onClick={openPalette}
+        className="flex flex-1 items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm text-text-muted hover:border-border-strong hover:text-text"
+      >
+        <Search className="size-3.5" aria-hidden />
+        <span className="flex-1 text-left">Buscar</span>
+        <kbd className="rounded border border-border px-1 text-[10px]">⌘K</kbd>
+      </button>
+      <button
+        type="button"
+        onClick={openCapture}
+        aria-label="Captura rápida"
+        title="Captura rápida (C)"
+        className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border text-text-muted hover:border-border-strong hover:text-text"
+      >
+        <Plus className="size-4" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+function AppShellContent() {
   return (
     <div className="flex min-h-screen bg-bg text-text">
-      {/* Navegación lateral — escritorio y tablet */}
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[var(--z-dialog)] focus:rounded-md focus:bg-accent focus:px-3 focus:py-2 focus:text-accent-contrast"
@@ -51,13 +93,15 @@ export function AppShell() {
         Saltar al contenido principal
       </a>
 
+      {/* Navegación lateral — escritorio y tablet */}
       <nav
         aria-label="Navegación principal"
         className="hidden w-60 shrink-0 flex-col border-r border-border bg-bg-elevated p-3 md:flex"
       >
-        <div className="mb-4 px-2 pt-1">
+        <div className="mb-2 px-2 pt-1">
           <span className="text-base font-semibold tracking-tight">LifeHub</span>
         </div>
+        <ShellHeaderActions />
         <div className="flex flex-1 flex-col gap-0.5">
           {primaryNavItems.map((item) => (
             <SidebarLink key={item.to} item={item} />
@@ -86,5 +130,13 @@ export function AppShell() {
         ))}
       </nav>
     </div>
+  );
+}
+
+export function AppShell() {
+  return (
+    <ShortcutsProvider>
+      <AppShellContent />
+    </ShortcutsProvider>
   );
 }

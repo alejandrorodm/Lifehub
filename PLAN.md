@@ -1,13 +1,13 @@
 # LifeHub — Plan de desarrollo
 
-> Estado: **Fase 1 (Fundamentos) completada** el 2026-10-15. Fase 2 pendiente de aprobación explícita.
+> Estado: **Fase 2 (Tareas, Inbox, captura rápida, Dashboard v1) completada** el 2026-10-15. Fase 3 pendiente de aprobación explícita.
 
 ## Estado de las fases
 
 | #   | Fase                                        | Estado        |
 | --- | ------------------------------------------- | ------------- |
 | 1   | Fundamentos                                 | ✅ Completada |
-| 2   | Tareas, Inbox, captura rápida, Dashboard v1 | Pendiente     |
+| 2   | Tareas, Inbox, captura rápida, Dashboard v1 | ✅ Completada |
 | 3   | Proyectos e hitos                           | Pendiente     |
 | 4   | Calendario y recordatorios                  | Pendiente     |
 | 5   | Notas, diario y búsqueda global             | Pendiente     |
@@ -48,6 +48,41 @@ Directorio vacío (sin archivos ni git) a 2026-10-15. Entorno: Linux, Node v24.1
 - Paleta de comandos, atajos "G + letra" y captura rápida (fase 2).
 - Exportación, copia manual y restauración de datos (fase 7).
 - División de código del bundle cliente (Vite avisa de un chunk >500 kB con Radix+TipTap; no es bloqueante, se revisará en la fase 8).
+
+## Fase 2 — Tareas, Inbox, captura rápida y Dashboard v1 (completada el 2026-10-15)
+
+**Implementado:**
+
+- Módulo de tareas completo (`src/server/modules/tasks`): CRUD, subtareas (un nivel), checklist, etiquetas (crear/reutilizar por nombre), 5 vistas (Hoy/Próximas/Atrasadas/Completadas/Todas) calculadas con la zona horaria de ajustes (`@shared/domain/dates`, nunca `new Date()` suelto), filtros por proyecto/etiqueta/prioridad/búsqueda, papelera (borrado suave) con restauración.
+- Recurrencia de tareas (`daily|weekly|monthly|yearly`, `src/server/domain/recurrence.ts` sobre `rrule`): al completar una tarea recurrente, modelo Todoist — avanza su fecha y sigue activa en vez de archivarse; una tarea normal se completa de verdad.
+- Módulo de Inbox (`src/server/modules/inbox`): captura, listado, archivado y conversión a tarea.
+- Cliente: página de Tareas con pestañas de vista, alta rápida, panel de detalle (`TaskDetailSheet`) con checklist, subtareas, etiquetas, prioridad, fecha/hora y repetición; página de Inbox real; Dashboard "Hoy" con el widget "Prioritarias y atrasadas" conectado a datos reales y contador de pendientes/completadas hoy.
+- Captura rápida global (atajo `C`/`Q`, ≤2 pasos) e inbox con contador visible en la navegación.
+- Paleta de comandos (`Ctrl/⌘+K`): navegación a las 8 secciones + capturar. Atajos: `G` + letra (ir a), `N` (nuevo, delegado a la pantalla activa), `J`/`K` (mover selección), `X` (completar la tarea seleccionada), `?` (ayuda).
+- Componentes de UI nuevos: `Dialog`, `Sheet`, `Checkbox`, `Input`/`Textarea`/`Label`.
+- Sin tablas nuevas: el modelo de datos completo ya existía desde la fase 1; esta fase solo añadió servicios y rutas sobre él.
+
+**Probado** (comandos ejecutados en esta sesión, todos en verde):
+
+- `npx tsc --noEmit`, `npx eslint .` — sin errores.
+- `npx vitest run` — 25/25 tests, incluyendo 11 nuevos de integración sobre SQLite real: vistas por fecha, avance de recurrencia al completar, NO avance en tareas sin recurrencia, reapertura limpia `completedAt`, reutilización de etiquetas por nombre, subtareas y su recuento, checklist, borrado suave + restauración + cascada a subtareas, captura→conversión de inbox.
+- `npx playwright test` — 14/14 (10 omitidos a propósito: los flujos que mutan datos se verifican una sola vez en Desktop para no duplicar datos entre los tres proyectos de viewport, que comparten servidor). Cubre: crear/abrir/completar una tarea con checklist, eliminar con confirmación, captura rápida → inbox → conversión a tarea, paleta de comandos navegando por teclado, atajo "G T".
+- **Bug real encontrado y corregido por los propios tests E2E**: en el viewport móvil, la barra de pestañas de vistas de Tareas desbordaba el ancho de la página (sin scroll ni wrap), lo que inflaba el _layout viewport_ y descolocaba la barra de navegación inferior (quedaba fuera del área clicable). Se corrigió con `overflow-x-auto` en las pestañas y una red de seguridad (`overflow-x: hidden` en `html,body`).
+- **Bug real encontrado y corregido por un test de integración**: `SettingsPatchSchema` (fase 1) aplicaba los `.default()` de Zod a los campos ausentes de un PATCH parcial, sobrescribiéndolos; ver fase 1. (Referencia cruzada, no de esta fase.)
+- Verificado manualmente con `curl` contra una base de datos real: creación con etiquetas y recurrencia, las 5 vistas, resumen del dashboard, checklist, avance de recurrencia al completar, borrado+restauración, captura+conversión, validación 400 en título vacío, subtareas.
+
+**Pendiente / fuera de alcance de esta fase:**
+
+- Verificación visual en navegador real (sin extensión de Chrome conectada en este entorno).
+- "Convertir en nota" / "mover a proyecto" desde el Inbox: no tienen sentido todavía sin los módulos de Notas (fase 5) y Proyectos (fase 3); el Inbox solo ofrece "convertir en tarea" y "archivar".
+- Recordatorios de tareas (dependen del módulo de Calendario, fase 4).
+- Reordenar tareas/checklist por arrastre (drag & drop): se usa el campo `position` pero todavía no hay UI para reordenar a mano.
+- Deshacer tras eliminar (se optó por una confirmación de dos pasos en su lugar; ver decisión más abajo).
+
+**Decisiones de esta fase:**
+
+- _Historial de recurrencia_: en vez de una tabla de log de completados, se interpretó "conservando historial" como que la tarea recurrente conserva su identidad (notas, checklist, etiquetas) en vez de recrearse en cada ocurrencia. Si se necesita un registro literal de cada completado (útil para estadísticas en la fase 6), se añadirá entonces como una tabla nueva.
+- _Confirmación vs. deshacer_ al eliminar una tarea: se implementó una confirmación de dos pasos dentro del propio panel de detalle en vez de un botón "Deshacer" en el toast, por simplicidad; ambas opciones cumplen el requisito de AGENTS.md.
 
 ## 1. Requisitos
 

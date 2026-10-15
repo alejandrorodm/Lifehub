@@ -3,6 +3,9 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { AppError, toApiErrorBody } from "./lib/errors";
 import { settingsRoutes } from "./modules/settings/routes";
 import { dataRoutes } from "./modules/data/routes";
+import { tasksRoutes } from "./modules/tasks/routes";
+import { tagsRoutes } from "./modules/tasks/tagsRoutes";
+import { inboxRoutes } from "./modules/inbox/routes";
 import { config } from "./config";
 
 export function createApp(): Hono {
@@ -21,7 +24,12 @@ export function createApp(): Hono {
     c.json(toApiErrorBody(new AppError("NOT_FOUND", "El recurso solicitado no existe.")), 404),
   );
 
-  const api = new Hono().route("/settings", settingsRoutes).route("/data", dataRoutes);
+  const api = new Hono()
+    .route("/settings", settingsRoutes)
+    .route("/data", dataRoutes)
+    .route("/tasks", tasksRoutes)
+    .route("/tags", tagsRoutes)
+    .route("/inbox", inboxRoutes);
 
   app.route("/api", api);
 

@@ -6,8 +6,8 @@
   "description": "LifeHub — centro de organización personal, local-first.",
   "scripts": {
     "dev": "concurrently -n server,client -c blue,green \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:client": "vite --host 0.0.0.0",
     "dev:server": "tsx watch src/server/index.ts",
-    "dev:client": "vite",
     "build": "vite build",
     "start": "cross-env NODE_ENV=production tsx src/server/index.ts",
     "typecheck": "tsc --noEmit",
