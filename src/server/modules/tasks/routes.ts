@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { parseOrThrow } from "../../lib/validate";
+import { AppError } from "../../lib/errors";
 import {
   TaskCreateSchema,
   TaskPatchSchema,
@@ -25,6 +26,12 @@ export const tasksRoutes = new Hono()
   })
   .get("/summary", (c) => {
     return c.json(service.countTasksByStatus());
+  })
+  .get("/scheduled", (c) => {
+    const start = c.req.query("start");
+    const end = c.req.query("end");
+    if (!start || !end) throw new AppError("BAD_REQUEST", "Faltan los parámetros start/end.");
+    return c.json(service.listScheduledTasks(start, end));
   })
   .post("/", async (c) => {
     const body = parseOrThrow(TaskCreateSchema, await c.req.json().catch(() => ({})));

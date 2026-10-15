@@ -9,6 +9,9 @@ import { useToday } from "@client/lib/useToday";
 import { usePriorityAndOverdue, useTasksSummary, useUpdateTask } from "@client/features/tasks/useTasks";
 import { PRIORITY_DOT_CLASS, formatDueDate } from "@client/features/tasks/taskDisplay";
 import { useActiveProjects } from "@client/features/projects/useProjects";
+import { useUpcomingEvents } from "@client/features/calendar/useEvents";
+import { useUpcomingReminders } from "@client/features/reminders/useReminders";
+import { KIND_LABEL } from "@client/features/calendar/eventDisplay";
 import { ProgressBar } from "@client/components/ui/ProgressBar";
 import { cn } from "@client/lib/utils";
 
@@ -123,6 +126,82 @@ function ActiveProjectsWidget() {
   );
 }
 
+function AgendaWidget() {
+  const { data: occurrences, isLoading } = useUpcomingEvents(7, 6);
+
+  if (isLoading) return <div className="h-32" />;
+
+  if (!occurrences || occurrences.length === 0) {
+    return (
+      <EmptyState
+        icon={CalendarClock}
+        title="Sin eventos próximos"
+        description="Crea uno desde el calendario."
+        className="py-10"
+      />
+    );
+  }
+
+  return (
+    <ul className="divide-y divide-border">
+      {occurrences.map((occ) => (
+        <li key={occ.id} className="px-4 py-2.5">
+          <Link to="/calendar" className="truncate text-sm text-text hover:underline">
+            {occ.title}
+          </Link>
+          <div className="text-xs text-text-muted">
+            {occ.allDay
+              ? "Todo el día"
+              : new Date(occ.startAt).toLocaleString("es", {
+                  day: "2-digit",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+            {" · "}
+            {KIND_LABEL[occ.kind]}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function RemindersWidget() {
+  const { data: reminders, isLoading } = useUpcomingReminders();
+
+  if (isLoading) return <div className="h-32" />;
+
+  if (!reminders || reminders.length === 0) {
+    return (
+      <EmptyState
+        icon={Bell}
+        title="Sin recordatorios"
+        description="Añade uno desde una tarea o un evento."
+        className="py-10"
+      />
+    );
+  }
+
+  return (
+    <ul className="divide-y divide-border">
+      {reminders.map((r) => (
+        <li key={r.id} className="px-4 py-2.5">
+          <p className="truncate text-sm text-text">{r.title}</p>
+          <p className="text-xs text-text-muted">
+            {new Date(r.remindAt).toLocaleString("es", {
+              day: "2-digit",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function SummaryBar() {
   const { data } = useTasksSummary();
   if (!data) return null;
@@ -158,12 +237,7 @@ export function TodayPage() {
           <PriorityWidget />
         </Widget>
         <Widget title="Agenda de hoy">
-          <EmptyState
-            icon={CalendarClock}
-            title="Todavía no hay calendario"
-            description="Los próximos eventos aparecerán aquí a partir de la fase 4."
-            className="py-10"
-          />
+          <AgendaWidget />
         </Widget>
         <Widget title="Hábitos de hoy">
           <EmptyState
@@ -174,12 +248,7 @@ export function TodayPage() {
           />
         </Widget>
         <Widget title="Recordatorios">
-          <EmptyState
-            icon={Bell}
-            title="Sin recordatorios"
-            description="Podrás crear recordatorios asociados a tareas y eventos desde la fase 4."
-            className="py-10"
-          />
+          <RemindersWidget />
         </Widget>
         <Widget title="Proyectos activos">
           <ActiveProjectsWidget />

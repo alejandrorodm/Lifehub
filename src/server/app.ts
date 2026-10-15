@@ -7,6 +7,8 @@ import { tasksRoutes } from "./modules/tasks/routes";
 import { tagsRoutes } from "./modules/tasks/tagsRoutes";
 import { inboxRoutes } from "./modules/inbox/routes";
 import { projectsRoutes } from "./modules/projects/routes";
+import { eventsRoutes } from "./modules/events/routes";
+import { remindersRoutes } from "./modules/reminders/routes";
 import { config } from "./config";
 
 export function createApp(): Hono {
@@ -31,7 +33,9 @@ export function createApp(): Hono {
     .route("/tasks", tasksRoutes)
     .route("/tags", tagsRoutes)
     .route("/inbox", inboxRoutes)
-    .route("/projects", projectsRoutes);
+    .route("/projects", projectsRoutes)
+    .route("/events", eventsRoutes)
+    .route("/reminders", remindersRoutes);
 
   app.route("/api", api);
 

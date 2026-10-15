@@ -1,6 +1,6 @@
 # LifeHub — Plan de desarrollo
 
-> Estado: **Fase 3 (Proyectos e hitos) completada** el 2026-10-15. Fase 4 pendiente de aprobación explícita.
+> Estado: **Fase 4 (Calendario y recordatorios) completada** el 2026-10-15. Fase 5 pendiente de aprobación explícita.
 
 ## Estado de las fases
 
@@ -9,7 +9,7 @@
 | 1   | Fundamentos                                 | ✅ Completada |
 | 2   | Tareas, Inbox, captura rápida, Dashboard v1 | ✅ Completada |
 | 3   | Proyectos e hitos                           | ✅ Completada |
-| 4   | Calendario y recordatorios                  | Pendiente     |
+| 4   | Calendario y recordatorios                  | ✅ Completada |
 | 5   | Notas, diario y búsqueda global             | Pendiente     |
 | 6   | Hábitos y rutinas; dashboard configurable   | Pendiente     |
 | 7   | Ajustes, exportación, copias y restauración | Pendiente     |
@@ -305,3 +305,32 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - Vincular notas y eventos a un proyecto (dependen de los módulos de Notas y Calendario, fases 4 y 5); las pestañas correspondientes ya existen en la UI con el aviso correcto.
 - Asignar una tarea a un hito concreto (la columna `milestone_id` existe desde la fase 1, pero no se expone todavía en la interfaz; los hitos son, de momento, una lista independiente dentro del proyecto).
 - Reordenar proyectos u hitos por arrastre.
+
+## Fase 4 — Calendario y recordatorios (completada el 2026-10-15)
+
+**Implementado:**
+
+- Motor de recurrencia de eventos (`src/server/domain/calendar.ts`): recurrencia "amigable" (frecuencia + días de la semana + fecha límite opcional) traducida a RRULE real y reconstruida al editar; expansión de ocurrencias dentro de un rango usando `rrule`, con excepciones (`event_exceptions`) para cancelar o sobrescribir una ocurrencia concreta sin tocar el resto de la serie.
+- Módulo de eventos (`src/server/modules/events`): crear, listar por rango (para las 3 vistas), próximos (para el dashboard), **editar/eliminar "solo esta ocurrencia" vs. "toda la serie"**, detección de conflictos horarios (excluye eventos de día completo y el propio evento al editar).
+- Módulo de recordatorios (`src/server/modules/reminders`): crear, próximos, "vencidos" (para el sondeo del cliente), marcar disparado, descartar; asociables a una tarea o a un evento.
+- Tareas con fecha límite visibles en el calendario (`GET /tasks/scheduled`), distinguidas visualmente de eventos y bloques de tiempo (chip verde con casilla, en vez del color de evento/bloque).
+- Cliente: `/calendar` con vistas Mes/Semana/Día, navegación entre fechas, crear evento con un doble clic en la rejilla de horas, formulario completo (tipo evento/bloque de tiempo, día completo, recurrencia con selector de días de la semana, descripción, ubicación, proyecto, tarea, recordatorio, **aviso de conflicto en vivo** mientras se edita la hora), y los botones "Guardar/eliminar solo esta ocurrencia" vs. "toda la serie" para eventos recurrentes.
+- `ReminderWatcher`: sondeo cada 20s de recordatorios vencidos; muestra un toast y, si el navegador lo permite, una notificación del sistema (limitación conocida y documentada: solo funciona con la app abierta).
+- Sección "Recordatorio" en el detalle de una tarea (módulo C del plan: "recordatorios cuando la infraestructura lo permita" — ya lo permite).
+- Dashboard "Hoy": widgets "Agenda de hoy" y "Recordatorios" conectados a datos reales.
+- Sin tablas nuevas: `events`, `event_exceptions` y `reminders` ya existían desde la fase 1; esta fase solo añadió servicios, rutas y cliente sobre ellas.
+
+**Probado** (comandos ejecutados en esta sesión, todos en verde):
+
+- `npx tsc --noEmit`, `npx eslint .` — sin errores.
+- `npx vitest run` — 45/45 tests (13 nuevos: 9 de eventos —expansión puntual/recurrente/día completo, edición y borrado "solo esta" vs. "toda la serie", conflictos— y 4 de recordatorios).
+- `npx playwright test` — 23/23 ejecutados (28 omitidos a propósito, mismo criterio que fases anteriores): crear evento puntual y verlo en semana, evento de día completo en mes, editar "solo esta ocurrencia" de una serie semanal sin afectar a las demás, aviso de conflicto en vivo, navegación entre meses, recordatorio creado desde una tarea visible en el dashboard.
+- Verificado manualmente con `curl` contra una base de datos real: creación puntual/día completo/recurrente, expansión semanal (lunes/miércoles/viernes), edición y borrado de una sola ocurrencia vs. toda la serie, detección de conflictos, recordatorios, tareas programadas.
+- **Dos bugs reales encontrados y corregidos durante la verificación manual** (no solo "parecía funcionar"): (1) al editar "solo esta ocurrencia", el código devolvía el primer resultado de una consulta por rango sin filtrar por el evento correcto, pudiendo devolver un evento distinto que se solapara en el mismo instante — corregido filtrando por `eventId`; (2) un proceso de servidor de prueba anterior quedó "vivo" sirviendo una base de datos ya borrada (file descriptor abierto a un archivo desvinculado), lo que simuló un bug inexistente durante unos minutos — se documenta aquí como recordatorio de limpiar bien los procesos de prueba, no como un fallo de la aplicación.
+
+**Pendiente / fuera de alcance de esta fase:**
+
+- Verificación visual en navegador real (sin extensión de Chrome conectada en este entorno).
+- Redimensionar/arrastrar eventos directamente en la rejilla (por ahora se crean con doble clic y se editan por formulario).
+- Eventos de varios días con hora (el formulario asume que un evento con hora empieza y termina el mismo día; uno de día completo sí admite varios días).
+- Gestionar un recordatorio ya existente de un evento desde el propio formulario de evento (se crea uno nuevo al crear el evento; para editarlo o añadir más, por ahora solo desde el detalle de una tarea). Se documenta como simplificación deliberada de esta fase.

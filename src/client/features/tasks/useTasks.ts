@@ -38,6 +38,14 @@ export function useProjectTasks(projectId: string) {
   });
 }
 
+/** Tareas con fecha límite dentro de [start, end] (AAAA-MM-DD), para el calendario. */
+export function useScheduledTasks(start: string, end: string) {
+  return useQuery({
+    queryKey: ["tasks", "scheduled", start, end],
+    queryFn: () => api.get<TaskDto[]>(`/tasks/scheduled?start=${start}&end=${end}`),
+  });
+}
+
 export function useTask(id: string | null) {
   return useQuery({
     queryKey: id ? taskQueryKey(id) : ["tasks", "detail", "none"],

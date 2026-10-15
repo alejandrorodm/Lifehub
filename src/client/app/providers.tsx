@@ -3,6 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { createQueryClient } from "./queryClient";
 import { ToastProvider } from "@client/components/ui/Toast";
 import { ThemeEffect } from "./ThemeEffect";
+import { ReminderWatcher } from "./ReminderWatcher";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createQueryClient);
@@ -11,6 +12,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <ThemeEffect />
+        <ReminderWatcher />
         {children}
       </ToastProvider>
     </QueryClientProvider>

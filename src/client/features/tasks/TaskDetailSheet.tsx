@@ -7,6 +7,7 @@ import { Checkbox } from "@client/components/ui/Checkbox";
 import { useToast } from "@client/components/ui/Toast";
 import { TagEditor } from "./TagEditor";
 import { ChecklistEditor } from "./ChecklistEditor";
+import { TaskReminderSection } from "./TaskReminderSection";
 import { PRIORITY_LABELS } from "./taskDisplay";
 import { useTask, useSubtasks, useUpdateTask, useDeleteTask, useCreateTask } from "./useTasks";
 import { useProjectList } from "@client/features/projects/useProjects";
@@ -232,6 +233,8 @@ function TaskDetailForm({ task, onClose }: { task: TaskDto; onClose: () => void 
             />
           </div>
         </div>
+
+        <TaskReminderSection taskId={task.id} taskTitle={task.title} />
       </div>
 
       <div className="mt-5 border-t border-border pt-4">

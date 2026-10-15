@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, lt, gt, like, or, desc, asc } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, gt, gte, lte, like, or, desc, asc } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { tasks, checklistItems, tags, taskTags } from "../../db/schema";
 import { AppError } from "../../lib/errors";
@@ -221,6 +221,24 @@ export function listTasks(query: TaskListQuery): TaskDto[] {
     rows = rows.filter((r) => taggedIds.has(r.id));
   }
 
+  return hydrate(rows);
+}
+
+/** Tareas con fecha límite dentro de [startDate, endDate] (AAAA-MM-DD), para mostrarlas en el calendario. */
+export function listScheduledTasks(startDate: string, endDate: string): TaskDto[] {
+  const rows = getDb()
+    .select()
+    .from(tasks)
+    .where(
+      and(
+        isNull(tasks.deletedAt),
+        isNull(tasks.parentTaskId),
+        gte(tasks.dueDate, startDate),
+        lte(tasks.dueDate, endDate),
+      ),
+    )
+    .orderBy(asc(tasks.dueDate))
+    .all();
   return hydrate(rows);
 }
 
