@@ -8,6 +8,8 @@ import { Checkbox } from "@client/components/ui/Checkbox";
 import { useToday } from "@client/lib/useToday";
 import { usePriorityAndOverdue, useTasksSummary, useUpdateTask } from "@client/features/tasks/useTasks";
 import { PRIORITY_DOT_CLASS, formatDueDate } from "@client/features/tasks/taskDisplay";
+import { useActiveProjects } from "@client/features/projects/useProjects";
+import { ProgressBar } from "@client/components/ui/ProgressBar";
 import { cn } from "@client/lib/utils";
 
 function useGreeting(): string {
@@ -86,6 +88,41 @@ function PriorityWidget() {
   );
 }
 
+function ActiveProjectsWidget() {
+  const { data: projects, isLoading } = useActiveProjects();
+
+  if (isLoading) return <div className="h-32" />;
+
+  if (!projects || projects.length === 0) {
+    return (
+      <EmptyState
+        icon={FolderKanban}
+        title="Sin proyectos activos"
+        description="Marca un proyecto como activo para seguir su progreso aquí."
+        className="py-10"
+      />
+    );
+  }
+
+  return (
+    <ul className="divide-y divide-border">
+      {projects.map((project) => (
+        <li key={project.id} className="px-4 py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <Link to={`/projects/${project.id}`} className="truncate text-sm text-text hover:underline">
+              {project.name}
+            </Link>
+            <span className="shrink-0 text-xs text-text-muted">
+              {project.progress !== null ? `${project.progress}%` : "—"}
+            </span>
+          </div>
+          <ProgressBar value={project.progress} className="mt-1.5" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function SummaryBar() {
   const { data } = useTasksSummary();
   if (!data) return null;
@@ -145,12 +182,7 @@ export function TodayPage() {
           />
         </Widget>
         <Widget title="Proyectos activos">
-          <EmptyState
-            icon={FolderKanban}
-            title="Todavía no hay proyectos"
-            description="El progreso de tus proyectos se mostrará aquí a partir de la fase 3."
-            className="py-10"
-          />
+          <ActiveProjectsWidget />
         </Widget>
       </div>
     </div>

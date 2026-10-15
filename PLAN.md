@@ -1,6 +1,6 @@
 # LifeHub — Plan de desarrollo
 
-> Estado: **Fase 2 (Tareas, Inbox, captura rápida, Dashboard v1) completada** el 2026-10-15. Fase 3 pendiente de aprobación explícita.
+> Estado: **Fase 3 (Proyectos e hitos) completada** el 2026-10-15. Fase 4 pendiente de aprobación explícita.
 
 ## Estado de las fases
 
@@ -8,7 +8,7 @@
 | --- | ------------------------------------------- | ------------- |
 | 1   | Fundamentos                                 | ✅ Completada |
 | 2   | Tareas, Inbox, captura rápida, Dashboard v1 | ✅ Completada |
-| 3   | Proyectos e hitos                           | Pendiente     |
+| 3   | Proyectos e hitos                           | ✅ Completada |
 | 4   | Calendario y recordatorios                  | Pendiente     |
 | 5   | Notas, diario y búsqueda global             | Pendiente     |
 | 6   | Hábitos y rutinas; dashboard configurable   | Pendiente     |
@@ -279,3 +279,29 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 | Alcance amplio                           | Fases cortas, cada una usable; nada de funciones "a medias" visibles en la UI.                                                                                |
 | Pérdida de datos                         | Papelera, deshacer, snapshots, autoguardado, confirmaciones, migraciones con snapshot previo.                                                                 |
 | Exposición en red                        | Servidor ligado a 127.0.0.1; sin CORS abierto.                                                                                                                |
+
+## Fase 3 — Proyectos e hitos (completada el 2026-10-15)
+
+**Implementado:**
+
+- Módulo de proyectos (`src/server/modules/projects`): CRUD, hitos (crear/completar/borrar), progreso real = tareas de nivel superior completadas/totales (excluye subtareas y papelera; `null` —no 0%— cuando todavía no hay tareas), listado filtrable por estado, proyectos activos para el dashboard, papelera con restauración.
+- Al borrar un proyecto, sus tareas se desvinculan (`projectId = null`) en vez de borrarse.
+- Cliente: `/projects` (tarjetas con progreso, filtro por estado, alta rápida) y `/projects/:id` (cabecera editable: nombre, descripción, estado, prioridad, fechas; sección de hitos; pestañas Tareas/Notas/Calendario — Notas y Calendario muestran honestamente que llegan en las fases 5 y 4).
+- Pestaña "Tareas" del proyecto reutiliza `TaskRow`/`TaskDetailSheet` ya construidos en la fase 2; selector de proyecto añadido al detalle de una tarea (antes no tenía UI aunque el campo ya existía desde la fase 1).
+- Dashboard "Hoy": widget "Proyectos activos" conectado a datos reales.
+- Sin tablas nuevas: `projects` y `milestones` ya existían desde la fase 1.
+
+**Probado** (comandos ejecutados en esta sesión, todos en verde):
+
+- `npx tsc --noEmit`, `npx eslint .` — sin errores.
+- `npx vitest run` — 32/32 tests (7 nuevos de integración sobre SQLite real: progreso con/sin tareas, redondeo, exclusión de subtareas, filtro por estado, hitos, borrado con desvinculación, restauración).
+- `npx playwright test` — 20/20 ejecutados (13 omitidos a propósito, mismo criterio que la fase 2): crear proyecto → vincular tareas → ver el progreso actualizarse en tiempo real, gestionar hitos, eliminar proyecto sin perder sus tareas.
+- Verificado manualmente con `curl` contra una base de datos real: progreso 0/2 → 50% al completar una tarea, hitos, `/projects/active`, borrado con desvinculación, validación 400 con nombre vacío.
+- **Bug real encontrado y corregido por un test E2E**: al añadir o completar una tarea desde la pestaña "Tareas" de un proyecto, el encabezado del proyecto (progreso, recuento) no se refrescaba — las mutaciones de tareas solo invalidaban las consultas de `tasks`, no las de `projects`, aunque el progreso se calcula a partir de las tareas. Corregido invalidando también `projects` en cualquier mutación de tareas.
+
+**Pendiente / fuera de alcance de esta fase:**
+
+- Verificación visual en navegador real (sin extensión de Chrome conectada en este entorno).
+- Vincular notas y eventos a un proyecto (dependen de los módulos de Notas y Calendario, fases 4 y 5); las pestañas correspondientes ya existen en la UI con el aviso correcto.
+- Asignar una tarea a un hito concreto (la columna `milestone_id` existe desde la fase 1, pero no se expone todavía en la interfaz; los hitos son, de momento, una lista independiente dentro del proyecto).
+- Reordenar proyectos u hitos por arrastre.

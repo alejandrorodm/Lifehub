@@ -18,12 +18,23 @@ export const tasksSummaryKey = ["tasks", "summary"] as const;
 
 function invalidateTaskLists(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ["tasks"] });
+  // El progreso y el recuento de tareas de un proyecto se calculan a partir
+  // de las tareas: cualquier cambio en una tarea puede afectar a su proyecto.
+  queryClient.invalidateQueries({ queryKey: ["projects"] });
 }
 
 export function useTaskList(view: TaskView) {
   return useQuery({
     queryKey: tasksQueryKey(view),
     queryFn: () => api.get<TaskDto[]>(`/tasks?view=${view}`),
+  });
+}
+
+/** Tareas de un proyecto concreto (pestaña "Tareas" del detalle de proyecto). */
+export function useProjectTasks(projectId: string) {
+  return useQuery({
+    queryKey: ["tasks", "by-project", projectId],
+    queryFn: () => api.get<TaskDto[]>(`/tasks?view=all&projectId=${projectId}`),
   });
 }
 

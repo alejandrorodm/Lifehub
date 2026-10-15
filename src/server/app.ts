@@ -6,6 +6,7 @@ import { dataRoutes } from "./modules/data/routes";
 import { tasksRoutes } from "./modules/tasks/routes";
 import { tagsRoutes } from "./modules/tasks/tagsRoutes";
 import { inboxRoutes } from "./modules/inbox/routes";
+import { projectsRoutes } from "./modules/projects/routes";
 import { config } from "./config";
 
 export function createApp(): Hono {
@@ -29,7 +30,8 @@ export function createApp(): Hono {
     .route("/data", dataRoutes)
     .route("/tasks", tasksRoutes)
     .route("/tags", tagsRoutes)
-    .route("/inbox", inboxRoutes);
+    .route("/inbox", inboxRoutes)
+    .route("/projects", projectsRoutes);
 
   app.route("/api", api);
 
