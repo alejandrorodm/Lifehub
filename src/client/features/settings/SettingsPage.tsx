@@ -1,12 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { Select } from "@client/components/ui/Select";
 import { Skeleton } from "@client/components/ui/Skeleton";
+import { Checkbox } from "@client/components/ui/Checkbox";
+import { Button } from "@client/components/ui/Button";
 import { useSettings, useUpdateSettings } from "./useSettings";
 import { api } from "@client/lib/api";
-import type { Theme } from "@shared/schemas/settings";
+import { DASHBOARD_WIDGETS } from "@shared/schemas/settings";
+import type { Theme, DashboardWidgetId } from "@shared/schemas/settings";
+import { DASHBOARD_WIDGET_LABELS } from "@client/features/dashboard/dashboardWidgets";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { Archive } from "lucide-react";
+import { Archive, ChevronUp, ChevronDown } from "lucide-react";
 import { EmptyState } from "@client/components/ui/EmptyState";
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
@@ -68,6 +72,75 @@ function BackupsSection() {
   );
 }
 
+function DashboardWidgetsSection({
+  widgets,
+  onChange,
+}: {
+  widgets: DashboardWidgetId[];
+  onChange: (next: DashboardWidgetId[]) => void;
+}) {
+  const hidden = DASHBOARD_WIDGETS.filter((widgetId) => !widgets.includes(widgetId));
+  const order = [...widgets, ...hidden];
+
+  const toggle = (widgetId: DashboardWidgetId) => {
+    onChange(widgets.includes(widgetId) ? widgets.filter((w) => w !== widgetId) : [...widgets, widgetId]);
+  };
+
+  const move = (widgetId: DashboardWidgetId, direction: -1 | 1) => {
+    const index = widgets.indexOf(widgetId);
+    const target = index + direction;
+    if (index === -1 || target < 0 || target >= widgets.length) return;
+    const next = widgets.filter((w) => w !== widgetId);
+    next.splice(target, 0, widgetId);
+    onChange(next);
+  };
+
+  return (
+    <ul className="divide-y divide-border rounded-md border border-border">
+      {order.map((widgetId) => {
+        const isVisible = widgets.includes(widgetId);
+        const index = widgets.indexOf(widgetId);
+        return (
+          <li key={widgetId} className="flex items-center justify-between gap-2 px-4 py-2.5">
+            <label className="flex flex-1 items-center gap-2.5 text-sm">
+              <Checkbox
+                checked={isVisible}
+                onCheckedChange={() => toggle(widgetId)}
+                aria-label={`Mostrar "${DASHBOARD_WIDGET_LABELS[widgetId]}" en el dashboard`}
+              />
+              <span className={isVisible ? "text-text" : "text-text-muted"}>
+                {DASHBOARD_WIDGET_LABELS[widgetId]}
+              </span>
+            </label>
+            {isVisible && (
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => move(widgetId, -1)}
+                  disabled={index === 0}
+                  aria-label={`Subir "${DASHBOARD_WIDGET_LABELS[widgetId]}"`}
+                >
+                  <ChevronUp className="size-4" aria-hidden />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => move(widgetId, 1)}
+                  disabled={index === widgets.length - 1}
+                  aria-label={`Bajar "${DASHBOARD_WIDGET_LABELS[widgetId]}"`}
+                >
+                  <ChevronDown className="size-4" aria-hidden />
+                </Button>
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function SettingsPage() {
   const { data: settings, isPending } = useSettings();
   const updateSettings = useUpdateSettings();
@@ -125,6 +198,21 @@ export function SettingsPage() {
               <p className="text-sm text-text-muted">{settings?.timeZone ?? "—"}</p>
             </div>
           </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold text-text-muted">Dashboard</h2>
+          <p className="text-sm text-text-muted">
+            Elige qué bloques se muestran en &quot;Hoy&quot; y en qué orden.
+          </p>
+          {isPending || !settings ? (
+            <Skeleton className="h-48" />
+          ) : (
+            <DashboardWidgetsSection
+              widgets={settings.dashboardWidgets}
+              onChange={(dashboardWidgets) => updateSettings.mutate({ dashboardWidgets })}
+            />
+          )}
         </section>
 
         <section className="space-y-4">

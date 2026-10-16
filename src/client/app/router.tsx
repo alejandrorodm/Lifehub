@@ -12,6 +12,7 @@ import { JournalPage } from "@client/features/journal/JournalPage";
 import { ProjectsPage } from "@client/features/projects/ProjectsPage";
 import { ProjectDetailPage } from "@client/features/projects/ProjectDetailPage";
 import { HabitsPage } from "@client/features/habits/HabitsPage";
+import { HabitDetailPage } from "@client/features/habits/HabitDetailPage";
 import { SettingsPage } from "@client/features/settings/SettingsPage";
 
 export const router = createBrowserRouter([
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
       { path: "projects", element: <ProjectsPage /> },
       { path: "projects/:id", element: <ProjectDetailPage /> },
       { path: "habits", element: <HabitsPage /> },
+      { path: "habits/:id", element: <HabitDetailPage /> },
       { path: "settings", element: <SettingsPage /> },
     ],
   },

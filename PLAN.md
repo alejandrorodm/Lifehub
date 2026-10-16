@@ -1,6 +1,6 @@
 # LifeHub — Plan de desarrollo
 
-> Estado: **Fase 5 (Notas, diario y búsqueda global) completada** el 2026-10-15. Fase 6 pendiente de aprobación explícita.
+> Estado: **Fase 6 (Hábitos y rutinas; dashboard configurable) completada** el 2026-10-16.
 
 ## Estado de las fases
 
@@ -11,7 +11,7 @@
 | 3   | Proyectos e hitos                           | ✅ Completada |
 | 4   | Calendario y recordatorios                  | ✅ Completada |
 | 5   | Notas, diario y búsqueda global             | ✅ Completada |
-| 6   | Hábitos y rutinas; dashboard configurable   | Pendiente     |
+| 6   | Hábitos y rutinas; dashboard configurable   | ✅ Completada |
 | 7   | Ajustes, exportación, copias y restauración | Pendiente     |
 | 8   | QA, accesibilidad y pulido                  | Pendiente     |
 
@@ -361,3 +361,27 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - División de código del bundle cliente: TipTap + marked + turndown duplicaron aproximadamente el tamaño del JS (653 KB → 1,13 MB sin comprimir). Sigue sin ser bloqueante para una app local, pero se revisará en la fase 8 como estaba previsto.
 - Deep-link directo a un evento o a una ocurrencia concreta desde un resultado de búsqueda (los eventos abren el calendario en general, no el día exacto); los resultados de tipo tarea sí abren directamente el detalle correcto gracias a `?open=`.
 - Editor de comentarios o wiki colaborativa: deliberadamente fuera de alcance (ver PLAN.md, módulo D).
+
+## Fase 6 — Hábitos y rutinas; dashboard configurable (completada el 2026-10-16)
+
+**Implementado:**
+
+- Dominio puro (`src/shared/domain/habits.ts`): racha actual (un día no programado no cuenta ni rompe la racha; hoy sin registrar aún no rompe la racha), progreso del objetivo semanal según el inicio de semana de los ajustes, y la cuadrícula de historial de 70 días — todo sin I/O, con tests de unidad de los casos límite pedidos (días no programados, cambio de semana, hoy sin registrar).
+- Módulos de servidor `src/server/modules/habits` y `src/server/modules/routines` (service + routes + tests de integración): CRUD, archivar/restaurar, registrar/desmarcar un día concreto (idempotente), listados "de hoy" para el dashboard; pasos de rutina marcables con su propio registro por fecha. Sin tablas nuevas: `habits`, `habit_logs`, `routines`, `routine_steps`, `routine_step_logs` ya existían desde la fase 1.
+- Cliente `/habits`: tabs Hábitos/Rutinas, alta rápida, checkbox de hoy, racha, objetivo semanal, archivar/restaurar, pasos de rutina.
+- Cliente `/habits/:id` (`HabitDetailPage.tsx`): nombre y descripción editables en línea, horario (diario o días concretos de la semana) y objetivo semanal editables, racha actual, y la cuadrícula de historial de 70 días (cada día es un botón que registra/desmarca esa fecha; los días no programados se muestran deshabilitados).
+- Dashboard "Hoy" conectado y configurable: el widget "Hábitos de hoy" (`TodayPage.tsx`) ahora muestra los hábitos y pasos de rutina programados para hoy con su checkbox real, en vez del `EmptyState` fijo. Los bloques del dashboard se resuelven dinámicamente a partir de `settings.dashboardWidgets` (`dashboardWidgets.ts` con las etiquetas compartidas entre `TodayPage` y `SettingsPage`); se añadió un widget "Captura rápida" (abre el mismo diálogo que el atajo "C") para que el identificador `quick-capture`, presente en el esquema desde la fase 1 pero sin uso, tenga representación real.
+- Ajustes (`/settings`): nueva sección "Dashboard" para mostrar/ocultar cada bloque y reordenar los visibles (botones subir/bajar), persistido en `settings.dashboardWidgets`.
+
+**Probado** (comandos ejecutados en esta sesión, todos en verde):
+
+- `npx tsc --noEmit`, `npx eslint .` — sin errores.
+- `npx vitest run` — 88/88 tests (sin regresión; los nuevos de dominio de hábitos y de los módulos de servidor se añadieron en la sesión anterior de esta misma fase).
+- `npx playwright test` — 28/28 ejecutados (38 omitidos a propósito, mismo criterio que fases anteriores); sin regresiones en calendario, notas, proyectos, shell ni tareas tras los cambios en `TodayPage`, `SettingsPage` y el router.
+- Verificado manualmente con `curl` contra el servidor de desarrollo real: creación de un hábito con horario por días concretos, cuadrícula de historial de 70 días con `scheduled`/`done` correctos, edición de descripción, registrar/desmarcar el día de hoy (racha pasa a 1), archivar/restaurar, y `PATCH /api/settings` reordenando/ocultando `dashboardWidgets`.
+
+**Pendiente / fuera de alcance de esta fase:**
+
+- Verificación visual en navegador real (sin extensión de Chrome conectada en este entorno, igual que en las fases 4 y 5); se recomienda una pasada manual de UX antes de dar la fase por cerrada visualmente.
+- Arrastrar para reordenar los widgets del dashboard (se implementó con botones subir/bajar, más simple y accesible por teclado).
+- Color por hábito (`habits.color` existe en el esquema desde la fase 1 pero no se expone en la UI; no estaba pedido explícitamente en los criterios de aceptación de esta fase).
