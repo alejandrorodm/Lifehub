@@ -67,6 +67,14 @@ export function useUpdateEvent() {
   });
 }
 
+export function useRestoreEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.post<EventOccurrenceDto>(`/events/${id}/restore`, {}),
+    onSuccess: () => invalidateEvents(queryClient),
+  });
+}
+
 export function useDeleteEvent() {
   const queryClient = useQueryClient();
   return useMutation({

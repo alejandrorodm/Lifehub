@@ -1,17 +1,25 @@
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { Select } from "@client/components/ui/Select";
 import { Skeleton } from "@client/components/ui/Skeleton";
 import { Checkbox } from "@client/components/ui/Checkbox";
 import { Button } from "@client/components/ui/Button";
+import { Input } from "@client/components/ui/Input";
+import { useToast } from "@client/components/ui/Toast";
 import { useSettings, useUpdateSettings } from "./useSettings";
+import { useExportData, useImportPreview, useRestoreImport, useWipeAll } from "./useData";
 import { api } from "@client/lib/api";
 import { DASHBOARD_WIDGETS } from "@shared/schemas/settings";
 import type { Theme, DashboardWidgetId } from "@shared/schemas/settings";
+import type { ImportPreview } from "@shared/schemas/data";
 import { DASHBOARD_WIDGET_LABELS } from "@client/features/dashboard/dashboardWidgets";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { Archive, ChevronUp, ChevronDown } from "lucide-react";
+import { Archive, ChevronUp, ChevronDown, Download, Upload, Trash2 } from "lucide-react";
 import { EmptyState } from "@client/components/ui/EmptyState";
+
+const WIPE_CONFIRM_PHRASE = "BORRAR TODO";
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: "light", label: "Claro" },
@@ -141,9 +149,131 @@ function DashboardWidgetsSection({
   );
 }
 
+function ImportSection() {
+  const [preview, setPreview] = useState<{ raw: unknown; info: ImportPreview } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const importPreview = useImportPreview();
+  const restoreImport = useRestoreImport();
+  const { show } = useToast();
+
+  async function handleFile(file: File) {
+    const text = await file.text();
+    let raw: unknown;
+    try {
+      raw = JSON.parse(text);
+    } catch {
+      show({ tone: "error", title: "El archivo no es un JSON válido." });
+      return;
+    }
+    importPreview.mutate(raw, { onSuccess: (info) => setPreview({ raw, info }) });
+  }
+
+  function confirm() {
+    if (!preview) return;
+    restoreImport.mutate(preview.raw, {
+      onSuccess: () => {
+        show({ tone: "success", title: "Datos restaurados" });
+        window.location.href = "/";
+      },
+    });
+  }
+
+  return (
+    <div className="space-y-3">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/json"
+        aria-label="Elegir archivo de restauración"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) void handleFile(file);
+        }}
+      />
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={importPreview.isPending}
+      >
+        <Upload className="size-4" aria-hidden />
+        Restaurar desde un archivo…
+      </Button>
+
+      {preview && (
+        <div className="rounded-md border border-border bg-bg-elevated p-4 text-sm">
+          <p className="mb-2 font-medium text-text">
+            Esto va a <strong>reemplazar todos los datos actuales</strong> por los del archivo (se crea
+            una copia de seguridad automática antes de restaurar):
+          </p>
+          <ul className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-text-muted">
+            {Object.entries(preview.info.counts).map(([key, count]) => (
+              <li key={key}>
+                {key}: <span className="font-medium text-text">{count}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="flex gap-2">
+            <Button variant="danger" size="sm" onClick={confirm} disabled={restoreImport.isPending}>
+              Confirmar restauración
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setPreview(null)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WipeAllSection() {
+  const [confirmText, setConfirmText] = useState("");
+  const wipeAll = useWipeAll();
+  const { show } = useToast();
+  const canWipe = confirmText.trim() === WIPE_CONFIRM_PHRASE;
+
+  return (
+    <div className="space-y-2 rounded-md border border-danger/40 p-4">
+      <p className="text-sm font-medium text-danger">Borrar todos los datos</p>
+      <p className="text-sm text-text-muted">
+        Borra permanentemente todos los datos de LifeHub (se crea una copia de seguridad automática
+        antes). Escribe <strong className="text-text">{WIPE_CONFIRM_PHRASE}</strong> para confirmar.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          aria-label={`Escribir "${WIPE_CONFIRM_PHRASE}" para confirmar el borrado total`}
+          className="max-w-xs"
+        />
+        <Button
+          variant="danger"
+          size="sm"
+          disabled={!canWipe || wipeAll.isPending}
+          onClick={() =>
+            wipeAll.mutate(undefined, {
+              onSuccess: () => {
+                show({ tone: "success", title: "Todos los datos se han borrado" });
+                window.location.href = "/";
+              },
+            })
+          }
+        >
+          <Trash2 className="size-4" aria-hidden />
+          Borrar todo
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function SettingsPage() {
   const { data: settings, isPending } = useSettings();
   const updateSettings = useUpdateSettings();
+  const exportData = useExportData();
 
   return (
     <div className="flex flex-1 flex-col">
@@ -218,10 +348,27 @@ export function SettingsPage() {
         <section className="space-y-4">
           <h2 className="text-sm font-semibold text-text-muted">Datos</h2>
           <p className="text-sm text-text-muted">
-            La exportación, la copia manual y la restauración se implementarán en la fase 7 (ver PLAN.md).
-            Mientras tanto, LifeHub crea copias de seguridad automáticas al arrancar:
+            LifeHub crea copias de seguridad automáticas al arrancar; las 5 más recientes:
           </p>
           <BackupsSection />
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => exportData.mutate()}
+              disabled={exportData.isPending}
+            >
+              <Download className="size-4" aria-hidden />
+              Exportar JSON
+            </Button>
+            <Link to="/trash" className="text-sm text-text-muted hover:text-text hover:underline">
+              Ver papelera
+            </Link>
+          </div>
+
+          <ImportSection />
+          <WipeAllSection />
         </section>
       </div>
     </div>

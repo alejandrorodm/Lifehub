@@ -32,6 +32,7 @@ export const eventsRoutes = new Hono()
       service.findConflicts(new Date(start), new Date(end), c.req.query("excludeId") ?? undefined),
     );
   })
+  .get("/trash", (c) => c.json(service.listTrash()))
   .post("/", async (c) => {
     const body = parseOrThrow(EventCreateSchema, await c.req.json().catch(() => ({})));
     return c.json(service.createEvent(body), 201);
@@ -62,4 +63,5 @@ export const eventsRoutes = new Hono()
     }
     service.deleteEvent(c.req.param("id"), query.scope, query.occurrenceStart);
     return c.body(null, 204);
-  });
+  })
+  .post("/:id/restore", (c) => c.json(service.restoreEvent(c.req.param("id"))));

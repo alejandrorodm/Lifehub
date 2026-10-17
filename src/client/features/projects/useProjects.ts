@@ -68,6 +68,14 @@ export function useDeleteProject() {
   });
 }
 
+export function useRestoreProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.post<ProjectDto>(`/projects/${id}/restore`, {}),
+    onSuccess: () => invalidateProjects(queryClient),
+  });
+}
+
 export function useAddMilestone() {
   const queryClient = useQueryClient();
   return useMutation({

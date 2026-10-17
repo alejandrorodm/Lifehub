@@ -1,4 +1,4 @@
-import { and, eq, isNull, desc, inArray } from "drizzle-orm";
+import { and, eq, isNull, isNotNull, desc, inArray } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { notes, noteTags, noteTasks, tags, tasks } from "../../db/schema";
 import { AppError } from "../../lib/errors";
@@ -150,6 +150,17 @@ export function listNotes(query: NoteListQuery): NoteDto[] {
     rows = rows.filter((r) => taggedIds.has(r.id));
   }
 
+  return hydrate(rows);
+}
+
+/** Notas y entradas de diario en la papelera, para la pantalla de Papelera. */
+export function listTrash(): NoteDto[] {
+  const rows = getDb()
+    .select()
+    .from(notes)
+    .where(isNotNull(notes.deletedAt))
+    .orderBy(desc(notes.updatedAt))
+    .all();
   return hydrate(rows);
 }
 

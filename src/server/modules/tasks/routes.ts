@@ -34,6 +34,7 @@ export const tasksRoutes = new Hono()
     if (!start || !end) throw new AppError("BAD_REQUEST", "Faltan los parámetros start/end.");
     return c.json(service.listScheduledTasks(start, end));
   })
+  .get("/trash", (c) => c.json(service.listTrash()))
   .post("/", async (c) => {
     const body = parseOrThrow(TaskCreateSchema, await c.req.json().catch(() => ({})));
     return c.json(service.createTask(body), 201);

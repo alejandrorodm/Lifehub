@@ -195,3 +195,23 @@ describe("events service — CRUD y expansión", () => {
     expect(conflicts).toEqual([]);
   });
 });
+
+describe("events service — papelera", () => {
+  it("un evento borrado aparece en la papelera y restaurarlo lo devuelve a las ocurrencias", () => {
+    const event = events.createEvent({
+      kind: "event",
+      title: "Borrable",
+      allDay: false,
+      startAt: "2026-10-19T09:00:00.000Z",
+      endAt: "2026-10-19T10:00:00.000Z",
+    });
+
+    events.deleteEvent(event.id, "all");
+    expect(events.listTrash().map((e) => e.id)).toContain(event.id);
+    expect(events.listOccurrences(RANGE_START, RANGE_END).map((o) => o.eventId)).not.toContain(event.id);
+
+    events.restoreEvent(event.id);
+    expect(events.listTrash().map((e) => e.id)).not.toContain(event.id);
+    expect(events.listOccurrences(RANGE_START, RANGE_END).map((o) => o.eventId)).toContain(event.id);
+  });
+});

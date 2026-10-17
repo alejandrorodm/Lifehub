@@ -143,10 +143,12 @@ describe("tasks service — CRUD y vistas", () => {
     tasks.deleteTask(task.id);
 
     expect(tasks.listTasks({ view: "all" }).map((t) => t.title)).not.toContain("Borrable");
+    expect(tasks.listTrash().map((t) => t.title)).toContain("Borrable");
 
     const restored = tasks.restoreTask(task.id);
     expect(restored.title).toBe("Borrable");
     expect(tasks.listTasks({ view: "all" }).map((t) => t.title)).toContain("Borrable");
+    expect(tasks.listTrash().map((t) => t.title)).not.toContain("Borrable");
   });
 
   it("borrar una tarea borra también sus subtareas (cascada suave)", () => {

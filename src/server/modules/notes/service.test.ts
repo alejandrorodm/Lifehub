@@ -137,8 +137,10 @@ describe("notes service", () => {
     notes.deleteNote(note.id);
 
     expect(() => notes.getNote(note.id)).toThrow();
+    expect(notes.listTrash().map((n) => n.title)).toContain("Borrable");
 
     const restored = notes.restoreNote(note.id);
     expect(restored.title).toBe("Borrable");
+    expect(notes.listTrash().map((n) => n.title)).not.toContain("Borrable");
   });
 });

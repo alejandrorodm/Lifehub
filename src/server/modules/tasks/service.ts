@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, lt, gt, gte, lte, like, or, desc, asc } from "drizzle-orm";
+import { and, eq, inArray, isNull, isNotNull, lt, gt, gte, lte, like, or, desc, asc } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { tasks, checklistItems, tags, taskTags } from "../../db/schema";
 import { AppError } from "../../lib/errors";
@@ -215,6 +215,17 @@ export function listTasks(query: TaskListQuery): TaskDto[] {
     rows = rows.filter((r) => taggedIds.has(r.id));
   }
 
+  return hydrate(rows);
+}
+
+/** Tareas en la papelera (de cualquier nivel), para la pantalla de Papelera. */
+export function listTrash(): TaskDto[] {
+  const rows = getDb()
+    .select()
+    .from(tasks)
+    .where(isNotNull(tasks.deletedAt))
+    .orderBy(desc(tasks.updatedAt))
+    .all();
   return hydrate(rows);
 }
 

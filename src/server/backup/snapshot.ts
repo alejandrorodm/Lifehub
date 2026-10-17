@@ -9,7 +9,7 @@ import { config } from "../config";
  * Devuelve la ruta del archivo creado.
  */
 export async function createSnapshot(
-  reason: "startup" | "pre-restore" | "manual" = "manual",
+  reason: "startup" | "pre-restore" | "pre-wipe" | "manual" = "manual",
 ): Promise<string> {
   const connection = getRawConnection();
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");

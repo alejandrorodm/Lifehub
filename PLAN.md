@@ -1,6 +1,6 @@
 # LifeHub — Plan de desarrollo
 
-> Estado: **Fase 6 (Hábitos y rutinas; dashboard configurable) completada** el 2026-10-16.
+> Estado: **Fase 7 (Ajustes, exportación, copias y restauración) completada** el 2026-10-16.
 
 ## Estado de las fases
 
@@ -12,7 +12,7 @@
 | 4   | Calendario y recordatorios                  | ✅ Completada |
 | 5   | Notas, diario y búsqueda global             | ✅ Completada |
 | 6   | Hábitos y rutinas; dashboard configurable   | ✅ Completada |
-| 7   | Ajustes, exportación, copias y restauración | Pendiente     |
+| 7   | Ajustes, exportación, copias y restauración | ✅ Completada |
 | 8   | QA, accesibilidad y pulido                  | Pendiente     |
 
 ## Situación inicial
@@ -385,3 +385,27 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - Verificación visual en navegador real (sin extensión de Chrome conectada en este entorno, igual que en las fases 4 y 5); se recomienda una pasada manual de UX antes de dar la fase por cerrada visualmente.
 - Arrastrar para reordenar los widgets del dashboard (se implementó con botones subir/bajar, más simple y accesible por teclado).
 - Color por hábito (`habits.color` existe en el esquema desde la fase 1 pero no se expone en la UI; no estaba pedido explícitamente en los criterios de aceptación de esta fase).
+
+## Fase 7 — Ajustes y datos: exportación, restauración, papelera y borrado total (completada el 2026-10-16)
+
+**Implementado:**
+
+- Esquemas Zod de export/import (`src/shared/schemas/data.ts`): una fila "cruda" por cada una de las 20 tablas (incluida `meta`, que ya existía en el esquema desde la fase 1 pero no la usaba ningún servicio) más los ajustes, para que un export→import sea idéntico a los datos originales, no solo equivalente. `EXPORT_SCHEMA_VERSION` como constante en el propio JSON exportado.
+- `src/server/backup/export.ts` (`exportData`, lectura cruda de todas las filas, incluidas las archivadas y las de la papelera) y `src/server/backup/import.ts`: `parseImportOrThrow`/`previewImport` (rechazan un archivo inválido o con una versión de esquema no compatible con un mensaje claro, sin tocar la BD), `restoreFromImport` (snapshot automático antes + transacción que vacía y reinserta las 20 tablas; `PRAGMA foreign_keys` se desactiva fuera de la transacción —SQLite no permite cambiarlo dentro de una— para poder reinsertar sin depender del orden exacto de referencias propias como las subtareas, con `foreign_key_check` dentro de la transacción como red de seguridad antes de confirmar) y `wipeAllData` (snapshot automático + vacía toda la BD + los ajustes vuelven a sus valores por defecto).
+- `src/server/modules/data/service.ts` + rutas: `GET /data/export`, `POST /data/import/preview` (conteos sin escribir nada), `POST /data/import`, `POST /data/wipe`.
+- Papelera unificada: `listTrash` añadido a los módulos de tareas, notas y proyectos (ya tenían restauración desde sus fases respectivas, pero ninguno exponía un listado); el módulo de eventos no tenía restauración en absoluto — se añadieron `restoreEvent` + `listTrash` + sus rutas.
+- Cliente: sección "Datos" de Ajustes con exportar (descarga el JSON), restaurar desde un archivo (vista previa de conteos por tabla antes de confirmar, con copia de seguridad automática previa) y borrar todo (hay que escribir "BORRAR TODO" para habilitar el botón). Página `/trash` ("Papelera") con las 4 secciones (tareas/notas/proyectos/eventos) y botón "Restaurar" por elemento, enlazada desde Ajustes.
+- Verificado (sin código nuevo) que el inicio de semana de los ajustes ya afecta al calendario (fase 4) y a las estadísticas de hábitos (fase 6).
+
+**Probado** (comandos ejecutados en esta sesión, todos en verde):
+
+- `npx tsc --noEmit`, `npx eslint .` — sin errores.
+- `npx vitest run` — 93/93 tests (nuevos: `src/server/modules/data/service.test.ts` con export→wipe→import real sobre SQLite reproduciendo los datos exactamente incluidas etiquetas y vínculos nota↔tarea, vista previa sin escribir, archivo inválido/corrupto rechazado sin tocar datos existentes, wipe con ajustes a sus valores por defecto; más una aserción de papelera añadida a los tests de restauración ya existentes de tareas/notas/proyectos y un test nuevo de papelera+restauración para eventos).
+- `npx playwright test` — 30/30 ejecutados (42 omitidos a propósito, mismo criterio que fases anteriores); nuevo `tests/e2e/data.spec.ts`: eliminar una tarea y restaurarla desde la Papelera, y el flujo completo exportar → eliminar → restaurar importando el archivo realmente descargado por el navegador (`page.waitForEvent("download")` + `setInputFiles`).
+- Verificado manualmente antes de los tests automatizados: round-trip de export/import y wipe contra una base de datos SQLite real en un directorio temporal.
+
+**Pendiente / fuera de alcance de esta fase:**
+
+- Verificación visual en navegador real (sin extensión de Chrome conectada en este entorno, igual que en las fases 4-6); la cobertura E2E con Playwright real —incluida la descarga y subida real del archivo exportado— cubre el mismo flujo de forma automatizada.
+- Borrado permanente de un elemento individual desde la Papelera (el plan solo pedía "papelera" + "restaurar", y por separado "borrar todo"; no un tercer estado intermedio).
+- Preferencia de "formato" de fecha/número como ajuste separado (la sección de pantallas del plan la menciona de forma genérica junto a inicio de semana/zona horaria, ya existentes desde la fase 1; ningún criterio de aceptación la especifica, así que no se inventó un campo nuevo).

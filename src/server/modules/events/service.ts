@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, isNotNull } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { events, eventExceptions } from "../../db/schema";
 import { AppError } from "../../lib/errors";
@@ -261,6 +261,17 @@ export function deleteEvent(id: string, scope: "all" | "occurrence", occurrenceS
   }
 
   db.update(events).set({ deletedAt: new Date(), updatedAt: new Date() }).where(eq(events.id, id)).run();
+}
+
+/** Eventos en la papelera (la serie completa, no sus ocurrencias expandidas), para la pantalla de Papelera. */
+export function listTrash(): EventOccurrenceDto[] {
+  const rows = getDb().select().from(events).where(isNotNull(events.deletedAt)).all();
+  return rows.map((row) => toBaseDto(row));
+}
+
+export function restoreEvent(id: string): EventOccurrenceDto {
+  getDb().update(events).set({ deletedAt: null, updatedAt: new Date() }).where(eq(events.id, id)).run();
+  return getEvent(id);
 }
 
 /** Ocurrencias (de eventos o bloques de tiempo con hora) que se solapan con [start, end), para avisar de conflictos. */

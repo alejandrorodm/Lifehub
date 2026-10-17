@@ -107,8 +107,11 @@ describe("projects service", () => {
   it("restaurar un proyecto borrado lo devuelve a las listas", () => {
     const project = projects.createProject({ name: "Restaurable", status: "active", priority: "normal" });
     projects.deleteProject(project.id);
+    expect(projects.listTrash().map((p) => p.name)).toContain("Restaurable");
+
     projects.restoreProject(project.id);
 
     expect(projects.listProjects({}).map((p) => p.name)).toContain("Restaurable");
+    expect(projects.listTrash().map((p) => p.name)).not.toContain("Restaurable");
   });
 });

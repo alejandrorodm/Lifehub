@@ -20,6 +20,7 @@ export const notesRoutes = new Hono()
     const entry = service.getJournalEntry(c.req.param("date"));
     return c.json(entry);
   })
+  .get("/trash", (c) => c.json(service.listTrash()))
   .post("/", async (c) => {
     const body = parseOrThrow(NoteCreateSchema, await c.req.json().catch(() => ({})));
     return c.json(service.createNote(body), 201);

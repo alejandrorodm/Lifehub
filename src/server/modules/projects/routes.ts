@@ -15,6 +15,7 @@ export const projectsRoutes = new Hono()
     return c.json(service.listProjects(query));
   })
   .get("/active", (c) => c.json(service.listActiveProjects()))
+  .get("/trash", (c) => c.json(service.listTrash()))
   .post("/", async (c) => {
     const body = parseOrThrow(ProjectCreateSchema, await c.req.json().catch(() => ({})));
     return c.json(service.createProject(body), 201);

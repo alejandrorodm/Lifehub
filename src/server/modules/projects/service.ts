@@ -1,4 +1,4 @@
-import { and, eq, isNull, asc, desc } from "drizzle-orm";
+import { and, eq, isNull, isNotNull, asc, desc } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { projects, milestones, tasks } from "../../db/schema";
 import { AppError } from "../../lib/errors";
@@ -116,6 +116,17 @@ export function listProjects(query: ProjectListQuery): ProjectDto[] {
     .orderBy(desc(projects.updatedAt))
     .all();
 
+  return rows.map(hydrate);
+}
+
+/** Proyectos en la papelera, para la pantalla de Papelera. */
+export function listTrash(): ProjectDto[] {
+  const rows = getDb()
+    .select()
+    .from(projects)
+    .where(isNotNull(projects.deletedAt))
+    .orderBy(desc(projects.updatedAt))
+    .all();
   return rows.map(hydrate);
 }
 

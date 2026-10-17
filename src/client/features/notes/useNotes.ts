@@ -68,6 +68,14 @@ export function useDeleteNote() {
   });
 }
 
+export function useRestoreNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.post<NoteDto>(`/notes/${id}/restore`, {}),
+    onSuccess: () => invalidateNotes(queryClient),
+  });
+}
+
 export function useLinkTaskToNote() {
   const queryClient = useQueryClient();
   return useMutation({

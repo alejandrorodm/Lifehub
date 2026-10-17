@@ -1,7 +1,19 @@
 import { Hono } from "hono";
-import { listSnapshots } from "../../backup/snapshot";
+import * as service from "./service";
 
-// Exportación, copia manual y restauración llegan en la fase de "Ajustes y
-// gestión de datos" (ver PLAN.md, fase 7). De momento solo se exponen en
-// lectura las copias automáticas que ya se generan al arrancar el servidor.
-export const dataRoutes = new Hono().get("/backups", (c) => c.json({ backups: listSnapshots() }));
+export const dataRoutes = new Hono()
+  .get("/backups", (c) => c.json({ backups: service.getBackups() }))
+  .get("/export", (c) => c.json(service.getExport()))
+  .post("/import/preview", async (c) => {
+    const body = await c.req.json().catch(() => undefined);
+    return c.json(service.getImportPreview(body));
+  })
+  .post("/import", async (c) => {
+    const body = await c.req.json().catch(() => undefined);
+    const result = await service.restoreImport(body);
+    return c.json(result);
+  })
+  .post("/wipe", async (c) => {
+    await service.wipeAll();
+    return c.body(null, 204);
+  });
