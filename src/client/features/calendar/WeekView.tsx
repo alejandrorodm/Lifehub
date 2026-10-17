@@ -153,9 +153,7 @@ export function WeekView({
                       )}
                     >
                       <span className="block truncate font-medium">{o.title}</span>
-                      <span className="block truncate text-[10px] opacity-80">
-                        {formatTimeRange(start, end)}
-                      </span>
+                      <span className="block truncate text-[10px]">{formatTimeRange(start, end)}</span>
                     </button>
                   );
                 })}

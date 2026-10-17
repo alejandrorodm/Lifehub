@@ -145,6 +145,7 @@ interface RichTextEditorProps {
   markdown: string;
   onChange: (markdown: string, plainText: string) => void;
   placeholder?: string;
+  "aria-label": string;
 }
 
 /**
@@ -154,7 +155,12 @@ interface RichTextEditorProps {
  * por un LLM). Formato básico, según PLAN.md: títulos, listas, checklist,
  * negrita/cursiva, enlaces, código, citas.
  */
-export function RichTextEditor({ markdown, onChange, placeholder }: RichTextEditorProps) {
+export function RichTextEditor({
+  markdown,
+  onChange,
+  placeholder,
+  "aria-label": ariaLabel,
+}: RichTextEditorProps) {
   const onChangeRef = useRef(onChange);
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -173,7 +179,7 @@ export function RichTextEditor({ markdown, onChange, placeholder }: RichTextEdit
       onChangeRef.current(htmlToMarkdown(editor.getHTML()), editor.getText());
     },
     editorProps: {
-      attributes: { class: "max-w-none px-3 py-2 focus:outline-none" },
+      attributes: { class: "max-w-none px-3 py-2 focus:outline-none", "aria-label": ariaLabel },
     },
   });
 

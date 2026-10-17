@@ -1,6 +1,6 @@
 # LifeHub — Plan de desarrollo
 
-> Estado: **Fase 7 (Ajustes, exportación, copias y restauración) completada** el 2026-10-16.
+> Estado: **Fase 8 (QA, accesibilidad y pulido) completada** el 2026-10-17 — las 8 fases del plan están completadas.
 
 ## Estado de las fases
 
@@ -13,7 +13,7 @@
 | 5   | Notas, diario y búsqueda global             | ✅ Completada |
 | 6   | Hábitos y rutinas; dashboard configurable   | ✅ Completada |
 | 7   | Ajustes, exportación, copias y restauración | ✅ Completada |
-| 8   | QA, accesibilidad y pulido                  | Pendiente     |
+| 8   | QA, accesibilidad y pulido                  | ✅ Completada |
 
 ## Situación inicial
 
@@ -409,3 +409,25 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - Verificación visual en navegador real (sin extensión de Chrome conectada en este entorno, igual que en las fases 4-6); la cobertura E2E con Playwright real —incluida la descarga y subida real del archivo exportado— cubre el mismo flujo de forma automatizada.
 - Borrado permanente de un elemento individual desde la Papelera (el plan solo pedía "papelera" + "restaurar", y por separado "borrar todo"; no un tercer estado intermedio).
 - Preferencia de "formato" de fecha/número como ajuste separado (la sección de pantallas del plan la menciona de forma genérica junto a inicio de semana/zona horaria, ya existentes desde la fase 1; ningún criterio de aceptación la especifica, así que no se inventó un campo nuevo).
+
+## Fase 8 — QA, accesibilidad y pulido (completada el 2026-10-17)
+
+**Implementado:**
+
+- `@axe-core/playwright` añadido (justificado por el criterio de aceptación #8) y `tests/e2e/a11y.spec.ts`: comprueba las 10 pantallas principales y la paleta de comandos sin violaciones críticas de axe.
+- Corregidos 4 problemas reales de accesibilidad encontrados por ese pase (no previstos en el plan original, surgidos de la propia auditoría): `role="listbox"` incompleto (sin navegación por flechas real) en `CommandPalette.tsx` — se quitó, los botones ya son accesibles por teclado de forma nativa; contraste insuficiente de `--color-text-subtle` en modo claro y oscuro (`tokens.css`); contraste del rango horario de un evento por `opacity-80` (`WeekView.tsx`); `aria-label` ausente en el editor TipTap compartido por notas y diario (`RichTextEditor.tsx` + `NoteEditor.tsx`).
+- `tests/e2e/shell.spec.ts`: nuevo test de un recorrido completo (navegar con el atajo "G T", crear una tarea con "N" + Enter, abrir su detalle, leer el título y cerrarlo con Escape) hecho enteramente con teclado, sin ningún `.click()`.
+- `tests/e2e/habits.spec.ts` (nuevo): la sección 9 del plan pedía un flujo E2E de "hábito y estadísticas" que no existía — crear hábito, registrar hoy, racha visible en la tarjeta y en el detalle.
+- Auditoría manual de botones/enlaces sin función en todo `src/client`: ninguno encontrado; única limitación conocida documentada (doble clic para crear evento en la rejilla del calendario, solo de ratón — el botón "Nuevo evento" es la vía equivalente por teclado).
+- `README.md` reescrito: banner de estado (8 fases completadas, no solo la 1), secciones nuevas "Funcionalidades" y "Atajos de teclado", "Copias de seguridad y restauración" actualizada para reflejar que exportar/importar/papelera ya están implementados (fase 7), checklist de accesibilidad/QA de esta fase, "Limitaciones conocidas" sin los módulos ya implementados.
+
+**Probado** (comandos ejecutados en esta sesión, todos en verde):
+
+- `npx tsc --noEmit`, `npx eslint .` — sin errores.
+- `npx vitest run` — 93/93 tests (sin cambios de dominio en esta fase).
+- `npx playwright test` con `.e2e-data/` limpio — 43/43 ejecutados en los 3 viewports (68 omitidos a propósito, mismo criterio que fases anteriores); incluye los 11 tests nuevos de `a11y.spec.ts`, el nuevo test de teclado en `shell.spec.ts` y el nuevo `habits.spec.ts`.
+
+**Pendiente / fuera de alcance de esta fase:**
+
+- Verificación visual en navegador real (sin extensión de Chrome conectada en este entorno, igual que en fases anteriores); la cobertura E2E con Playwright real —incluida la de accesibilidad con axe— sustituye esa verificación visual.
+- Métricas de rendimiento (Lighthouse, presupuestos de tamaño de bundle) y un rediseño visual: la fila de la tabla de fases menciona "rendimiento, pulido visual" pero ningún criterio de aceptación verificable los concreta, así que no se inventaron requisitos ni métricas nuevas.

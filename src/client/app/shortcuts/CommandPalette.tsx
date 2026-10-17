@@ -111,7 +111,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             />
             <kbd className="rounded border border-border px-1.5 py-0.5 text-[11px] text-text-subtle">Esc</kbd>
           </div>
-          <ul role="listbox" className="max-h-80 overflow-y-auto p-1.5">
+          <ul className="max-h-80 overflow-y-auto p-1.5">
             {allItems.length === 0 && (
               <li className="px-3 py-6 text-center text-sm text-text-muted">Sin resultados.</li>
             )}

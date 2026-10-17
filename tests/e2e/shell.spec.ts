@@ -46,3 +46,37 @@ test("la barra de navegación inferior aparece en móvil y la lateral se oculta"
   const sidebarLinks = page.getByRole("navigation").first().getByRole("link");
   await expect(sidebarLinks.first()).toBeVisible();
 });
+
+// Fase 8: un recorrido real (navegar con el atajo "G T", crear, abrir, leer y
+// cerrar) hecho enteramente con teclado, sin ningún `.click()`. El `.focus()`
+// sobre la fila de la tarea sustituye a contar cuántos `Tab` hacen falta para
+// llegar hasta ella (depende del orden de la lista, que puede cambiar); el
+// resto —atajos, escritura, Enter, Escape— son pulsaciones de teclado reales.
+test("crear una tarea, abrir su detalle y cerrarlo se puede hacer solo con teclado", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "Desktop", "Recorrido funcional, no de layout responsive.");
+
+  const title = `Tarea por teclado ${Date.now()}`;
+
+  await page.goto("/");
+  await page.keyboard.press("g");
+  await page.keyboard.press("t");
+  await expect(page).toHaveURL(/\/tasks$/);
+
+  await page.keyboard.press("n");
+  const quickAdd = page.getByLabel("Añadir tarea");
+  await expect(quickAdd).toBeFocused();
+  await quickAdd.pressSequentially(title);
+  await page.keyboard.press("Enter");
+
+  const taskButton = page.getByRole("button", { name: new RegExp(title) });
+  await expect(taskButton).toBeVisible();
+  await taskButton.focus();
+  await page.keyboard.press("Enter");
+
+  const heading = page.getByRole("heading", { name: "Detalle de la tarea" });
+  await expect(heading).toBeVisible();
+  await expect(page.getByLabel("Título")).toHaveValue(title);
+
+  await page.keyboard.press("Escape");
+  await expect(heading).not.toBeVisible();
+});

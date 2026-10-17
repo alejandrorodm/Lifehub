@@ -2,7 +2,33 @@
 
 LifeHub es un centro de organización personal, local-first: tareas, calendario, notas y diario, proyectos, hábitos, un inbox de captura rápida y búsqueda global, todo en una sola aplicación que corre en tu propio ordenador. Sin cuentas, sin nube, sin telemetría.
 
-> **Estado actual:** Fase 1 (Fundamentos) completada. El shell, la base de datos, el tema y la arquitectura están listos; los módulos de contenido (tareas, calendario, notas, proyectos, hábitos) se irán añadiendo fase a fase según [`PLAN.md`](./PLAN.md). Las secciones todavía no implementadas muestran un aviso claro en lugar de datos simulados.
+> **Estado actual:** las 8 fases del plan están completadas (ver el detalle en [`PLAN.md`](./PLAN.md)). La aplicación es funcional de extremo a extremo: tareas, calendario, notas/diario, proyectos, hábitos/rutinas, ajustes y datos (exportar/restaurar/papelera), y una pasada de QA transversal (accesibilidad, teclado, README).
+
+## Funcionalidades
+
+- **Inbox y captura rápida** (`C`): anota algo en un paso y decide después si es tarea, nota o se descarta.
+- **Tareas**: subtareas, checklist, etiquetas, prioridad, fecha/hora límite, recurrencia, papelera con deshacer; vistas Hoy/Próximas/Atrasadas/Completadas/Todas.
+- **Calendario**: vistas mes/semana/día, eventos puntuales/de día completo/recurrentes (editar "solo esta ocurrencia" o "toda la serie"), bloques de tiempo, aviso de solapamiento, tareas con fecha visibles en la rejilla, recordatorios.
+- **Notas y diario**: editor con formato básico (TipTap), autoguardado, fijar/favorito/archivar, vínculo con tareas y proyectos, entrada de diario por fecha.
+- **Proyectos**: hitos, progreso real calculado desde las tareas, pestañas de tareas/notas/calendario del proyecto.
+- **Hábitos y rutinas**: racha, objetivo y progreso semanal calculados desde el histórico; rutinas con pasos marcables; dashboard "Hoy" configurable (mostrar/ocultar y reordenar widgets).
+- **Búsqueda global** (`Ctrl/⌘ K`): encuentra tareas, notas, proyectos y eventos desde cualquier pantalla.
+- **Ajustes y datos**: tema, zona horaria, inicio de semana, exportar/importar JSON con vista previa y validación, copias de seguridad automáticas, papelera, borrado total con confirmación tecleada.
+
+## Atajos de teclado
+
+Toda la aplicación se puede usar sin ratón. Pulsa `?` en cualquier pantalla para ver esta ayuda dentro de la app.
+
+| Atajo                    | Acción                                              |
+| ------------------------- | ---------------------------------------------------- |
+| `Ctrl`/`⌘` + `K`          | Abrir la paleta de comandos (navegar o buscar)       |
+| `C` o `Q`                 | Captura rápida al inbox                              |
+| `G` luego `H/I/T/C/N/P`   | Ir a Hoy / Inbox / Tareas / Calendario / Notas / Proyectos |
+| `N`                       | Nuevo elemento en la vista actual (tarea, nota, hábito…) |
+| `J` / `K`                 | Mover la selección en una lista                      |
+| `X`                       | Completar la tarea seleccionada                      |
+| `Esc`                     | Cerrar el diálogo o panel abierto                    |
+| `?`                       | Mostrar la ayuda de atajos                           |
 
 ## Tecnologías
 
@@ -81,12 +107,18 @@ Puedes cambiar esta ubicación con `LIFEHUB_DATA_DIR`.
 
 LifeHub crea una copia de seguridad automática cada vez que arranca el servidor, usando la API de backup en caliente de SQLite (no bloquea ni corrompe datos). Las copias se pueden consultar desde **Ajustes → Datos**.
 
-La exportación a JSON, la copia manual bajo demanda y la restauración desde un archivo (con validación y confirmación) se implementarán en la fase 7 del plan — por ahora, la recuperación manual consiste en copiar el archivo `.db` deseado desde `backups/` sobre `lifehub.db` con el servidor detenido.
+Desde **Ajustes → Datos** puedes exportar todo a un archivo JSON (incluye `schemaVersion` para comprobar compatibilidad), importarlo con una vista previa de conteos antes de confirmar, o borrar todos los datos (requiere teclear "BORRAR TODO"). Antes de importar o borrar, LifeHub crea automáticamente una copia de seguridad; un archivo inválido o corrupto se rechaza con un mensaje claro sin tocar la base de datos. Los elementos eliminados (tareas, notas, proyectos, eventos) van a la **Papelera** (`/trash`), desde donde se pueden restaurar.
+
+## Checklist de accesibilidad y QA (fase 8)
+
+- **Sin violaciones críticas de axe**: `tests/e2e/a11y.spec.ts` comprueba las 10 pantallas principales y la paleta de comandos con [`@axe-core/playwright`](https://github.com/dequelabs/axe-core-npm).
+- **Recorrido completo solo con teclado**: `tests/e2e/shell.spec.ts` incluye un flujo real (navegar con `G T`, crear una tarea con `N` + Enter, abrir su detalle, leer el título y cerrar con `Esc`) sin usar el ratón.
+- **Botones y enlaces sin función**: auditoría manual de todo `src/client` — no se encontró ningún botón/enlace muerto. Única limitación conocida: en el calendario (vista semana/día), el doble clic para crear un evento en la rejilla es solo de ratón; el botón "Nuevo evento" de la cabecera es la vía equivalente por teclado.
+- **Viewports**: la suite E2E corre en Chromium a 1440px (Desktop), 768px (Tablet) y 390px (Mobile). Los flujos de datos (crear/editar/borrar) se verifican una sola vez en Desktop por diseño; el layout responsive (`shell.spec.ts`) se verifica en los 3.
 
 ## Limitaciones conocidas
 
 - **Un solo equipo:** no hay sincronización entre dispositivos; es una aplicación local-first por diseño.
-- **Recordatorios:** solo se disparan mientras la aplicación está abierta en el navegador (no hay notificaciones del sistema operativo en esta fase).
+- **Recordatorios:** solo se disparan mientras la aplicación está abierta en el navegador (no hay notificaciones del sistema operativo).
 - **Seguridad:** el servidor escucha únicamente en `127.0.0.1` y no tiene autenticación; la protección de tus datos depende del acceso a tu propio equipo.
-- **Módulos pendientes:** tareas, calendario, notas/diario, proyectos y hábitos aún no están implementados (ver el estado de fases en [`PLAN.md`](./PLAN.md)); sus pantallas indican explícitamente en qué fase se construirán.
 - **Asistente de IA local (Ollama/Qwen):** solo está planificado arquitectónicamente por ahora (ver sección 7 de `PLAN.md`); no hay ninguna funcionalidad de IA todavía.

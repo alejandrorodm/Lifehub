@@ -144,6 +144,7 @@ export function NoteEditor({ note, journalMode = false }: NoteEditorProps) {
         <RichTextEditor
           markdown={contentMd}
           placeholder="Escribe algo…"
+          aria-label={journalMode ? "Entrada del diario" : "Contenido de la nota"}
           onChange={(nextMd, nextText) => {
             setContentMd(nextMd);
             setContentText(nextText);
