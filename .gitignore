@@ -17,8 +17,25 @@ playwright-report/
 test-results/
 blob-report/
 
+
 # Editor / OS
 .DS_Store
 *.local
 .vscode/*
 !.vscode/extensions.json
+
+# Android/TWA (deploy/android/): el keystore de firma NUNCA va al repo — es
+# lo único que permite publicar actualizaciones de la APK sin desinstalar;
+# perderlo (o filtrarlo) es tan grave como perder una contraseña de verdad.
+deploy/android/android.keystore
+deploy/android/android.keystore.properties
+deploy/android/*.apk
+deploy/android/*.aab
+deploy/android/.bubblewrap/
+deploy/android/app/
+deploy/android/build/
+deploy/android/.gradle/
+deploy/android/gradle/
+deploy/android/gradlew
+deploy/android/gradlew.bat
+deploy/android/*.idsig

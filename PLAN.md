@@ -604,3 +604,19 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - Hallazgo real durante los tests propios (no al diseñar): una cookie de sesión puramente firmada seguía siendo válida tras "cerrar sesión" si se reproducía — corregido con `sessionVersion` en `users`.
 
 **Importante, para que no se perciba como más avanzado de lo que está:** con lo hecho hasta ahora, Ioana y Alex inician sesión por separado pero **todavía ven los mismos datos** — ninguna tabla de contenido tiene `userId` todavía. Eso es el trabajo de T6-T15.
+
+## Fase 14 — APK (TWA con Bubblewrap) (en curso, iniciada el 2026-10-19)
+
+**Nota sobre el alcance:** pedida por el usuario junto con la fase 13. Elegido TWA (Trusted Web Activity) sobre Capacitor: LifeHub ya tiene service worker (fase 9, push), no hay nada que empaquetar aparte — la TWA carga siempre el sitio en vivo, así que las actualizaciones normales de la app no requieren tocar la APK en absoluto, que es exactamente lo que pidió el usuario ("que pueda actualizarse directamente sin tener que reinstalar").
+
+**Implementado:**
+
+- `src/client/public/manifest.webmanifest` + iconos (`src/client/public/icons/`, generados con un codificador PNG propio de ~80 líneas en vez de añadir una dependencia o depender de herramientas del sistema que no estaban disponibles) + enlazado en `index.html`.
+- `src/server/lib/assetLinks.ts` + ruta `GET /.well-known/assetlinks.json` (fuera de `/api`, sin sesión) — Digital Asset Links para que la TWA abra a pantalla completa; vacío hasta tener la huella real del keystore.
+- `deploy/android/twa-manifest.json` (config de Bubblewrap) + `deploy/android/README.md` (pasos completos, con énfasis en por qué el keystore de firma debe generarse una única vez y conservarse con cuidado — es lo que permite actualizar sin desinstalar).
+- `.gitignore`: excluidos el keystore y los artefactos de build de Android.
+
+**Pendiente — bloqueado por el entorno, no por el diseño:**
+
+- No pude ejecutar `bubblewrap build` yo mismo: ni esta máquina de desarrollo ni el VPS tienen Java/Android SDK, y esta máquina no tiene `sudo` sin contraseña; el VPS sí, pero con ~1&nbsp;GB de RAM y ViperTrade+LifeHub ya corriendo, una build de Gradle ahí arriesga los servicios en producción. Se le preguntó al usuario dónde prefiere ejecutarlo.
+- Huella SHA-256 del keystore (y por tanto `assetLinks.ts` relleno) pendiente de que exista el keystore.

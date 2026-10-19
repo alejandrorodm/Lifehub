@@ -94,3 +94,11 @@ describe("autenticación de la API", () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe("/.well-known/assetlinks.json", () => {
+  it("responde sin exigir sesión (fuera de /api)", async () => {
+    const res = await app.request("/.well-known/assetlinks.json");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual([]);
+  });
+});

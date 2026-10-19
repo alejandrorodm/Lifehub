@@ -1,0 +1,25 @@
+{
+  "packageId": "com.alejandrorodm.lifehub",
+  "host": "lifehub.alejandrorodm.com",
+  "name": "LifeHub",
+  "launcherName": "LifeHub",
+  "display": "standalone",
+  "themeColor": "#4338ca",
+  "navigationColor": "#4338ca",
+  "navigationColorDark": "#15141a",
+  "backgroundColor": "#fafaf9",
+  "backgroundColorDark": "#15141a",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "webManifestUrl": "https://lifehub.alejandrorodm.com/manifest.webmanifest",
+  "iconUrl": "https://lifehub.alejandrorodm.com/icons/icon-512.png",
+  "maskableIconUrl": "https://lifehub.alejandrorodm.com/icons/icon-maskable-512.png",
+  "shortcuts": [],
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "lifehub"
+  },
+  "generatorApp": "bubblewrap-cli"
+}

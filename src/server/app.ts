@@ -5,6 +5,7 @@ import { getCookie } from "hono/cookie";
 import { SESSION_COOKIE_NAME, verifySessionCookieValue } from "./lib/auth";
 import { runWithUserId } from "./lib/requestContext";
 import { authRoutes } from "./modules/auth/routes";
+import { ASSET_LINKS } from "./lib/assetLinks";
 import { isSessionValid } from "./modules/auth/service";
 import { settingsRoutes } from "./modules/settings/routes";
 import { dataRoutes } from "./modules/data/routes";
@@ -72,6 +73,14 @@ export function createApp(): Hono {
     .route("/markets", marketsRoutes);
 
   app.route("/api", api);
+
+  // Digital Asset Links: verifica ante Android que la APK (TWA, ver
+  // deploy/android/) y este dominio son del mismo dueño, para que la app
+  // abra a pantalla completa en vez de con la barra de Chrome Custom Tabs.
+  // Array vacío hasta tener la huella SHA-256 real del keystore de firma
+  // (ver deploy/android/README.md) — sin asset links, Android simplemente
+  // no confía en la TWA, no rompe nada mientras tanto.
+  app.get("/.well-known/assetlinks.json", (c) => c.json(ASSET_LINKS));
 
   if (config.isProduction) {
     app.use("/*", serveStatic({ root: "./dist/client" }));
