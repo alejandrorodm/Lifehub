@@ -45,7 +45,7 @@ Detalles y justificación de cada elección en [`PLAN.md`](./PLAN.md).
 
 ## Requisitos previos
 
-- Node.js 20 o superior (desarrollado y probado con Node 24).
+- Node.js 22 o superior (desarrollado y probado con Node 24). `better-sqlite3` exige Node ≥22; en Node 20 el módulo nativo no carga (crash al abrir la base de datos, no un error controlado).
 - npm (incluido con Node).
 - En Linux, `better-sqlite3` instala un binario precompilado; si tu plataforma no tiene uno disponible, necesitarás herramientas de compilación nativas (`build-essential`, `python3`).
 
@@ -64,6 +64,12 @@ npm run dev
 ```
 
 Esto arranca a la vez el servidor (API + base de datos, por defecto en `http://127.0.0.1:3131`) y el cliente de Vite (por defecto en `http://127.0.0.1:5173`, con proxy automático de `/api` hacia el servidor). Abre `http://127.0.0.1:5173` en tu navegador.
+
+Desde la fase 13, LifeHub exige iniciar sesión. Antes de la primera vez, crea los perfiles (contraseñas solo por variable de entorno, nunca en el repo):
+
+```bash
+LIFEHUB_SEED_IOANA_PASSWORD=... LIFEHUB_SEED_ALEX_PASSWORD=... npm run db:seed-users
+```
 
 Para ejecutar una build de producción (un solo proceso sirve la API y los archivos estáticos):
 

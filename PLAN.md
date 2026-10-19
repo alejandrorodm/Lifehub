@@ -575,12 +575,32 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - `npx tsc --noEmit`, `npx eslint .` — sin errores.
 - `npx vitest run` — 172/172 (sin tests nuevos: el cambio es un `??` adicional sobre una variable de entorno opcional, sin lógica nueva que probar unitariamente; cubierto por revisión de código).
 
-**Pendiente — no verificable desde este entorno:**
+**Despliegue real ejecutado el 2026-10-19** (mismo VPS que ViperTrade; dirección obtenida de `ViperTrade/.claude/settings.json`, autorización ya concedida por el usuario para administración de ese VPS, ampliada explícitamente a este despliegue):
 
-- No hay acceso real al VPS del usuario desde este entorno de desarrollo; `deploy/README.md` documenta los pasos pero no se han ejecutado contra un servidor real. El usuario debe seguirlos y confirmar.
+- `/opt/lifehub` nuevo, servicio `lifehub.service` nuevo — no se tocó ViperTrade ni su configuración de nginx.
+- **Bug real encontrado al desplegar, no al diseñar:** el servicio arrancaba y se caía (`segfault`, código 139) al abrir la base de datos. Diagnóstico con `gdb`: el crash ocurre dentro de Node al registrar el módulo nativo de `better-sqlite3` (`napi_module_register_by_symbol`). Causa real: **`better-sqlite3@13.0.3` exige Node ≥22** (`npm warn EBADENGINE`); el VPS tenía Node 20.20.2 — por eso el binario nativo se cae en vez de dar un error controlado. El requisito documentado hasta ahora ("Node 20 o superior") era incorrecto. Corregido: Node del VPS actualizado a 24.x vía NodeSource, `README.md`/`deploy/README.md` corregidos a "Node ≥22", y añadido `engines.node >= 22` a `package.json` para que `npm install` avise pronto en vez de fallar en caliente.
+- Verificado tras el fix: servicio `active`/`enabled`, `GET /api/settings` responde con datos reales, copia de seguridad de arranque creada, ~87M de memoria en uso (holgado dentro del límite de 350M del `MemoryMax`).
+- Deuda pendiente para no bloquear este despliegue: el `.env` de producción solo tiene `LIFEHUB_HOST`/`LIFEHUB_PORT`/`LIFEHUB_DATA_DIR` — sin dominio ni reverse proxy todavía, por lo que Google Calendar/GitHub/push siguen sin configurar en el VPS (el usuario los añadirá cuando decida el dominio). La clave SSH del VPS hacia GitHub es un *deploy key* específico de `ViperTrade` (confirmado: `ssh -T git@github.com` desde el VPS devuelve "Hi alejandrorodm/ViperTrade!", no el usuario), así que no puede hacer `git clone`/`git pull` de `Lifehub`; el código se transfirió con `git archive | ssh ... tar -x` en vez de clonar. "Actualizar LifeHub" en `deploy/README.md` (que asume `git pull`) no funcionará hasta que se añada un deploy key de GitHub para este repo en el VPS, o se cambie el procedimiento de actualización a repetir ese `git archive`.
 
 **Fuera de alcance explícito:**
 
 - Docker/docker-compose para LifeHub (decisión: mantener consistencia con el despliegue real de ViperTrade en el mismo VPS, no con su `Dockerfile` de solo desarrollo).
 - CI/CD automático (despliegue manual vía `git pull` + `systemctl restart`, igual que ViperTrade).
 - HTTPS/Caddy como parte de este repo: se documenta el bloque de configuración pero la instalación de Caddy es responsabilidad del VPS, no de LifeHub.
+
+## Fase 13 — Perfiles con login (en curso, iniciada el 2026-10-19)
+
+**Nota sobre el alcance:** fase no planificada originalmente; pedida por el usuario al preguntar por la URL del despliegue de la fase 12. Antes de diseñar se confirmó con el usuario (pregunta enfocada, única decisión de producto real abierta) el alcance: "acceso compartido" (un login delante de los mismos datos) vs. "datos totalmente separados" (cada perfil con su propia información). El usuario eligió la segunda — es un cambio arquitectónico grande, detallado completo en `odd/tasks/fase-13-perfiles-multiusuario.md`.
+
+**Diseño:** ver el documento de la fase para el detalle completo (tabla `users`, `scrypt` + cookie firmada con `sessionVersion` para invalidar de verdad al cerrar sesión, `AsyncLocalStorage` para propagar el `userId` sin tocar la firma de cada función de cada `service.ts`, `userId` directo en cada tabla de contenido en vez de depender de JOINs de autorización).
+
+**Estado:** T1-T5 (fundación de autenticación: esquema, hash/sesión, rutas, UI de login, tests) completados y desplegados en producción (`https://lifehub.alejandrorodm.com`, con certificado real de Let's Encrypt). T6-T15 (separación real de los datos por perfil, módulo a módulo) en curso.
+
+**Implementado y probado hasta ahora:**
+
+- `npx tsc --noEmit`, `npx eslint .`, `npx vitest run` (194/194), `npx playwright test` (46/46, 74 omitidos por diseño) — todos en verde.
+- Verificación real contra el servidor en producción: login de Ioana y Alex con sus contraseñas reales, cookie de sesión funcionando, rutas protegidas devolviendo 401 sin sesión.
+- Dominio `lifehub.alejandrorodm.com` (registro A en Namecheap) + nginx + certbot en el mismo VPS que ViperTrade, sin tocar su configuración.
+- Hallazgo real durante los tests propios (no al diseñar): una cookie de sesión puramente firmada seguía siendo válida tras "cerrar sesión" si se reproducía — corregido con `sessionVersion` en `users`.
+
+**Importante, para que no se perciba como más avanzado de lo que está:** con lo hecho hasta ahora, Ioana y Alex inician sesión por separado pero **todavía ven los mismos datos** — ninguna tabla de contenido tiene `userId` todavía. Eso es el trabajo de T6-T15.

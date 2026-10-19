@@ -1,9 +1,11 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, LogOut } from "lucide-react";
 import { primaryNavItems, secondaryNavItems, type NavItem } from "./navigation";
 import { cn } from "@client/lib/utils";
 import { useInboxCount } from "@client/features/inbox/useInbox";
 import { ShortcutsProvider, useShortcuts } from "./shortcuts/ShortcutsContext";
+import { useSessionUser, useLogout } from "@client/features/auth/useAuth";
+import { LoginPage } from "@client/features/auth/LoginPage";
 
 function NavBadge({ item }: { item: NavItem }) {
   const { data } = useInboxCount();
@@ -57,6 +59,28 @@ function BottomNavLink({ item }: { item: NavItem }) {
   );
 }
 
+function UserMenu() {
+  const { data: user } = useSessionUser();
+  const logout = useLogout();
+  if (!user) return null;
+
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-xs text-text-muted">{user.name}</span>
+      <button
+        type="button"
+        onClick={() => logout.mutate()}
+        disabled={logout.isPending}
+        aria-label="Cerrar sesión"
+        title="Cerrar sesión"
+        className="flex size-6 items-center justify-center rounded-md text-text-muted hover:bg-bg-subtle hover:text-text"
+      >
+        <LogOut className="size-3.5" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
 function ShellHeaderActions() {
   const { openPalette, openCapture } = useShortcuts();
   return (
@@ -98,8 +122,9 @@ function AppShellContent() {
         aria-label="Navegación principal"
         className="hidden w-60 shrink-0 flex-col border-r border-border bg-bg-elevated p-3 md:flex"
       >
-        <div className="mb-2 px-2 pt-1">
+        <div className="mb-2 flex items-center justify-between px-2 pt-1">
           <span className="text-base font-semibold tracking-tight">LifeHub</span>
+          <UserMenu />
         </div>
         <ShellHeaderActions />
         <div className="flex flex-1 flex-col gap-0.5">
@@ -134,6 +159,11 @@ function AppShellContent() {
 }
 
 export function AppShell() {
+  const { data: user, isPending } = useSessionUser();
+
+  if (isPending) return null;
+  if (!user) return <LoginPage />;
+
   return (
     <ShortcutsProvider>
       <AppShellContent />

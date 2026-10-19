@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "description": "LifeHub — centro de organización personal, local-first.",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "concurrently -n server,client -c blue,green \"npm:dev:server\" \"npm:dev:client\"",
     "dev:client": "vite --host 0.0.0.0",
@@ -18,7 +21,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/server/db/migrate.ts"
+    "db:migrate": "tsx src/server/db/migrate.ts",
+    "db:seed-users": "tsx src/server/db/seedUsers.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

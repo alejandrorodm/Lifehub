@@ -1,6 +1,11 @@
 import { Hono } from "hono";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { AppError, toApiErrorBody } from "./lib/errors";
+import { getCookie } from "hono/cookie";
+import { SESSION_COOKIE_NAME, verifySessionCookieValue } from "./lib/auth";
+import { runWithUserId } from "./lib/requestContext";
+import { authRoutes } from "./modules/auth/routes";
+import { isSessionValid } from "./modules/auth/service";
 import { settingsRoutes } from "./modules/settings/routes";
 import { dataRoutes } from "./modules/data/routes";
 import { tasksRoutes } from "./modules/tasks/routes";
@@ -26,7 +31,7 @@ export function createApp(): Hono {
 
   app.onError((err, c) => {
     if (err instanceof AppError) {
-      return c.json(toApiErrorBody(err), err.status as 400 | 404 | 409 | 500);
+      return c.json(toApiErrorBody(err), err.status as 400 | 401 | 404 | 409 | 500);
     }
     // Error no previsto: no se expone el mensaje interno al cliente.
     console.error("Error no controlado:", err);
@@ -37,7 +42,16 @@ export function createApp(): Hono {
     c.json(toApiErrorBody(new AppError("NOT_FOUND", "El recurso solicitado no existe.")), 404),
   );
 
+  // Toda ruta bajo /api exige sesión excepto /api/auth/* (login es, por
+  // definición, la única que se usa sin estar ya autenticado).
   const api = new Hono()
+    .route("/auth", authRoutes)
+    .use("*", async (c, next) => {
+      const cookieValue = getCookie(c, SESSION_COOKIE_NAME);
+      const payload = cookieValue ? verifySessionCookieValue(cookieValue) : null;
+      if (!payload || !isSessionValid(payload.userId, payload.sessionVersion)) throw AppError.unauthorized();
+      return runWithUserId(payload.userId, next);
+    })
     .route("/settings", settingsRoutes)
     .route("/data", dataRoutes)
     .route("/tasks", tasksRoutes)

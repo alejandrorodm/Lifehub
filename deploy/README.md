@@ -8,7 +8,11 @@ externa (SQLite local), así que no hay un servicio de BD que levantar.
 
 ```bash
 ssh usuario@<IP_O_DOMINIO_DEL_VPS>
-node -v   # necesitas Node 20+ (probado con Node 24)
+node -v   # necesitas Node 22+ (probado con Node 24) — `better-sqlite3` exige >=22;
+          # con Node 20 el proceso arranca pero se cae (segfault) al abrir la base de datos.
+          # Si tienes Node 20 vía NodeSource, cambia de repo:
+          #   curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+          #   apt-get install -y nodejs
 ```
 
 ## 2. Clona el repo e instala
@@ -92,11 +96,21 @@ Caddy lo usa para el reto ACME de Let's Encrypt).
 
 ## Actualizar LifeHub
 
+Si el VPS tiene acceso de `git clone`/`git pull` al repo (una SSH key o deploy key con permiso sobre él):
+
 ```bash
 cd /opt/lifehub && git pull
 npm install
 npm run build
 sudo systemctl restart lifehub
+```
+
+Si no (p. ej. la SSH key del VPS es un *deploy key* de otro repo y no tiene acceso a este), transfiere el commit directamente desde tu máquina, sin pasar por GitHub:
+
+```bash
+# desde tu máquina, en el repo local:
+git archive --format=tar HEAD | ssh usuario@tu-dominio-o-ip 'tar -x -C /opt/lifehub'
+ssh usuario@tu-dominio-o-ip 'cd /opt/lifehub && npm install && npm run build && systemctl restart lifehub'
 ```
 
 ## Backups

@@ -6,9 +6,11 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   reporter: [["list"]],
+  globalSetup: "./tests/e2e/global-setup.ts",
   use: {
     baseURL: "http://127.0.0.1:4310",
     trace: "retain-on-failure",
+    storageState: "./.e2e-data/storageState.json",
   },
   webServer: {
     command: "npm run dev",

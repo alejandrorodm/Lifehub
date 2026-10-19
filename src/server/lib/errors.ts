@@ -33,6 +33,10 @@ export class AppError extends Error {
   static conflict(message: string): AppError {
     return new AppError("CONFLICT", message, { status: 409 });
   }
+
+  static unauthorized(message = "Es necesario iniciar sesión."): AppError {
+    return new AppError("UNAUTHORIZED", message, { status: 401 });
+  }
 }
 
 function defaultStatusFor(code: AppErrorCode): number {
@@ -44,6 +48,8 @@ function defaultStatusFor(code: AppErrorCode): number {
       return 404;
     case "CONFLICT":
       return 409;
+    case "UNAUTHORIZED":
+      return 401;
     case "INTERNAL_ERROR":
       return 500;
   }
