@@ -3,6 +3,7 @@ import { getDb } from "../../db/client";
 import { routines, routineSteps, routineStepLogs } from "../../db/schema";
 import { AppError } from "../../lib/errors";
 import { getSettings } from "../settings/service";
+import { getCurrentUserId } from "../../lib/requestContext";
 import { todayISODate } from "@shared/domain/dates";
 import { isHabitScheduledOn } from "@shared/domain/habits";
 import type {
@@ -19,12 +20,17 @@ type RoutineRow = typeof routines.$inferSelect;
 type RoutineStepRow = typeof routineSteps.$inferSelect;
 
 function getRoutineRow(id: string): RoutineRow {
-  const row = getDb().select().from(routines).where(eq(routines.id, id)).get();
+  const row = getDb()
+    .select()
+    .from(routines)
+    .where(and(eq(routines.id, id), eq(routines.userId, getCurrentUserId())))
+    .get();
   if (!row) throw AppError.notFound("La rutina");
   return row;
 }
 
 function getStepRow(routineId: string, stepId: string): RoutineStepRow {
+  getRoutineRow(routineId); // valida que la rutina sea mía antes de tocar sus pasos
   const row = getDb()
     .select()
     .from(routineSteps)
@@ -80,7 +86,12 @@ function hydrate(row: RoutineRow): RoutineDto {
 export function createRoutine(input: RoutineCreateInput): RoutineDto {
   const row = getDb()
     .insert(routines)
-    .values({ name: input.name, scheduleType: input.scheduleType, weekdaysMask: input.weekdaysMask })
+    .values({
+      userId: getCurrentUserId(),
+      name: input.name,
+      scheduleType: input.scheduleType,
+      weekdaysMask: input.weekdaysMask,
+    })
     .returning()
     .get();
   return hydrate(row);
@@ -94,7 +105,12 @@ export function listRoutines(query: RoutineListQuery): RoutineDto[] {
   const rows = getDb()
     .select()
     .from(routines)
-    .where(query.archived ? isNotNull(routines.archivedAt) : isNull(routines.archivedAt))
+    .where(
+      and(
+        eq(routines.userId, getCurrentUserId()),
+        query.archived ? isNotNull(routines.archivedAt) : isNull(routines.archivedAt),
+      ),
+    )
     .all();
   return rows.map(hydrate);
 }
@@ -111,7 +127,11 @@ export function updateRoutine(id: string, patch: RoutinePatchInput): RoutineDto 
   if (patch.scheduleType !== undefined) changes.scheduleType = patch.scheduleType;
   if (patch.weekdaysMask !== undefined) changes.weekdaysMask = patch.weekdaysMask;
 
-  getDb().update(routines).set(changes).where(eq(routines.id, id)).run();
+  getDb()
+    .update(routines)
+    .set(changes)
+    .where(and(eq(routines.id, id), eq(routines.userId, getCurrentUserId())))
+    .run();
   return hydrate(getRoutineRow(id));
 }
 
@@ -120,13 +140,17 @@ export function archiveRoutine(id: string): void {
   getDb()
     .update(routines)
     .set({ archivedAt: new Date(), updatedAt: new Date() })
-    .where(eq(routines.id, id))
+    .where(and(eq(routines.id, id), eq(routines.userId, getCurrentUserId())))
     .run();
 }
 
 export function restoreRoutine(id: string): RoutineDto {
   getRoutineRow(id);
-  getDb().update(routines).set({ archivedAt: null, updatedAt: new Date() }).where(eq(routines.id, id)).run();
+  getDb()
+    .update(routines)
+    .set({ archivedAt: null, updatedAt: new Date() })
+    .where(and(eq(routines.id, id), eq(routines.userId, getCurrentUserId())))
+    .run();
   return getRoutine(id);
 }
 

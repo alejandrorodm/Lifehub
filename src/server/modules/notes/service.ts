@@ -3,6 +3,7 @@ import { getDb } from "../../db/client";
 import { notes, noteTags, noteTasks, tags, tasks } from "../../db/schema";
 import { AppError } from "../../lib/errors";
 import { ensureTagIds } from "../../lib/tags";
+import { getCurrentUserId } from "../../lib/requestContext";
 import type { NoteCreateInput, NotePatchInput, NoteListQuery, NoteDto } from "@shared/schemas/notes";
 
 type NoteRow = typeof notes.$inferSelect;
@@ -11,10 +12,20 @@ function getNoteRow(id: string): NoteRow {
   const row = getDb()
     .select()
     .from(notes)
-    .where(and(eq(notes.id, id), isNull(notes.deletedAt)))
+    .where(and(eq(notes.id, id), eq(notes.userId, getCurrentUserId()), isNull(notes.deletedAt)))
     .get();
   if (!row) throw AppError.notFound("La nota");
   return row;
+}
+
+/** Verifica que la tarea exista y sea del usuario actual, sin importar el servicio de tareas (evitaría un ciclo de módulos). */
+function assertOwnTask(taskId: string): void {
+  const row = getDb()
+    .select({ id: tasks.id })
+    .from(tasks)
+    .where(and(eq(tasks.id, taskId), eq(tasks.userId, getCurrentUserId()), isNull(tasks.deletedAt)))
+    .get();
+  if (!row) throw AppError.notFound("La tarea");
 }
 
 function hydrate(rows: NoteRow[]): NoteDto[] {
@@ -90,6 +101,7 @@ export function createNote(input: NoteCreateInput): NoteDto {
   const row = getDb()
     .insert(notes)
     .values({
+      userId: getCurrentUserId(),
       kind: input.kind,
       title: input.title,
       contentMd: input.contentMd,
@@ -113,7 +125,14 @@ export function getJournalEntry(date: string): NoteDto | null {
   const row = getDb()
     .select()
     .from(notes)
-    .where(and(eq(notes.kind, "journal"), eq(notes.journalDate, date), isNull(notes.deletedAt)))
+    .where(
+      and(
+        eq(notes.userId, getCurrentUserId()),
+        eq(notes.kind, "journal"),
+        eq(notes.journalDate, date),
+        isNull(notes.deletedAt),
+      ),
+    )
     .get();
   return row ? hydrate([row])[0]! : null;
 }
@@ -124,7 +143,7 @@ export function listNotes(query: NoteListQuery): NoteDto[] {
   let rows = db
     .select()
     .from(notes)
-    .where(and(isNull(notes.deletedAt), eq(notes.kind, "note")))
+    .where(and(eq(notes.userId, getCurrentUserId()), isNull(notes.deletedAt), eq(notes.kind, "note")))
     .orderBy(desc(notes.pinned), desc(notes.updatedAt))
     .all();
 
@@ -158,7 +177,7 @@ export function listTrash(): NoteDto[] {
   const rows = getDb()
     .select()
     .from(notes)
-    .where(isNotNull(notes.deletedAt))
+    .where(and(eq(notes.userId, getCurrentUserId()), isNotNull(notes.deletedAt)))
     .orderBy(desc(notes.updatedAt))
     .all();
   return hydrate(rows);
@@ -169,7 +188,7 @@ export function countCreatedInRange(startISO: string, endISO: string): number {
   return getDb()
     .select({ id: notes.id, createdAt: notes.createdAt })
     .from(notes)
-    .where(isNull(notes.deletedAt))
+    .where(and(eq(notes.userId, getCurrentUserId()), isNull(notes.deletedAt)))
     .all()
     .filter((row) => {
       const date = row.createdAt.toISOString().slice(0, 10);
@@ -181,7 +200,14 @@ export function listNotesForProject(projectId: string): NoteDto[] {
   const rows = getDb()
     .select()
     .from(notes)
-    .where(and(eq(notes.projectId, projectId), isNull(notes.deletedAt), isNull(notes.archivedAt)))
+    .where(
+      and(
+        eq(notes.projectId, projectId),
+        eq(notes.userId, getCurrentUserId()),
+        isNull(notes.deletedAt),
+        isNull(notes.archivedAt),
+      ),
+    )
     .orderBy(desc(notes.updatedAt))
     .all();
   return hydrate(rows);
@@ -199,7 +225,7 @@ export function listNotesForTask(taskId: string): NoteDto[] {
   const rows = db
     .select()
     .from(notes)
-    .where(and(inArray(notes.id, noteIds), isNull(notes.deletedAt)))
+    .where(and(inArray(notes.id, noteIds), eq(notes.userId, getCurrentUserId()), isNull(notes.deletedAt)))
     .all();
   return hydrate(rows);
 }
@@ -217,7 +243,10 @@ export function updateNote(id: string, patch: NotePatchInput): NoteDto {
   if (patch.projectId !== undefined) changes.projectId = patch.projectId;
   if (patch.archived !== undefined) changes.archivedAt = patch.archived ? new Date() : null;
 
-  db.update(notes).set(changes).where(eq(notes.id, id)).run();
+  db.update(notes)
+    .set(changes)
+    .where(and(eq(notes.id, id), eq(notes.userId, getCurrentUserId())))
+    .run();
 
   if (patch.tagNames !== undefined) syncNoteTags(id, patch.tagNames);
 
@@ -226,16 +255,25 @@ export function updateNote(id: string, patch: NotePatchInput): NoteDto {
 
 export function deleteNote(id: string): void {
   getNoteRow(id);
-  getDb().update(notes).set({ deletedAt: new Date(), updatedAt: new Date() }).where(eq(notes.id, id)).run();
+  getDb()
+    .update(notes)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(notes.id, id), eq(notes.userId, getCurrentUserId())))
+    .run();
 }
 
 export function restoreNote(id: string): NoteDto {
-  getDb().update(notes).set({ deletedAt: null, updatedAt: new Date() }).where(eq(notes.id, id)).run();
+  getDb()
+    .update(notes)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(notes.id, id), eq(notes.userId, getCurrentUserId())))
+    .run();
   return getNote(id);
 }
 
 export function linkTask(noteId: string, taskId: string): void {
   getNoteRow(noteId);
+  assertOwnTask(taskId);
   const db = getDb();
   const existing = db
     .select()
@@ -246,6 +284,7 @@ export function linkTask(noteId: string, taskId: string): void {
 }
 
 export function unlinkTask(noteId: string, taskId: string): void {
+  getNoteRow(noteId);
   getDb()
     .delete(noteTasks)
     .where(and(eq(noteTasks.noteId, noteId), eq(noteTasks.taskId, taskId)))

@@ -5,6 +5,7 @@ import { timestamps, softDelete } from "./common";
 import { projects } from "./projects";
 import { tasks } from "./tasks";
 import { tags } from "./tasks";
+import { users } from "./users";
 
 export const notes = sqliteTable(
   "notes",
@@ -12,6 +13,9 @@ export const notes = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     kind: text("kind", { enum: ["note", "journal"] })
       .notNull()
       .default("note"),
@@ -28,7 +32,7 @@ export const notes = sqliteTable(
   },
   (t) => [
     uniqueIndex("notes_journal_date_unique")
-      .on(t.journalDate)
+      .on(t.userId, t.journalDate)
       .where(sql`${t.kind} = 'journal' and ${t.deletedAt} is null`),
   ],
 );

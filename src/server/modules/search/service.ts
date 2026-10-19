@@ -1,4 +1,5 @@
 import { getRawConnection } from "../../db/client";
+import { getCurrentUserId } from "../../lib/requestContext";
 import type { SearchQuery, SearchResultDto, SearchResultType } from "@shared/schemas/search";
 
 interface SearchIndexRow {
@@ -26,13 +27,13 @@ export function search(query: SearchQuery): SearchResultDto[] {
   const rows = connection
     .prepare(
       `SELECT entity_type, entity_id, title,
-              snippet(search_index, 3, '', '', '…', 10) as snippet
+              snippet(search_index, 4, '', '', '…', 10) as snippet
        FROM search_index
-       WHERE search_index MATCH @match ${typeFilter}
+       WHERE search_index MATCH @match AND user_id = @userId ${typeFilter}
        ORDER BY rank
        LIMIT 30`,
     )
-    .all({ match: matchQuery, type: query.type ?? null }) as SearchIndexRow[];
+    .all({ match: matchQuery, userId: getCurrentUserId(), type: query.type ?? null }) as SearchIndexRow[];
 
   return rows.map((row) => ({
     type: row.entity_type,

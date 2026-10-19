@@ -1,12 +1,16 @@
-import { sqliteTable, text, integer, primaryKey, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, primaryKey, unique, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import { v7 as uuidv7 } from "uuid";
 import { timestamps, softDelete } from "./common";
 import { projects, milestones } from "./projects";
+import { users } from "./users";
 
 export const tasks = sqliteTable("tasks", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => uuidv7()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description"), // markdown
   status: text("status", { enum: ["todo", "in_progress", "done"] })
@@ -42,13 +46,22 @@ export const checklistItems = sqliteTable("checklist_items", {
   position: integer("position").notNull().default(0),
 });
 
-export const tags = sqliteTable("tags", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => uuidv7()),
-  name: text("name").notNull().unique(),
-  color: text("color"),
-});
+export const tags = sqliteTable(
+  "tags",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    color: text("color"),
+  },
+  // Antes era única globalmente; ahora cada perfil tiene su propio
+  // vocabulario de etiquetas, así que la unicidad es por usuario.
+  (t) => [unique().on(t.userId, t.name)],
+);
 
 export const taskTags = sqliteTable(
   "task_tags",

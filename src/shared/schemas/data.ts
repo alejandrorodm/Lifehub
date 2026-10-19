@@ -22,6 +22,7 @@ const dateOnly = () => z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Se esperaba una 
 
 const ExportProjectSchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   name: z.string(),
   description: z.string().nullable(),
   status: z.enum(["planned", "active", "paused", "completed"]),
@@ -49,6 +50,7 @@ const ExportMilestoneSchema = z.object({
 
 const ExportTaskSchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   title: z.string(),
   description: z.string().nullable(),
   status: z.enum(["todo", "in_progress", "done"]),
@@ -77,6 +79,7 @@ const ExportChecklistItemSchema = z.object({
 
 const ExportTagSchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   name: z.string(),
   color: z.string().nullable(),
 });
@@ -88,6 +91,7 @@ const ExportTaskTagSchema = z.object({
 
 const ExportEventSchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   kind: z.enum(["event", "time_block"]),
   title: z.string(),
   description: z.string().nullable(),
@@ -116,6 +120,7 @@ const ExportEventExceptionSchema = z.object({
 
 const ExportNoteSchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   kind: z.enum(["note", "journal"]),
   title: z.string(),
   contentMd: z.string(),
@@ -142,6 +147,7 @@ const ExportNoteTaskSchema = z.object({
 
 const ExportHabitSchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   name: z.string(),
   description: z.string().nullable(),
   scheduleType: z.enum(["daily", "weekdays"]),
@@ -161,6 +167,7 @@ const ExportHabitLogSchema = z.object({
 
 const ExportRoutineSchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   name: z.string(),
   scheduleType: z.enum(["daily", "weekdays"]),
   weekdaysMask: z.number().int().min(0).max(127),
@@ -184,6 +191,7 @@ const ExportRoutineStepLogSchema = z.object({
 
 const ExportInboxItemSchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   text: z.string(),
   kindHint: z.enum(["task", "note", "idea", "reminder", "unsorted"]),
   status: z.enum(["open", "processed", "archived"]),
@@ -195,6 +203,7 @@ const ExportInboxItemSchema = z.object({
 
 const ExportReminderSchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   targetType: z.enum(["task", "event", "none"]),
   targetId: z.string().nullable(),
   title: z.string(),
@@ -214,6 +223,7 @@ const ExportMetaSchema = z.object({
 // credenciales — a diferencia de las tablas de la fase 9, sí se exportan.
 const ExportFinanceAssetSchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   name: z.string(),
   type: z.enum(["fund", "crypto", "stock", "cash", "other"]),
   note: z.string().nullable(),
@@ -224,6 +234,7 @@ const ExportFinanceAssetSchema = z.object({
 
 const ExportFinanceGoalSchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   name: z.string(),
   targetAmountCents: z.number().int(),
   targetDate: dateOnly().nullable(),
@@ -234,6 +245,7 @@ const ExportFinanceGoalSchema = z.object({
 
 const ExportFinanceEntrySchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   assetId: z.string().min(1),
   goalId: z.string().nullable(),
   date: dateOnly(),
@@ -247,6 +259,7 @@ const ExportFinanceEntrySchema = z.object({
 // finanzas de la fase 10), no credenciales — se exporta igual que el resto.
 const ExportWatchlistAssetSchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   type: z.enum(["crypto", "stock"]),
   symbol: z.string(),
   name: z.string(),

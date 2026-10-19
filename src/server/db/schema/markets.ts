@@ -1,6 +1,7 @@
 import { sqliteTable, text, real } from "drizzle-orm/sqlite-core";
 import { v7 as uuidv7 } from "uuid";
 import { timestamps, softDelete } from "./common";
+import { users } from "./users";
 
 /**
  * Fase 11: lista de seguimiento con objetivo de precio, separada a propósito
@@ -13,6 +14,9 @@ export const watchlistAssets = sqliteTable("watchlist_assets", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => uuidv7()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   type: text("type", { enum: ["crypto", "stock"] }).notNull(),
   symbol: text("symbol").notNull(),
   name: text("name").notNull(),

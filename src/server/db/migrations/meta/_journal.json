@@ -36,6 +36,13 @@
       "when": 1792430367918,
       "tag": "0004_lovely_goblin_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792433353722,
+      "tag": "0005_new_wild_child",
+      "breakpoints": true
     }
   ]
 }

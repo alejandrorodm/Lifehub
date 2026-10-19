@@ -5,6 +5,7 @@ import { AppError } from "../../lib/errors";
 import { buildRRule, parseRRuleToRecurrence, expandOccurrences, overlaps } from "../../domain/calendar";
 import { parseDateOnly } from "@shared/domain/dates";
 import { getSettings } from "../settings/service";
+import { getCurrentUserId } from "../../lib/requestContext";
 import type {
   EventCreateInput,
   EventPatchInput,
@@ -63,7 +64,7 @@ function getEventRow(id: string): EventRow {
   const row = getDb()
     .select()
     .from(events)
-    .where(and(eq(events.id, id), isNull(events.deletedAt)))
+    .where(and(eq(events.id, id), eq(events.userId, getCurrentUserId()), isNull(events.deletedAt)))
     .get();
   if (!row) throw AppError.notFound("El evento");
   return row;
@@ -72,6 +73,7 @@ function getEventRow(id: string): EventRow {
 function buildRowValues(input: { recurrence?: EventRecurrence } & Omit<EventCreateInput, "recurrence">) {
   const timeZone = input.timeZone ?? getSettings().timeZone;
   return {
+    userId: getCurrentUserId(),
     kind: input.kind,
     title: input.title,
     description: input.description ?? null,
@@ -100,7 +102,11 @@ export function getEvent(id: string): EventOccurrenceDto {
 /** Expande todos los eventos no borrados dentro de [rangeStart, rangeEnd], aplicando excepciones. */
 export function listOccurrences(rangeStart: Date, rangeEnd: Date): EventOccurrenceDto[] {
   const db = getDb();
-  const rows = db.select().from(events).where(isNull(events.deletedAt)).all();
+  const rows = db
+    .select()
+    .from(events)
+    .where(and(eq(events.userId, getCurrentUserId()), isNull(events.deletedAt)))
+    .all();
 
   const exceptionsByEvent = new Map<string, (typeof eventExceptions.$inferSelect)[]>();
   for (const ex of db.select().from(eventExceptions).all()) {
@@ -183,7 +189,10 @@ function applyBaseUpdate(id: string, patch: EventPatchInput): EventOccurrenceDto
     }
   }
 
-  db.update(events).set(changes).where(eq(events.id, id)).run();
+  db.update(events)
+    .set(changes)
+    .where(and(eq(events.id, id), eq(events.userId, getCurrentUserId())))
+    .run();
   return toBaseDto(getEventRow(id));
 }
 
@@ -260,17 +269,28 @@ export function deleteEvent(id: string, scope: "all" | "occurrence", occurrenceS
     return;
   }
 
-  db.update(events).set({ deletedAt: new Date(), updatedAt: new Date() }).where(eq(events.id, id)).run();
+  db.update(events)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(events.id, id), eq(events.userId, getCurrentUserId())))
+    .run();
 }
 
 /** Eventos en la papelera (la serie completa, no sus ocurrencias expandidas), para la pantalla de Papelera. */
 export function listTrash(): EventOccurrenceDto[] {
-  const rows = getDb().select().from(events).where(isNotNull(events.deletedAt)).all();
+  const rows = getDb()
+    .select()
+    .from(events)
+    .where(and(eq(events.userId, getCurrentUserId()), isNotNull(events.deletedAt)))
+    .all();
   return rows.map((row) => toBaseDto(row));
 }
 
 export function restoreEvent(id: string): EventOccurrenceDto {
-  getDb().update(events).set({ deletedAt: null, updatedAt: new Date() }).where(eq(events.id, id)).run();
+  getDb()
+    .update(events)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(events.id, id), eq(events.userId, getCurrentUserId())))
+    .run();
   return getEvent(id);
 }
 

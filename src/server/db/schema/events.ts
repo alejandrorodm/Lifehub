@@ -3,11 +3,15 @@ import { v7 as uuidv7 } from "uuid";
 import { timestamps, softDelete } from "./common";
 import { projects } from "./projects";
 import { tasks } from "./tasks";
+import { users } from "./users";
 
 export const events = sqliteTable("events", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => uuidv7()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   kind: text("kind", { enum: ["event", "time_block"] })
     .notNull()
     .default("event"),

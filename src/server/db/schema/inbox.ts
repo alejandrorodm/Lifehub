@@ -1,11 +1,15 @@
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { v7 as uuidv7 } from "uuid";
 import { timestamps } from "./common";
+import { users } from "./users";
 
 export const inboxItems = sqliteTable("inbox_items", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => uuidv7()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   text: text("text").notNull(),
   kindHint: text("kind_hint", { enum: ["task", "note", "idea", "reminder", "unsorted"] })
     .notNull()

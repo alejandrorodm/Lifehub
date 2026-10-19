@@ -4,28 +4,34 @@ import { googleCalendarConnection } from "../../db/schema";
 import { AppError } from "../../lib/errors";
 import * as oauth from "./oauth";
 
-const CONNECTION_ID = "default";
 const TOKEN_REFRESH_BUFFER_MS = 60_000;
 
-// Fila única, como `settings`: no hay sesiones concurrentes en una app de un
-// solo usuario, así que un `state` de OAuth en memoria (no en BD) es
-// suficiente. Se pierde si el servidor se reinicia a mitad del flujo; el
-// usuario simplemente vuelve a pulsar "Conectar".
-let pendingState: string | null = null;
+// Desde la fase 13 hay un perfil por conexión (antes era una fila única para
+// toda la instalación): el `state` de OAuth en memoria ahora mapea
+// state -> userId, para saber a qué perfil pertenece cuando Google redirige
+// de vuelta al callback. Se pierde si el servidor se reinicia a mitad del
+// flujo; el usuario simplemente vuelve a pulsar "Conectar".
+const pendingStates = new Map<string, string>();
 
 type GoogleCalendarConnectionRow = typeof googleCalendarConnection.$inferSelect;
 
-function getRow(): GoogleCalendarConnectionRow | undefined {
-  return getDb()
-    .select()
-    .from(googleCalendarConnection)
-    .where(eq(googleCalendarConnection.id, CONNECTION_ID))
-    .get();
+function getRow(userId: string): GoogleCalendarConnectionRow | undefined {
+  return getDb().select().from(googleCalendarConnection).where(eq(googleCalendarConnection.userId, userId)).get();
 }
 
-export function startConnect(): string {
-  pendingState = crypto.randomUUID();
-  return oauth.buildAuthorizationUrl(pendingState);
+/** userId de cada perfil con Google Calendar conectado, para que el worker en segundo plano sepa a quién sincronizar. */
+export function listConnectedUserIds(): string[] {
+  return getDb()
+    .select({ userId: googleCalendarConnection.userId })
+    .from(googleCalendarConnection)
+    .all()
+    .map((r) => r.userId);
+}
+
+export function startConnect(userId: string): string {
+  const state = crypto.randomUUID();
+  pendingStates.set(state, userId);
+  return oauth.buildAuthorizationUrl(state);
 }
 
 export interface GoogleConnectionStatus {
@@ -35,8 +41,8 @@ export interface GoogleConnectionStatus {
   lastSyncedAt?: string | null;
 }
 
-export function getStatus(): GoogleConnectionStatus {
-  const row = getRow();
+export function getStatus(userId: string): GoogleConnectionStatus {
+  const row = getRow(userId);
   if (!row) return { connected: false };
   return {
     connected: true,
@@ -47,12 +53,13 @@ export function getStatus(): GoogleConnectionStatus {
 }
 
 export async function handleCallback(code: string, state: string): Promise<void> {
-  if (!pendingState || state !== pendingState) {
+  const userId = pendingStates.get(state);
+  if (!userId) {
     throw AppError.validation(
       "La solicitud de conexión con Google ha caducado o no es válida; vuelve a intentarlo.",
     );
   }
-  pendingState = null;
+  pendingStates.delete(state);
 
   const tokens = await oauth.exchangeCodeForTokens(code);
   if (!tokens.refreshToken) {
@@ -65,14 +72,14 @@ export async function handleCallback(code: string, state: string): Promise<void>
   getDb()
     .insert(googleCalendarConnection)
     .values({
-      id: CONNECTION_ID,
+      userId,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
       tokenExpiresAt,
       scope: tokens.scope,
     })
     .onConflictDoUpdate({
-      target: googleCalendarConnection.id,
+      target: googleCalendarConnection.userId,
       set: {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
@@ -84,16 +91,16 @@ export async function handleCallback(code: string, state: string): Promise<void>
     .run();
 }
 
-export async function disconnect(): Promise<void> {
-  const row = getRow();
+export async function disconnect(userId: string): Promise<void> {
+  const row = getRow(userId);
   if (!row) return;
   await oauth.revokeToken(row.refreshToken);
-  getDb().delete(googleCalendarConnection).where(eq(googleCalendarConnection.id, CONNECTION_ID)).run();
+  getDb().delete(googleCalendarConnection).where(eq(googleCalendarConnection.userId, userId)).run();
 }
 
 /** Token de acceso válido, refrescándolo si está (o va a estar) caducado. Lanza si no hay conexión. */
-export async function getValidAccessToken(): Promise<string> {
-  const row = getRow();
+export async function getValidAccessToken(userId: string): Promise<string> {
+  const row = getRow(userId);
   if (!row) throw AppError.validation("Google Calendar no está conectado.");
 
   if (row.tokenExpiresAt.getTime() - TOKEN_REFRESH_BUFFER_MS > Date.now()) {
@@ -107,25 +114,25 @@ export async function getValidAccessToken(): Promise<string> {
       accessToken: tokens.accessToken,
       tokenExpiresAt: new Date(Date.now() + tokens.expiresInSeconds * 1000),
     })
-    .where(eq(googleCalendarConnection.id, CONNECTION_ID))
+    .where(eq(googleCalendarConnection.userId, userId))
     .run();
   return tokens.accessToken;
 }
 
-export function getConnectedCalendarId(): string {
-  const row = getRow();
+export function getConnectedCalendarId(userId: string): string {
+  const row = getRow(userId);
   if (!row) throw AppError.validation("Google Calendar no está conectado.");
   return row.calendarId;
 }
 
-export function getLastSyncToken(): string | null {
-  return getRow()?.syncToken ?? null;
+export function getLastSyncToken(userId: string): string | null {
+  return getRow(userId)?.syncToken ?? null;
 }
 
-export function saveSyncToken(syncToken: string | null): void {
+export function saveSyncToken(userId: string, syncToken: string | null): void {
   getDb()
     .update(googleCalendarConnection)
     .set({ syncToken, lastSyncedAt: new Date() })
-    .where(eq(googleCalendarConnection.id, CONNECTION_ID))
+    .where(eq(googleCalendarConnection.userId, userId))
     .run();
 }

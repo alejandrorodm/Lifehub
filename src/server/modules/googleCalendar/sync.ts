@@ -1,4 +1,4 @@
-import { eq, isNull, isNotNull } from "drizzle-orm";
+import { and, eq, isNull, isNotNull } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { events, googleEventLinks } from "../../db/schema";
 import * as connection from "./service";
@@ -33,8 +33,8 @@ interface GoogleEventListPage {
 type EventRow = typeof events.$inferSelect;
 type EventLinkRow = typeof googleEventLinks.$inferSelect;
 
-async function googleFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const accessToken = await connection.getValidAccessToken();
+async function googleFetch<T>(userId: string, path: string, init?: RequestInit): Promise<T> {
+  const accessToken = await connection.getValidAccessToken(userId);
   const response = await fetch(`${CALENDAR_API}${path}`, {
     ...init,
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", ...init?.headers },
@@ -89,22 +89,38 @@ function fromGoogleEvent(googleEvent: GoogleEvent) {
 
 // ---- Push: cambios locales -> Google ----
 
-export async function pushLocalChanges(): Promise<{ pushed: number }> {
-  const calendarId = connection.getConnectedCalendarId();
+/** Links de Google Calendar que pertenecen a eventos de `userId` (`google_event_links` no tiene `userId` propio: hereda el dueño vía `eventId`). */
+function getLinksForUser(userId: string): EventLinkRow[] {
+  return getDb()
+    .select({ link: googleEventLinks })
+    .from(googleEventLinks)
+    .innerJoin(events, eq(events.id, googleEventLinks.eventId))
+    .where(eq(events.userId, userId))
+    .all()
+    .map((r) => r.link);
+}
+
+export async function pushLocalChanges(userId: string): Promise<{ pushed: number }> {
+  const calendarId = connection.getConnectedCalendarId(userId);
   const db = getDb();
   let pushed = 0;
 
-  const links = db.select().from(googleEventLinks).all();
+  const links = getLinksForUser(userId);
   const linkByEventId = new Map(links.map((link) => [link.eventId, link]));
 
-  const localEvents = db.select().from(events).where(isNull(events.deletedAt)).all();
+  const localEvents = db
+    .select()
+    .from(events)
+    .where(and(eq(events.userId, userId), isNull(events.deletedAt)))
+    .all();
   for (const row of localEvents) {
     const link = linkByEventId.get(row.id);
     if (!link) {
-      const created = await googleFetch<GoogleEvent>(`/calendars/${encodeURIComponent(calendarId)}/events`, {
-        method: "POST",
-        body: JSON.stringify(toGooglePayload(row)),
-      });
+      const created = await googleFetch<GoogleEvent>(
+        userId,
+        `/calendars/${encodeURIComponent(calendarId)}/events`,
+        { method: "POST", body: JSON.stringify(toGooglePayload(row)) },
+      );
       db.insert(googleEventLinks)
         .values({
           eventId: row.id,
@@ -117,6 +133,7 @@ export async function pushLocalChanges(): Promise<{ pushed: number }> {
       pushed++;
     } else if (row.updatedAt.getTime() > link.localUpdatedAtSynced.getTime()) {
       const updated = await googleFetch<GoogleEvent>(
+        userId,
         `/calendars/${encodeURIComponent(link.googleCalendarId)}/events/${link.googleEventId}`,
         { method: "PATCH", body: JSON.stringify(toGooglePayload(row)) },
       );
@@ -136,13 +153,14 @@ export async function pushLocalChanges(): Promise<{ pushed: number }> {
     db
       .select({ id: events.id })
       .from(events)
-      .where(isNotNull(events.deletedAt))
+      .where(and(eq(events.userId, userId), isNotNull(events.deletedAt)))
       .all()
       .map((r) => r.id),
   );
   for (const link of links) {
     if (!deletedEventIds.has(link.eventId)) continue;
     await googleFetch(
+      userId,
       `/calendars/${encodeURIComponent(link.googleCalendarId)}/events/${link.googleEventId}`,
       { method: "DELETE" },
     ).catch(() => undefined); // puede que ya no exista en Google; no es un fallo real
@@ -155,9 +173,13 @@ export async function pushLocalChanges(): Promise<{ pushed: number }> {
 
 // ---- Pull: cambios de Google -> local ----
 
-function applyGoogleEvent(googleEvent: GoogleEvent, linkByGoogleId: Map<string, EventLinkRow>): boolean {
+function applyGoogleEvent(
+  userId: string,
+  googleEvent: GoogleEvent,
+  linkByGoogleId: Map<string, EventLinkRow>,
+): boolean {
   const db = getDb();
-  const calendarId = connection.getConnectedCalendarId();
+  const calendarId = connection.getConnectedCalendarId(userId);
   const link = linkByGoogleId.get(googleEvent.id);
 
   if (googleEvent.status === "cancelled") {
@@ -173,7 +195,11 @@ function applyGoogleEvent(googleEvent: GoogleEvent, linkByGoogleId: Map<string, 
   const remoteUpdatedAt = new Date(googleEvent.updated!);
 
   if (!link) {
-    const row = db.insert(events).values(mapped).returning().get();
+    const row = db
+      .insert(events)
+      .values({ ...mapped, userId })
+      .returning()
+      .get();
     db.insert(googleEventLinks)
       .values({
         eventId: row.id,
@@ -209,15 +235,14 @@ function applyGoogleEvent(googleEvent: GoogleEvent, linkByGoogleId: Map<string, 
 
 const INITIAL_SYNC_WINDOW_MS = 365 * 24 * 60 * 60 * 1000;
 
-export async function pullFromGoogle(): Promise<{ pulled: number }> {
-  const calendarId = connection.getConnectedCalendarId();
-  const db = getDb();
+export async function pullFromGoogle(userId: string): Promise<{ pulled: number }> {
+  const calendarId = connection.getConnectedCalendarId(userId);
   let pulled = 0;
   let pageToken: string | undefined;
   let nextSyncToken: string | undefined;
-  const syncToken = connection.getLastSyncToken();
+  const syncToken = connection.getLastSyncToken(userId);
 
-  const links = db.select().from(googleEventLinks).all();
+  const links = getLinksForUser(userId);
   const linkByGoogleId = new Map(links.map((link) => [link.googleEventId, link]));
 
   do {
@@ -229,34 +254,35 @@ export async function pullFromGoogle(): Promise<{ pulled: number }> {
     let page: GoogleEventListPage;
     try {
       page = await googleFetch<GoogleEventListPage>(
+        userId,
         `/calendars/${encodeURIComponent(calendarId)}/events?${query.toString()}`,
       );
     } catch (error) {
       if (syncToken && String(error).includes("410")) {
         // El syncToken ya no es válido (p. ej. caducó en Google): se reinicia con un sync completo.
-        connection.saveSyncToken(null);
-        return pullFromGoogle();
+        connection.saveSyncToken(userId, null);
+        return pullFromGoogle(userId);
       }
       throw error;
     }
 
     for (const googleEvent of page.items) {
-      if (applyGoogleEvent(googleEvent, linkByGoogleId)) pulled++;
+      if (applyGoogleEvent(userId, googleEvent, linkByGoogleId)) pulled++;
     }
 
     pageToken = page.nextPageToken;
     nextSyncToken = page.nextSyncToken ?? nextSyncToken;
   } while (pageToken);
 
-  connection.saveSyncToken(nextSyncToken ?? syncToken ?? null);
+  connection.saveSyncToken(userId, nextSyncToken ?? syncToken ?? null);
   return { pulled };
 }
 
-export async function syncNow(): Promise<{ pulled: number; pushed: number }> {
+export async function syncNow(userId: string): Promise<{ pulled: number; pushed: number }> {
   // Primero pull: si los dos lados cambiaron el mismo evento, la política
   // "el cambio más reciente gana" ya descarta el lado más antiguo aquí, y
   // el push que sigue solo sube lo que de verdad es más nuevo en local.
-  const { pulled } = await pullFromGoogle();
-  const { pushed } = await pushLocalChanges();
+  const { pulled } = await pullFromGoogle(userId);
+  const { pushed } = await pushLocalChanges(userId);
   return { pulled, pushed };
 }

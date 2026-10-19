@@ -3,6 +3,7 @@ import { getDb } from "../../db/client";
 import { habits, habitLogs } from "../../db/schema";
 import { AppError } from "../../lib/errors";
 import { getSettings } from "../settings/service";
+import { getCurrentUserId } from "../../lib/requestContext";
 import { todayISODate } from "@shared/domain/dates";
 import {
   computeHabitStreak,
@@ -16,7 +17,11 @@ import type { HabitCreateInput, HabitPatchInput, HabitListQuery, HabitDto } from
 type HabitRow = typeof habits.$inferSelect;
 
 function getHabitRow(id: string): HabitRow {
-  const row = getDb().select().from(habits).where(eq(habits.id, id)).get();
+  const row = getDb()
+    .select()
+    .from(habits)
+    .where(and(eq(habits.id, id), eq(habits.userId, getCurrentUserId())))
+    .get();
   if (!row) throw AppError.notFound("El hábito");
   return row;
 }
@@ -54,6 +59,7 @@ export function createHabit(input: HabitCreateInput): HabitDto {
   const row = getDb()
     .insert(habits)
     .values({
+      userId: getCurrentUserId(),
       name: input.name,
       description: input.description ?? null,
       scheduleType: input.scheduleType,
@@ -74,7 +80,12 @@ export function listHabits(query: HabitListQuery): HabitDto[] {
   const rows = getDb()
     .select()
     .from(habits)
-    .where(query.archived ? isNotNull(habits.archivedAt) : isNull(habits.archivedAt))
+    .where(
+      and(
+        eq(habits.userId, getCurrentUserId()),
+        query.archived ? isNotNull(habits.archivedAt) : isNull(habits.archivedAt),
+      ),
+    )
     .all();
   return rows.map(hydrate);
 }
@@ -94,18 +105,30 @@ export function updateHabit(id: string, patch: HabitPatchInput): HabitDto {
   if (patch.weeklyTarget !== undefined) changes.weeklyTarget = patch.weeklyTarget;
   if (patch.color !== undefined) changes.color = patch.color;
 
-  getDb().update(habits).set(changes).where(eq(habits.id, id)).run();
+  getDb()
+    .update(habits)
+    .set(changes)
+    .where(and(eq(habits.id, id), eq(habits.userId, getCurrentUserId())))
+    .run();
   return hydrate(getHabitRow(id));
 }
 
 export function archiveHabit(id: string): void {
   getHabitRow(id);
-  getDb().update(habits).set({ archivedAt: new Date(), updatedAt: new Date() }).where(eq(habits.id, id)).run();
+  getDb()
+    .update(habits)
+    .set({ archivedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(habits.id, id), eq(habits.userId, getCurrentUserId())))
+    .run();
 }
 
 export function restoreHabit(id: string): HabitDto {
   getHabitRow(id);
-  getDb().update(habits).set({ archivedAt: null, updatedAt: new Date() }).where(eq(habits.id, id)).run();
+  getDb()
+    .update(habits)
+    .set({ archivedAt: null, updatedAt: new Date() })
+    .where(and(eq(habits.id, id), eq(habits.userId, getCurrentUserId())))
+    .run();
   return getHabit(id);
 }
 
@@ -118,7 +141,11 @@ export function getCompletionStats(
   startISO: string,
   endISO: string,
 ): { scheduled: number; completed: number; rate: number } {
-  const activeHabits = getDb().select().from(habits).where(isNull(habits.archivedAt)).all();
+  const activeHabits = getDb()
+    .select()
+    .from(habits)
+    .where(and(eq(habits.userId, getCurrentUserId()), isNull(habits.archivedAt)))
+    .all();
   let scheduled = 0;
   let completed = 0;
 

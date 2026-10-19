@@ -1,11 +1,15 @@
 import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
 import { v7 as uuidv7 } from "uuid";
 import { timestamps } from "./common";
+import { users } from "./users";
 
 export const habits = sqliteTable("habits", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => uuidv7()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   scheduleType: text("schedule_type", { enum: ["daily", "weekdays"] })
@@ -37,6 +41,9 @@ export const routines = sqliteTable("routines", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => uuidv7()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   scheduleType: text("schedule_type", { enum: ["daily", "weekdays"] })
     .notNull()

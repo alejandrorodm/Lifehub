@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { settings as settingsTable } from "../../db/schema";
+import { getCurrentUserId } from "../../lib/requestContext";
 import {
   DEFAULT_SETTINGS,
   SettingsSchema,
@@ -10,10 +11,14 @@ import {
 
 const SETTINGS_KEY = "app";
 
-/** Única fila de ajustes de la instalación (clave "app" en la tabla `settings`). */
+/** Ajustes del perfil actual (clave "app" en `settings`, por `userId` desde la fase 13). */
 export function getSettings(): Settings {
   const db = getDb();
-  const row = db.select().from(settingsTable).where(eq(settingsTable.key, SETTINGS_KEY)).get();
+  const row = db
+    .select()
+    .from(settingsTable)
+    .where(and(eq(settingsTable.userId, getCurrentUserId()), eq(settingsTable.key, SETTINGS_KEY)))
+    .get();
   if (!row) return DEFAULT_SETTINGS;
 
   // Combina con los valores por defecto: una versión futura puede añadir
@@ -24,13 +29,14 @@ export function getSettings(): Settings {
 
 export function updateSettings(patch: SettingsPatch): Settings {
   const db = getDb();
+  const userId = getCurrentUserId();
   const current = getSettings();
   const next = SettingsSchema.parse({ ...current, ...patch });
 
   db.insert(settingsTable)
-    .values({ key: SETTINGS_KEY, value: next, updatedAt: new Date() })
+    .values({ userId, key: SETTINGS_KEY, value: next, updatedAt: new Date() })
     .onConflictDoUpdate({
-      target: settingsTable.key,
+      target: [settingsTable.userId, settingsTable.key],
       set: { value: next, updatedAt: new Date() },
     })
     .run();

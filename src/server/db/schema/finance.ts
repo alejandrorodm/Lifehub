@@ -1,6 +1,7 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { v7 as uuidv7 } from "uuid";
 import { timestamps, softDelete } from "./common";
+import { users } from "./users";
 
 /**
  * Finanzas (fase 10): registro manual de aportaciones/retiros, sin precios en
@@ -12,6 +13,9 @@ export const financeAssets = sqliteTable("finance_assets", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => uuidv7()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   type: text("type", { enum: ["fund", "crypto", "stock", "cash", "other"] })
     .notNull()
@@ -25,6 +29,9 @@ export const financeGoals = sqliteTable("finance_goals", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => uuidv7()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   targetAmountCents: integer("target_amount_cents").notNull(),
   targetDate: text("target_date"), // YYYY-MM-DD
@@ -38,6 +45,9 @@ export const financeEntries = sqliteTable("finance_entries", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => uuidv7()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   assetId: text("asset_id")
     .notNull()
     .references(() => financeAssets.id, { onDelete: "cascade" }),

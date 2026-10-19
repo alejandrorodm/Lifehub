@@ -2,6 +2,7 @@ import { and, eq, isNull, isNotNull, desc, gte, lte } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { financeAssets, financeGoals, financeEntries } from "../../db/schema";
 import { AppError } from "../../lib/errors";
+import { getCurrentUserId } from "../../lib/requestContext";
 import { sumEntries, computeGoalProgress } from "@shared/domain/finance";
 import type {
   FinanceAssetCreateInput,
@@ -36,13 +37,17 @@ function getEntriesForAsset(assetId: string): EntryRow[] {
   return getDb()
     .select()
     .from(financeEntries)
-    .where(eq(financeEntries.assetId, assetId))
+    .where(and(eq(financeEntries.assetId, assetId), eq(financeEntries.userId, getCurrentUserId())))
     .orderBy(desc(financeEntries.date))
     .all();
 }
 
 function getEntriesForGoal(goalId: string): EntryRow[] {
-  return getDb().select().from(financeEntries).where(eq(financeEntries.goalId, goalId)).all();
+  return getDb()
+    .select()
+    .from(financeEntries)
+    .where(and(eq(financeEntries.goalId, goalId), eq(financeEntries.userId, getCurrentUserId())))
+    .all();
 }
 
 function toAssetDto(row: AssetRow): FinanceAssetDto {
@@ -77,7 +82,7 @@ function getAssetRow(id: string): AssetRow {
   const row = getDb()
     .select()
     .from(financeAssets)
-    .where(and(eq(financeAssets.id, id), isNull(financeAssets.deletedAt)))
+    .where(and(eq(financeAssets.id, id), eq(financeAssets.userId, getCurrentUserId()), isNull(financeAssets.deletedAt)))
     .get();
   if (!row) throw AppError.notFound("El activo");
   return row;
@@ -87,7 +92,7 @@ function getGoalRow(id: string): GoalRow {
   const row = getDb()
     .select()
     .from(financeGoals)
-    .where(and(eq(financeGoals.id, id), isNull(financeGoals.deletedAt)))
+    .where(and(eq(financeGoals.id, id), eq(financeGoals.userId, getCurrentUserId()), isNull(financeGoals.deletedAt)))
     .get();
   if (!row) throw AppError.notFound("La meta");
   return row;
@@ -98,7 +103,7 @@ function getGoalRow(id: string): GoalRow {
 export function createAsset(input: FinanceAssetCreateInput): FinanceAssetDto {
   const row = getDb()
     .insert(financeAssets)
-    .values({ name: input.name, type: input.type, note: input.note ?? null })
+    .values({ userId: getCurrentUserId(), name: input.name, type: input.type, note: input.note ?? null })
     .returning()
     .get();
   return toAssetDto(row);
@@ -112,7 +117,7 @@ export function listAssets(): FinanceAssetDto[] {
   return getDb()
     .select()
     .from(financeAssets)
-    .where(isNull(financeAssets.deletedAt))
+    .where(and(eq(financeAssets.userId, getCurrentUserId()), isNull(financeAssets.deletedAt)))
     .orderBy(desc(financeAssets.updatedAt))
     .all()
     .map(toAssetDto);
@@ -122,7 +127,7 @@ export function listAssetsTrash(): FinanceAssetDto[] {
   return getDb()
     .select()
     .from(financeAssets)
-    .where(isNotNull(financeAssets.deletedAt))
+    .where(and(eq(financeAssets.userId, getCurrentUserId()), isNotNull(financeAssets.deletedAt)))
     .orderBy(desc(financeAssets.updatedAt))
     .all()
     .map(toAssetDto);
@@ -134,21 +139,29 @@ export function updateAsset(id: string, patch: FinanceAssetPatchInput): FinanceA
   if (patch.name !== undefined) changes.name = patch.name;
   if (patch.type !== undefined) changes.type = patch.type;
   if (patch.note !== undefined) changes.note = patch.note;
-  getDb().update(financeAssets).set(changes).where(eq(financeAssets.id, id)).run();
+  getDb()
+    .update(financeAssets)
+    .set(changes)
+    .where(and(eq(financeAssets.id, id), eq(financeAssets.userId, getCurrentUserId())))
+    .run();
   return toAssetDto(getAssetRow(id));
 }
 
 export function deleteAsset(id: string): void {
   getAssetRow(id);
   const now = new Date();
-  getDb().update(financeAssets).set({ deletedAt: now, updatedAt: now }).where(eq(financeAssets.id, id)).run();
+  getDb()
+    .update(financeAssets)
+    .set({ deletedAt: now, updatedAt: now })
+    .where(and(eq(financeAssets.id, id), eq(financeAssets.userId, getCurrentUserId())))
+    .run();
 }
 
 export function restoreAsset(id: string): FinanceAssetDto {
   getDb()
     .update(financeAssets)
     .set({ deletedAt: null, updatedAt: new Date() })
-    .where(eq(financeAssets.id, id))
+    .where(and(eq(financeAssets.id, id), eq(financeAssets.userId, getCurrentUserId())))
     .run();
   return getAsset(id);
 }
@@ -159,6 +172,7 @@ export function createGoal(input: FinanceGoalCreateInput): FinanceGoalDto {
   const row = getDb()
     .insert(financeGoals)
     .values({
+      userId: getCurrentUserId(),
       name: input.name,
       targetAmountCents: input.targetAmountCents,
       targetDate: input.targetDate ?? null,
@@ -176,7 +190,7 @@ export function listGoals(): FinanceGoalDto[] {
   return getDb()
     .select()
     .from(financeGoals)
-    .where(isNull(financeGoals.deletedAt))
+    .where(and(eq(financeGoals.userId, getCurrentUserId()), isNull(financeGoals.deletedAt)))
     .orderBy(desc(financeGoals.updatedAt))
     .all()
     .map(toGoalDto);
@@ -186,7 +200,7 @@ export function listGoalsTrash(): FinanceGoalDto[] {
   return getDb()
     .select()
     .from(financeGoals)
-    .where(isNotNull(financeGoals.deletedAt))
+    .where(and(eq(financeGoals.userId, getCurrentUserId()), isNotNull(financeGoals.deletedAt)))
     .orderBy(desc(financeGoals.updatedAt))
     .all()
     .map(toGoalDto);
@@ -198,27 +212,45 @@ export function updateGoal(id: string, patch: FinanceGoalPatchInput): FinanceGoa
   if (patch.name !== undefined) changes.name = patch.name;
   if (patch.targetAmountCents !== undefined) changes.targetAmountCents = patch.targetAmountCents;
   if (patch.targetDate !== undefined) changes.targetDate = patch.targetDate;
-  getDb().update(financeGoals).set(changes).where(eq(financeGoals.id, id)).run();
+  getDb()
+    .update(financeGoals)
+    .set(changes)
+    .where(and(eq(financeGoals.id, id), eq(financeGoals.userId, getCurrentUserId())))
+    .run();
   return toGoalDto(getGoalRow(id));
 }
 
 export function deleteGoal(id: string): void {
   getGoalRow(id);
   const now = new Date();
-  getDb().update(financeGoals).set({ deletedAt: now, updatedAt: now }).where(eq(financeGoals.id, id)).run();
+  getDb()
+    .update(financeGoals)
+    .set({ deletedAt: now, updatedAt: now })
+    .where(and(eq(financeGoals.id, id), eq(financeGoals.userId, getCurrentUserId())))
+    .run();
 }
 
 export function restoreGoal(id: string): FinanceGoalDto {
-  getDb().update(financeGoals).set({ deletedAt: null, updatedAt: new Date() }).where(eq(financeGoals.id, id)).run();
+  getDb()
+    .update(financeGoals)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(financeGoals.id, id), eq(financeGoals.userId, getCurrentUserId())))
+    .run();
   return getGoal(id);
 }
 
-/** Aportaciones netas (depósitos - retiros) de todos los activos en [startISO, endISO], para la revisión periódica. */
+/** Aportaciones netas (depósitos - retiros) de todos mis activos en [startISO, endISO], para la revisión periódica. */
 export function getNetContributionsInRange(startISO: string, endISO: string): number {
   const rows = getDb()
     .select()
     .from(financeEntries)
-    .where(and(gte(financeEntries.date, startISO), lte(financeEntries.date, endISO)))
+    .where(
+      and(
+        eq(financeEntries.userId, getCurrentUserId()),
+        gte(financeEntries.date, startISO),
+        lte(financeEntries.date, endISO),
+      ),
+    )
     .all();
   return sumEntries(rows);
 }
@@ -232,6 +264,7 @@ export function createEntry(input: FinanceEntryCreateInput): FinanceEntryDto {
   const row = getDb()
     .insert(financeEntries)
     .values({
+      userId: getCurrentUserId(),
       assetId: input.assetId,
       goalId: input.goalId ?? null,
       date: input.date,
@@ -245,7 +278,11 @@ export function createEntry(input: FinanceEntryCreateInput): FinanceEntryDto {
 }
 
 function getEntryRow(id: string): EntryRow {
-  const row = getDb().select().from(financeEntries).where(eq(financeEntries.id, id)).get();
+  const row = getDb()
+    .select()
+    .from(financeEntries)
+    .where(and(eq(financeEntries.id, id), eq(financeEntries.userId, getCurrentUserId())))
+    .get();
   if (!row) throw AppError.notFound("La entrada");
   return row;
 }
@@ -261,11 +298,18 @@ export function updateEntry(id: string, patch: FinanceEntryPatchInput): FinanceE
   if (patch.amountCents !== undefined) changes.amountCents = patch.amountCents;
   if (patch.note !== undefined) changes.note = patch.note;
 
-  getDb().update(financeEntries).set(changes).where(eq(financeEntries.id, id)).run();
+  getDb()
+    .update(financeEntries)
+    .set(changes)
+    .where(and(eq(financeEntries.id, id), eq(financeEntries.userId, getCurrentUserId())))
+    .run();
   return serializeEntry(getEntryRow(id));
 }
 
 export function deleteEntry(id: string): void {
   getEntryRow(id);
-  getDb().delete(financeEntries).where(eq(financeEntries.id, id)).run();
+  getDb()
+    .delete(financeEntries)
+    .where(and(eq(financeEntries.id, id), eq(financeEntries.userId, getCurrentUserId())))
+    .run();
 }

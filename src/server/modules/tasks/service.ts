@@ -7,6 +7,7 @@ import { presetToRRule, rruleToPreset } from "@shared/domain/recurrence";
 import { nextDueDate } from "../../domain/recurrence";
 import { getSettings } from "../settings/service";
 import { ensureTagIds } from "../../lib/tags";
+import { getCurrentUserId } from "../../lib/requestContext";
 import type {
   TaskCreateInput,
   TaskPatchInput,
@@ -104,7 +105,7 @@ function getTaskRow(id: string): TaskRow {
   const row = getDb()
     .select()
     .from(tasks)
-    .where(and(eq(tasks.id, id), isNull(tasks.deletedAt)))
+    .where(and(eq(tasks.id, id), eq(tasks.userId, getCurrentUserId()), isNull(tasks.deletedAt)))
     .get();
   if (!row) throw AppError.notFound("La tarea");
   return row;
@@ -131,6 +132,7 @@ export function createTask(input: TaskCreateInput): TaskDto {
   const row = db
     .insert(tasks)
     .values({
+      userId: getCurrentUserId(),
       title: input.title,
       description: input.description ?? null,
       priority: input.priority,
@@ -158,7 +160,13 @@ export function listSubtasks(parentTaskId: string): TaskDto[] {
   const rows = getDb()
     .select()
     .from(tasks)
-    .where(and(eq(tasks.parentTaskId, parentTaskId), isNull(tasks.deletedAt)))
+    .where(
+      and(
+        eq(tasks.parentTaskId, parentTaskId),
+        eq(tasks.userId, getCurrentUserId()),
+        isNull(tasks.deletedAt),
+      ),
+    )
     .orderBy(asc(tasks.position), asc(tasks.createdAt))
     .all();
   return hydrate(rows);
@@ -171,7 +179,7 @@ export function listTasks(query: TaskListQuery): TaskDto[] {
   // la hora o la zona horaria del servidor.
   const today = todayISODate(getSettings().timeZone);
 
-  const conditions = [isNull(tasks.deletedAt), isNull(tasks.parentTaskId)];
+  const conditions = [eq(tasks.userId, getCurrentUserId()), isNull(tasks.deletedAt), isNull(tasks.parentTaskId)];
 
   switch (query.view) {
     case "today":
@@ -223,7 +231,7 @@ export function listTrash(): TaskDto[] {
   const rows = getDb()
     .select()
     .from(tasks)
-    .where(isNotNull(tasks.deletedAt))
+    .where(and(eq(tasks.userId, getCurrentUserId()), isNotNull(tasks.deletedAt)))
     .orderBy(desc(tasks.updatedAt))
     .all();
   return hydrate(rows);
@@ -236,6 +244,7 @@ export function listScheduledTasks(startDate: string, endDate: string): TaskDto[
     .from(tasks)
     .where(
       and(
+        eq(tasks.userId, getCurrentUserId()),
         isNull(tasks.deletedAt),
         isNull(tasks.parentTaskId),
         gte(tasks.dueDate, startDate),
@@ -257,6 +266,7 @@ export function listPriorityAndOverdue(limit = 8): TaskDto[] {
     .from(tasks)
     .where(
       and(
+        eq(tasks.userId, getCurrentUserId()),
         isNull(tasks.deletedAt),
         isNull(tasks.parentTaskId),
         or(eq(tasks.status, "todo"), eq(tasks.status, "in_progress")),
@@ -274,11 +284,13 @@ export function countTasksByStatus(): { pending: number; completedToday: number 
   const db = getDb();
   const today = todayISODate(getSettings().timeZone);
 
+  const userId = getCurrentUserId();
   const pending = db
     .select({ id: tasks.id })
     .from(tasks)
     .where(
       and(
+        eq(tasks.userId, userId),
         isNull(tasks.deletedAt),
         isNull(tasks.parentTaskId),
         or(eq(tasks.status, "todo"), eq(tasks.status, "in_progress")),
@@ -289,7 +301,7 @@ export function countTasksByStatus(): { pending: number; completedToday: number 
   const completedToday = db
     .select({ id: tasks.id })
     .from(tasks)
-    .where(and(isNull(tasks.deletedAt), eq(tasks.status, "done")))
+    .where(and(eq(tasks.userId, userId), isNull(tasks.deletedAt), eq(tasks.status, "done")))
     .all()
     .filter((row) => {
       const full = getTaskRow(row.id);
@@ -304,7 +316,9 @@ export function countCompletedInRange(startISO: string, endISO: string): number 
   return getDb()
     .select({ id: tasks.id, completedAt: tasks.completedAt })
     .from(tasks)
-    .where(and(isNull(tasks.deletedAt), isNotNull(tasks.completedAt)))
+    .where(
+      and(eq(tasks.userId, getCurrentUserId()), isNull(tasks.deletedAt), isNotNull(tasks.completedAt)),
+    )
     .all()
     .filter((row) => {
       const date = row.completedAt!.toISOString().slice(0, 10);
@@ -317,7 +331,7 @@ export function countCreatedInRange(startISO: string, endISO: string): number {
   return getDb()
     .select({ id: tasks.id, createdAt: tasks.createdAt })
     .from(tasks)
-    .where(isNull(tasks.deletedAt))
+    .where(and(eq(tasks.userId, getCurrentUserId()), isNull(tasks.deletedAt)))
     .all()
     .filter((row) => {
       const date = row.createdAt.toISOString().slice(0, 10);
@@ -364,7 +378,10 @@ export function updateTask(id: string, patch: TaskPatchInput): TaskDto {
     }
   }
 
-  db.update(tasks).set(changes).where(eq(tasks.id, id)).run();
+  db.update(tasks)
+    .set(changes)
+    .where(and(eq(tasks.id, id), eq(tasks.userId, getCurrentUserId())))
+    .run();
 
   if (patch.tagNames !== undefined) syncTags(id, patch.tagNames);
 
@@ -373,15 +390,26 @@ export function updateTask(id: string, patch: TaskPatchInput): TaskDto {
 
 export function deleteTask(id: string): void {
   const db = getDb();
-  getTaskRow(id); // valida que exista y no esté ya borrada
+  const userId = getCurrentUserId();
+  getTaskRow(id); // valida que exista, sea mía y no esté ya borrada
   const now = new Date();
-  db.update(tasks).set({ deletedAt: now, updatedAt: now }).where(eq(tasks.id, id)).run();
-  db.update(tasks).set({ deletedAt: now, updatedAt: now }).where(eq(tasks.parentTaskId, id)).run();
+  db.update(tasks)
+    .set({ deletedAt: now, updatedAt: now })
+    .where(and(eq(tasks.id, id), eq(tasks.userId, userId)))
+    .run();
+  db.update(tasks)
+    .set({ deletedAt: now, updatedAt: now })
+    .where(and(eq(tasks.parentTaskId, id), eq(tasks.userId, userId)))
+    .run();
 }
 
 export function restoreTask(id: string): TaskDto {
   const db = getDb();
-  db.update(tasks).set({ deletedAt: null, updatedAt: new Date() }).where(eq(tasks.id, id)).run();
+  const userId = getCurrentUserId();
+  db.update(tasks)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(tasks.id, id), eq(tasks.userId, userId)))
+    .run();
   return getTask(id);
 }
 
@@ -404,6 +432,7 @@ export function addChecklistItem(taskId: string, text: string): ChecklistItemDto
 }
 
 function getChecklistItemRow(taskId: string, itemId: string) {
+  getTaskRow(taskId); // valida que la tarea sea mía antes de tocar su checklist
   const row = getDb()
     .select()
     .from(checklistItems)
@@ -439,6 +468,7 @@ export function listTags(): TagDto[] {
   return getDb()
     .select()
     .from(tags)
+    .where(eq(tags.userId, getCurrentUserId()))
     .orderBy(asc(tags.name))
     .all()
     .map((t) => ({ id: t.id, name: t.name, color: t.color }));

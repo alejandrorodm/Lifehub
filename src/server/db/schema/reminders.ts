@@ -1,11 +1,15 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { v7 as uuidv7 } from "uuid";
 import { timestamps } from "./common";
+import { users } from "./users";
 
 export const reminders = sqliteTable("reminders", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => uuidv7()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   targetType: text("target_type", { enum: ["task", "event", "none"] })
     .notNull()
     .default("none"),

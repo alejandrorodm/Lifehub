@@ -594,16 +594,15 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 
 **Diseño:** ver el documento de la fase para el detalle completo (tabla `users`, `scrypt` + cookie firmada con `sessionVersion` para invalidar de verdad al cerrar sesión, `AsyncLocalStorage` para propagar el `userId` sin tocar la firma de cada función de cada `service.ts`, `userId` directo en cada tabla de contenido en vez de depender de JOINs de autorización).
 
-**Estado:** T1-T5 (fundación de autenticación: esquema, hash/sesión, rutas, UI de login, tests) completados y desplegados en producción (`https://lifehub.alejandrorodm.com`, con certificado real de Let's Encrypt). T6-T15 (separación real de los datos por perfil, módulo a módulo) en curso.
+**Estado:** T1-T5 (fundación de autenticación) completados y desplegados en producción (`https://lifehub.alejandrorodm.com`, con certificado real de Let's Encrypt). T6-T15 (separación real de los datos por perfil, módulo a módulo) implementados y verificados en código (tsc/eslint/migración real); **todavía sin desplegar** y con la suite de tests unitaria anterior pendiente de adaptar (ver `odd/tasks/fase-13-perfiles-multiusuario.md`, log L6, para el detalle completo). T16 (desplegar) y T17 (verificación final) pendientes.
 
 **Implementado y probado hasta ahora:**
 
-- `npx tsc --noEmit`, `npx eslint .`, `npx vitest run` (194/194), `npx playwright test` (46/46, 74 omitidos por diseño) — todos en verde.
-- Verificación real contra el servidor en producción: login de Ioana y Alex con sus contraseñas reales, cookie de sesión funcionando, rutas protegidas devolviendo 401 sin sesión.
-- Dominio `lifehub.alejandrorodm.com` (registro A en Namecheap) + nginx + certbot en el mismo VPS que ViperTrade, sin tocar su configuración.
-- Hallazgo real durante los tests propios (no al diseñar): una cookie de sesión puramente firmada seguía siendo válida tras "cerrar sesión" si se reproducía — corregido con `sessionVersion` en `users`.
+- T1-T5: `npx tsc --noEmit`, `npx eslint .`, `npx vitest run` (194/194), `npx playwright test` (46/46, 74 omitidos por diseño) — todos en verde; verificación real contra producción (login de Ioana y Alex, cookie de sesión, 401 sin sesión). Dominio `lifehub.alejandrorodm.com` (Namecheap) + nginx + certbot en el VPS compartido con ViperTrade.
+- T6-T15: `npx tsc --noEmit` y `npx eslint .` limpios en todo el código de producción; migración `0005_new_wild_child.sql` probada de extremo a extremo (BD nueva y BD con datos reales existentes). Pendiente de correr contra el VPS y de adaptar la suite de tests unitaria previa a esta fase (llama a `service.ts` fuera de una request; ahora esas funciones exigen `userId` de sesión).
+- Hallazgos reales durante los tests/revisión propios (no al diseñar): cookie de sesión seguía siendo válida tras "cerrar sesión" (corregido con `sessionVersion`); varias funciones de `restore`/`update` no comprobaban el dueño antes de actuar (IDOR); el índice de búsqueda global (FTS5) no tenía `userId` (habría mezclado resultados de ambos perfiles); las notificaciones push de un recordatorio se enviaban a los dispositivos de **ambos** perfiles; "Borrar todo"/restaurar un import afectaban a la base de datos entera, no solo al perfil que los pedía. Detalle completo de cada uno en el log de la tarea.
 
-**Importante, para que no se perciba como más avanzado de lo que está:** con lo hecho hasta ahora, Ioana y Alex inician sesión por separado pero **todavía ven los mismos datos** — ninguna tabla de contenido tiene `userId` todavía. Eso es el trabajo de T6-T15.
+**Importante, para que no se perciba como más avanzado de lo que está:** el código ya separa los datos por perfil, pero **no está desplegado todavía** — en producción (`lifehub.alejandrorodm.com`) sigue corriendo el código de T1-T5 únicamente.
 
 ## Fase 14 — APK (TWA con Bubblewrap) (completada el 2026-10-19)
 

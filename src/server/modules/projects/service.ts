@@ -2,6 +2,7 @@ import { and, eq, isNull, isNotNull, asc, desc } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { projects, milestones, tasks } from "../../db/schema";
 import { AppError } from "../../lib/errors";
+import { getCurrentUserId } from "../../lib/requestContext";
 import type {
   ProjectCreateInput,
   ProjectPatchInput,
@@ -53,7 +54,7 @@ function getProjectRow(id: string): ProjectRow {
   const row = getDb()
     .select()
     .from(projects)
-    .where(and(eq(projects.id, id), isNull(projects.deletedAt)))
+    .where(and(eq(projects.id, id), eq(projects.userId, getCurrentUserId()), isNull(projects.deletedAt)))
     .get();
   if (!row) throw AppError.notFound("El proyecto");
   return row;
@@ -64,7 +65,14 @@ function getTaskCounts(projectId: string): { total: number; done: number } {
   const rows = getDb()
     .select({ status: tasks.status })
     .from(tasks)
-    .where(and(eq(tasks.projectId, projectId), isNull(tasks.deletedAt), isNull(tasks.parentTaskId)))
+    .where(
+      and(
+        eq(tasks.projectId, projectId),
+        eq(tasks.userId, getCurrentUserId()),
+        isNull(tasks.deletedAt),
+        isNull(tasks.parentTaskId),
+      ),
+    )
     .all();
   return { total: rows.length, done: rows.filter((r) => r.status === "done").length };
 }
@@ -88,6 +96,7 @@ export function createProject(input: ProjectCreateInput): ProjectDto {
   const row = getDb()
     .insert(projects)
     .values({
+      userId: getCurrentUserId(),
       name: input.name,
       description: input.description ?? null,
       status: input.status,
@@ -107,7 +116,7 @@ export function getProject(id: string): ProjectDto {
 
 export function listProjects(query: ProjectListQuery): ProjectDto[] {
   const db = getDb();
-  const conditions = [isNull(projects.deletedAt)];
+  const conditions = [eq(projects.userId, getCurrentUserId()), isNull(projects.deletedAt)];
   if (query.status) conditions.push(eq(projects.status, query.status));
 
   const rows = db
@@ -125,7 +134,7 @@ export function listTrash(): ProjectDto[] {
   const rows = getDb()
     .select()
     .from(projects)
-    .where(isNotNull(projects.deletedAt))
+    .where(and(eq(projects.userId, getCurrentUserId()), isNotNull(projects.deletedAt)))
     .orderBy(desc(projects.updatedAt))
     .all();
   return rows.map(hydrate);
@@ -136,19 +145,22 @@ export function listActiveProjects(limit = 5): ProjectDto[] {
   const rows = getDb()
     .select()
     .from(projects)
-    .where(and(isNull(projects.deletedAt), eq(projects.status, "active")))
+    .where(
+      and(eq(projects.userId, getCurrentUserId()), isNull(projects.deletedAt), eq(projects.status, "active")),
+    )
     .orderBy(desc(projects.updatedAt))
     .limit(limit)
     .all();
   return rows.map(hydrate);
 }
 
-/** Hitos (de cualquier proyecto) completados en [startISO, endISO] (ambos inclusive), para la revisión periódica. */
+/** Hitos (de cualquier proyecto mío) completados en [startISO, endISO] (ambos inclusive), para la revisión periódica. */
 export function countMilestonesCompletedInRange(startISO: string, endISO: string): number {
   return getDb()
     .select({ id: milestones.id, completedAt: milestones.completedAt })
     .from(milestones)
-    .where(isNotNull(milestones.completedAt))
+    .innerJoin(projects, eq(projects.id, milestones.projectId))
+    .where(and(eq(projects.userId, getCurrentUserId()), isNotNull(milestones.completedAt)))
     .all()
     .filter((row) => {
       const date = row.completedAt!.toISOString().slice(0, 10);
@@ -170,26 +182,41 @@ export function updateProject(id: string, patch: ProjectPatchInput): ProjectDto 
   if (patch.color !== undefined) changes.color = patch.color;
   if (patch.githubRepo !== undefined) changes.githubRepo = patch.githubRepo;
 
-  db.update(projects).set(changes).where(eq(projects.id, id)).run();
+  db.update(projects)
+    .set(changes)
+    .where(and(eq(projects.id, id), eq(projects.userId, getCurrentUserId())))
+    .run();
   return hydrate(getProjectRow(id));
 }
 
 export function deleteProject(id: string): void {
   const db = getDb();
+  const userId = getCurrentUserId();
   getProjectRow(id);
   const now = new Date();
-  db.update(projects).set({ deletedAt: now, updatedAt: now }).where(eq(projects.id, id)).run();
+  db.update(projects)
+    .set({ deletedAt: now, updatedAt: now })
+    .where(and(eq(projects.id, id), eq(projects.userId, userId)))
+    .run();
   // Las tareas del proyecto no se borran: se desvinculan (igual que al borrar
   // un proyecto en Todoist/Linear, las tareas siguen existiendo sin proyecto).
-  db.update(tasks).set({ projectId: null, updatedAt: now }).where(eq(tasks.projectId, id)).run();
+  db.update(tasks)
+    .set({ projectId: null, updatedAt: now })
+    .where(and(eq(tasks.projectId, id), eq(tasks.userId, userId)))
+    .run();
 }
 
 export function restoreProject(id: string): ProjectDto {
-  getDb().update(projects).set({ deletedAt: null, updatedAt: new Date() }).where(eq(projects.id, id)).run();
+  getDb()
+    .update(projects)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(projects.id, id), eq(projects.userId, getCurrentUserId())))
+    .run();
   return getProject(id);
 }
 
 function getMilestoneRow(projectId: string, milestoneId: string) {
+  getProjectRow(projectId); // valida que el proyecto sea mío antes de tocar sus hitos
   const row = getDb()
     .select()
     .from(milestones)
