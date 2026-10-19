@@ -8,3 +8,4 @@ export * from "./inbox";
 export * from "./reminders";
 export * from "./integrations";
 export * from "./finance";
+export * from "./markets";

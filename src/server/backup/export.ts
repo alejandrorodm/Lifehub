@@ -22,6 +22,7 @@ import {
   financeAssets,
   financeGoals,
   financeEntries,
+  watchlistAssets,
 } from "../db/schema";
 import { getSettings } from "../modules/settings/service";
 import { EXPORT_SCHEMA_VERSION, type ExportData } from "@shared/schemas/data";
@@ -59,6 +60,7 @@ export function exportData(): ExportData {
       financeAssets: db.select().from(financeAssets).all(),
       financeGoals: db.select().from(financeGoals).all(),
       financeEntries: db.select().from(financeEntries).all(),
+      watchlistAssets: db.select().from(watchlistAssets).all(),
       meta: db.select().from(meta).all(),
       settings: getSettings(),
     },

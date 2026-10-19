@@ -31,6 +31,7 @@ const pages = [
   { path: "/habits", name: "Hábitos" },
   { path: "/finance", name: "Finanzas" },
   { path: "/review", name: "Revisión" },
+  { path: "/markets", name: "Mercados" },
   { path: "/settings", name: "Ajustes" },
   { path: "/trash", name: "Papelera" },
 ];

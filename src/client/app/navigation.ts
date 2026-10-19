@@ -9,6 +9,7 @@ import {
   Flame,
   Wallet,
   BarChart3,
+  LineChart,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -31,6 +32,7 @@ export const primaryNavItems: NavItem[] = [
   { to: "/projects", label: "Proyectos", icon: FolderKanban, shortcutHint: "G P" },
   { to: "/habits", label: "Hábitos", icon: Flame },
   { to: "/finance", label: "Finanzas", icon: Wallet },
+  { to: "/markets", label: "Mercados", icon: LineChart },
   { to: "/review", label: "Revisión", icon: BarChart3 },
 ];
 

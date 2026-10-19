@@ -9,6 +9,12 @@ export const config = {
   isProduction: process.env.NODE_ENV === "production",
   // Número de copias de seguridad automáticas a conservar (rotación).
   backupRetention: 14,
+  // Origen público real (p. ej. "https://lifehub.midominio.com") cuando el
+  // servidor está detrás de un reverse proxy (Caddy/nginx) y escucha en
+  // 127.0.0.1: sin esto, la redirección tras el login de Google usaría el
+  // host/puerto internos, inalcanzables desde el navegador del usuario. Ver
+  // `deploy/README.md`. Sin configurar, no cambia nada (fallback a host:puerto).
+  publicUrl: process.env.LIFEHUB_PUBLIC_URL,
   // Fase 9, integraciones opt-in: sin estas variables, las rutas correspondientes
   // devuelven "no configurado" en vez de fallar; la app funciona igual sin ellas.
   google: {

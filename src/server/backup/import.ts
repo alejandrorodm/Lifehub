@@ -26,6 +26,7 @@ import {
   financeAssets,
   financeGoals,
   financeEntries,
+  watchlistAssets,
 } from "../db/schema";
 import { AppError } from "../lib/errors";
 import { createSnapshot } from "./snapshot";
@@ -82,6 +83,7 @@ function wipeContentTables(tx: ReturnType<typeof getDb>): void {
     financeEntries,
     financeGoals,
     financeAssets,
+    watchlistAssets,
     projects,
     meta,
     settingsTable,
@@ -135,6 +137,7 @@ export async function restoreFromImport(raw: unknown): Promise<{ counts: Record<
       if (data.financeAssets.length) tx.insert(financeAssets).values(data.financeAssets).run();
       if (data.financeGoals.length) tx.insert(financeGoals).values(data.financeGoals).run();
       if (data.financeEntries.length) tx.insert(financeEntries).values(data.financeEntries).run();
+      if (data.watchlistAssets.length) tx.insert(watchlistAssets).values(data.watchlistAssets).run();
       if (data.meta.length) tx.insert(meta).values(data.meta).run();
       tx.insert(settingsTable).values({ key: "app", value: data.settings, updatedAt: new Date() }).run();
 

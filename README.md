@@ -2,7 +2,7 @@
 
 LifeHub es un centro de organización personal, local-first: tareas, calendario, notas y diario, proyectos, hábitos, un inbox de captura rápida y búsqueda global, todo en una sola aplicación que corre en tu propio ordenador. Sin cuentas, sin nube, sin telemetría.
 
-> **Estado actual:** las 8 fases del plan original están completadas, más una fase 9 (integraciones opcionales: notificaciones push y sincronización con Google Calendar) y una fase 10 (revisión periódica, resumen de GitHub por proyecto y finanzas con metas) — ver el detalle en [`PLAN.md`](./PLAN.md). La aplicación es funcional de extremo a extremo: tareas, calendario, notas/diario, proyectos, hábitos/rutinas, finanzas, ajustes y datos (exportar/restaurar/papelera), con una pasada de QA transversal (accesibilidad, teclado) ya hecha.
+> **Estado actual:** las 8 fases del plan original están completadas, más una fase 9 (integraciones opcionales: notificaciones push y sincronización con Google Calendar), una fase 10 (revisión periódica, resumen de GitHub por proyecto y finanzas con metas) y una fase 11 (noticias de mercados y objetivos de precio) — ver el detalle en [`PLAN.md`](./PLAN.md). La aplicación es funcional de extremo a extremo: tareas, calendario, notas/diario, proyectos, hábitos/rutinas, finanzas, mercados, ajustes y datos (exportar/restaurar/papelera), con una pasada de QA transversal (accesibilidad, teclado) ya hecha.
 
 ## Funcionalidades
 
@@ -15,6 +15,7 @@ LifeHub es un centro de organización personal, local-first: tareas, calendario,
 - **Finanzas** (fase 10): registro manual de aportaciones/retiros por activo (fondo, cripto, acciones, efectivo…) en céntimos enteros — sin precios en vivo, eres tú quien decide cuánto ha entrado o salido; metas de dinero con barra de progreso y asignación opcional de cada aportación a una meta.
 - **GitHub por proyecto** (fase 10, opcional): enlaza un repo (`owner/repo`) a cada proyecto desde su pestaña "GitHub" y verás un resumen general (último commit, actividad de los últimos 30 días) — nunca un listado commit a commit. Requiere `GITHUB_TOKEN`; ver "Integraciones" más abajo.
 - **Revisión periódica** (fase 10): `/review` agrega, sin tabla nueva, tareas completadas/creadas, cumplimiento de hábitos, proyectos activos con su progreso e hitos, notas creadas y aportación neta de finanzas — con selector semana/mes.
+- **Mercados** (fase 11): `/markets` — resumen de noticias de crypto (CoinDesk, Cointelegraph) y acciones (MarketWatch) por pestañas, y una lista de seguimiento con cotización actual (CoinGecko para cripto, Yahoo Finance para acciones) y objetivo de precio opcional por activo, con el % de distancia al objetivo. Sin API keys; ver "Limitaciones conocidas".
 - **Búsqueda global** (`Ctrl/⌘ K`): encuentra tareas, notas, proyectos y eventos desde cualquier pantalla.
 - **Ajustes y datos**: tema, zona horaria, inicio de semana, exportar/importar JSON con vista previa y validación, copias de seguridad automáticas, papelera, borrado total con confirmación tecleada.
 - **Integraciones** (opcionales, opt-in): notificaciones push (recordatorios aunque la pestaña esté cerrada, fase 9), sincronización bidireccional con Google Calendar (fase 9) y resumen de actividad de GitHub por proyecto (fase 10). Ver la sección "Integraciones" más abajo para configurarlas.
@@ -37,7 +38,7 @@ Toda la aplicación se puede usar sin ratón. Pulsa `?` en cualquier pantalla pa
 ## Tecnologías
 
 - **Cliente:** React 19, Vite, React Router, TanStack Query, Tailwind CSS v4, Radix UI, TipTap (editor), lucide-react.
-- **Servidor:** Node.js + Hono, SQLite (`better-sqlite3`) con Drizzle ORM y migraciones versionadas, Zod (validación compartida con el cliente). Fase 9: `web-push` (notificaciones) y llamadas REST directas a la API de Google (sin el paquete `googleapis`, para no traer un cliente generado enorme por solo tres endpoints). Fase 10: llamadas REST directas a la API de GitHub (mismo criterio, sin `octokit`).
+- **Servidor:** Node.js + Hono, SQLite (`better-sqlite3`) con Drizzle ORM y migraciones versionadas, Zod (validación compartida con el cliente). Fase 9: `web-push` (notificaciones) y llamadas REST directas a la API de Google (sin el paquete `googleapis`, para no traer un cliente generado enorme por solo tres endpoints). Fase 10: llamadas REST directas a la API de GitHub (mismo criterio, sin `octokit`). Fase 11: llamadas REST directas a CoinGecko/Yahoo Finance y `fast-xml-parser` para los feeds RSS de noticias (sin API keys).
 - **Calidad:** TypeScript estricto, ESLint, Prettier, Vitest + Testing Library, Playwright.
 
 Detalles y justificación de cada elección en [`PLAN.md`](./PLAN.md).
@@ -81,6 +82,7 @@ LifeHub no necesita configuración para funcionar. Si quieres cambiar algo, copi
 | `LIFEHUB_PORT`        | `3131`                   | Puerto del servidor                                    |
 | `LIFEHUB_CLIENT_PORT` | `5173`                   | Puerto del servidor de desarrollo de Vite              |
 | `LIFEHUB_DATA_DIR`    | `~/.local/share/lifehub` | Dónde viven la base de datos y las copias de seguridad |
+| `LIFEHUB_PUBLIC_URL`  | (sin configurar)         | Origen público cuando hay un reverse proxy delante (ver `deploy/README.md`) |
 
 Ninguna de estas variables es un secreto; no hay claves ni credenciales que configurar en esta fase.
 
@@ -123,6 +125,8 @@ Sincroniza tus eventos con Google Calendar en ambos sentidos (crear/editar/borra
    GOOGLE_REDIRECT_URI=http://127.0.0.1:3131/api/integrations/google/callback
    ```
 6. Reinicia el servidor y pulsa "Conectar" en **Ajustes → Integraciones → Google Calendar**. Mientras el proyecto de Google Cloud esté en modo de prueba, tendrás que añadir tu propio correo como "usuario de prueba" en la pantalla de consentimiento OAuth.
+
+En producción detrás de un dominio/reverse proxy, usa `https://tu-dominio.com/...` en vez de `http://127.0.0.1:3131/...` en los pasos 4 y 5, y añade `LIFEHUB_PUBLIC_URL` — ver [`deploy/README.md`](deploy/README.md).
 
 **Limitación conocida:** si editas o cancelas una sola ocurrencia (no toda la serie) de un evento recurrente desde Google Calendar, ese cambio todavía no se sincroniza a LifeHub — Google lo representa de una forma distinta a las excepciones de esta app. Editar la serie completa sí se sincroniza en ambos sentidos.
 
@@ -168,6 +172,10 @@ LifeHub crea una copia de seguridad automática cada vez que arranca el servidor
 
 Desde **Ajustes → Datos** puedes exportar todo a un archivo JSON (incluye `schemaVersion` para comprobar compatibilidad), importarlo con una vista previa de conteos antes de confirmar, o borrar todos los datos (requiere teclear "BORRAR TODO"). Antes de importar o borrar, LifeHub crea automáticamente una copia de seguridad; un archivo inválido o corrupto se rechaza con un mensaje claro sin tocar la base de datos. Los elementos eliminados (tareas, notas, proyectos, eventos) van a la **Papelera** (`/trash`), desde donde se pueden restaurar.
 
+## Despliegue en un VPS
+
+Para desplegar en un servidor propio (systemd, sin Docker) en vez de correrlo en local, ver [`deploy/README.md`](deploy/README.md).
+
 ## Checklist de accesibilidad y QA (fase 8)
 
 - **Sin violaciones críticas de axe**: `tests/e2e/a11y.spec.ts` comprueba las 10 pantallas principales y la paleta de comandos con [`@axe-core/playwright`](https://github.com/dequelabs/axe-core-npm).
@@ -181,3 +189,4 @@ Desde **Ajustes → Datos** puedes exportar todo a un archivo JSON (incluye `sch
 - **Recordatorios:** con las notificaciones push activadas (ver "Integraciones") llegan aunque la pestaña esté cerrada; sin activarlas, solo se disparan con la aplicación abierta en el navegador.
 - **Seguridad:** el servidor escucha únicamente en `127.0.0.1` y no tiene autenticación; la protección de tus datos depende del acceso a tu propio equipo.
 - **Asistente de IA local (Ollama/Qwen):** solo está planificado arquitectónicamente por ahora (ver sección 7 de `PLAN.md`); no hay ninguna funcionalidad de IA todavía.
+- **Mercados (fase 11):** las cotizaciones y noticias dependen de endpoints públicos sin API key, con sus propios límites — CoinGecko tiene un límite de peticiones gratuito (mitigado con caché de 2 min) y un símbolo cripto puede coincidir con varias monedas (se usa la de mayor capitalización); el endpoint de Yahoo Finance usado para acciones no es una API oficialmente soportada y podría cambiar sin aviso. Si un endpoint o feed falla, se muestra el motivo en vez de romper la pantalla.

@@ -1,0 +1,23 @@
+[Unit]
+Description=LifeHub (API + estáticos, proceso único)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Ajusta User al usuario del VPS (p. ej. 'ubuntu').
+User=ubuntu
+WorkingDirectory=/opt/lifehub
+# Carga LIFEHUB_*, GOOGLE_*, VAPID_*, GITHUB_TOKEN desde el .env del proyecto.
+EnvironmentFile=/opt/lifehub/.env
+# Ajusta la ruta de npm si no es /usr/bin/npm (comprueba con `which npm`).
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=5
+
+# Protección de memoria en VPS con poca RAM; sube/elimina si tienes de sobra.
+MemoryHigh=400M
+MemoryMax=600M
+
+[Install]
+WantedBy=multi-user.target

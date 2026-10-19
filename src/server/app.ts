@@ -18,6 +18,7 @@ import { googleCalendarRoutes } from "./modules/googleCalendar/routes";
 import { financeRoutes } from "./modules/finance/routes";
 import { githubRoutes } from "./modules/github/routes";
 import { reviewRoutes } from "./modules/review/routes";
+import { marketsRoutes } from "./modules/markets/routes";
 import { config } from "./config";
 
 export function createApp(): Hono {
@@ -53,7 +54,8 @@ export function createApp(): Hono {
     .route("/integrations/google", googleCalendarRoutes)
     .route("/integrations/github", githubRoutes)
     .route("/finance", financeRoutes)
-    .route("/review", reviewRoutes);
+    .route("/review", reviewRoutes)
+    .route("/markets", marketsRoutes);
 
   app.route("/api", api);
 

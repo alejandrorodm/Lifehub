@@ -512,3 +512,75 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - Actividad de GitHub dentro de la revisión periódica (decisión deliberada, no omisión — ver "Diseño").
 - Valoración de mercado o precios en vivo en finanzas (solo registro manual de aportaciones/retiros).
 - Varios repos de GitHub por proyecto; un listado commit a commit.
+
+## Fase 11 — Mercados: noticias de crypto/acciones y objetivos de precio (completada el 2026-10-19)
+
+**Nota sobre el alcance:** fase no planificada originalmente; pedida directamente por el usuario tras cerrar la fase 10. Antes de diseñar se confirmó con el usuario la única decisión de producto real abierta — la fuente de datos — entre dos alternativas con tradeoffs claros: solo APIs/RSS sin clave (sin `.env` nuevo, cobertura algo más limitada) vs. APIs con clave (NewsAPI/Alpha Vantage/Finnhub, mejor cobertura, requiere gestionar API keys). El usuario eligió la primera. Detalle completo en `odd/tasks/fase-11-mercados-noticias.md`.
+
+**Diseño:**
+
+- Lista de seguimiento nueva (`watchlist_assets`), separada de las finanzas de la fase 10 a propósito: esas tablas excluyen deliberadamente precios en vivo (ver "Fuera de alcance" de la fase 10); mezclarlas rompería esa decisión.
+- Cotizaciones sin API key: CoinGecko (`/api/v3/simple/price`) para cripto, endpoint público (no documentado oficialmente) de Yahoo Finance (`query1.finance.yahoo.com/v8/finance/chart`) para acciones. Caché en memoria de pocos minutos para no saturar los endpoints gratuitos.
+- Noticias sin API key: feeds RSS de medios de crypto y de mercados, parseados con `fast-xml-parser` (dependencia nueva, justificación: parsear RSS/Atom a mano con regex es frágil; es una librería pequeña, sin dependencias de runtime). Caché en memoria de ~15 min.
+- Igual que GitHub en la fase 10: una API/feed externo caído nunca rompe la pantalla, solo se muestra el motivo en vez del dato.
+- Objetivo de precio sin campo de "dirección" (no pedido): se asume el uso habitual de un price target (precio al que se espera que suba el activo), por eso "alcanzado" es `current >= target`. Documentado como simplificación deliberada en `odd/tasks/fase-11-mercados-noticias.md`.
+
+**Estado:** implementada el 2026-10-19 (ver `odd/tasks/fase-11-mercados-noticias.md` para el detalle de las 11 tareas).
+
+**Implementado:**
+
+- Lista de seguimiento: CRUD completo (`/markets/watchlist/*`), papelera a nivel de servicio (igual que activos/metas de finanzas), página `/markets` con diálogo de alta (tipo, símbolo, nombre, objetivo opcional) y tarjetas con cotización actual, objetivo y % de distancia.
+- Cotizaciones: `GET /markets/quotes` — CoinGecko en un único batch para toda la cripto, Yahoo Finance (endpoint no oficial, requiere User-Agent de navegador) en paralelo por acción; caché en memoria de 2 min; nunca lanza.
+- Noticias: `GET /markets/news` — CoinDesk + Cointelegraph (crypto) y MarketWatch (acciones) vía RSS, caché en memoria de 15 min; pestañas Crypto/Acciones en la UI.
+- Export/import/wipe: `watchlist_assets` añadida como contenido normal (como las finanzas de la fase 10, no como las credenciales de la fase 9).
+
+**Probado** (comandos ejecutados en esta sesión, todos en verde; a diferencia de las fases 9/10, aquí SÍ hubo acceso real a internet desde este entorno):
+
+- `npx tsc --noEmit`, `npx eslint .` — sin errores.
+- `npx vitest run` — 172/172 (19 nuevos: 4 de `computeTargetProgress`, 5 de CRUD de la watchlist, 6 de cotizaciones y 4 de noticias, todos con `fetch` mockeado).
+- `npx playwright test` con `.e2e-data/` limpio — 46/46 ejecutados en los 3 viewports (74 omitidos por diseño, +2 por `/markets` en `a11y.spec.ts`); axe sin violaciones críticas.
+- Smoke test manual contra el servidor real y las APIs/feeds reales (no mockeados): cotizaciones correctas de BTC (CoinGecko) y AAPL (Yahoo Finance); 20 noticias de crypto y 10 de acciones obtenidas y parseadas. Se encontró y corrigió un bug real en esta prueba: `fast-xml-parser` no decodifica referencias de carácter HTML (`&#x2019;`) sin `htmlEntities: true`.
+
+**Pendiente — no verificable desde este entorno (sin navegador conectado):**
+
+- Interacción real en el navegador (Claude in Chrome no está conectado aquí); la cobertura de UI se apoya en el smoke test de API real contra el servidor en marcha, la suite de accesibilidad de Playwright y la revisión de código.
+
+**Fuera de alcance explícito:**
+
+- Alertas/notificaciones cuando se alcanza un objetivo de precio (no pedido; ver fase 9 para el mecanismo de notificaciones push ya existente si se quisiera añadir después).
+- Dirección del objetivo (comprar por debajo vs. vender por encima) — ver "Diseño".
+- Varias divisas; todo se cotiza en USD (lo que devuelven CoinGecko/Yahoo Finance por defecto).
+
+## Fase 12 — Despliegue en VPS (completada el 2026-10-19)
+
+**Nota sobre el alcance:** fase no planificada originalmente; el usuario quiere subir LifeHub a su VPS, igual que ya tiene desplegado otro proyecto propio (ViperTrade) ahí. Se revisó ese despliegue real (no se asumió nada): ViperTrade corre con **systemd + proceso directo**, sin Docker, aunque el repo también tiene un `Dockerfile`/`docker-compose` que solo se usa para desarrollo local. Dado que la decisión de enfoque se dejó a mi criterio, se eligió mantener consistencia (systemd + Node directo) en vez de introducir Docker, por menor huella en un VPS con RAM limitada y porque no hay ninguna necesidad real (aislamiento, multi-entorno) que lo justifique aquí.
+
+**Diseño:**
+
+- `deploy/lifehub.service` + `deploy/README.md`, mismo patrón que `ViperTrade/deploy/`: unidad systemd con `EnvironmentFile=.env`, `Restart=always`, límites de memoria ajustables.
+- Las migraciones ya se aplican solas al arrancar (`runMigrations()` en `src/server/index.ts`); el despliegue no necesita un paso manual de `db:migrate`.
+- Bug real encontrado durante el diseño (no al desplegar, porque aquí no hay VPS real accesible): `CLIENT_ORIGIN` en `googleCalendar/routes.ts` se calculaba como `http://{config.host}:{config.port}` en producción. Detrás de un reverse proxy, `config.host` es `127.0.0.1` (correcto para el *bind* del proceso, pero inalcanzable desde el navegador del usuario para la redirección post-login de Google). Corregido con una variable nueva, `LIFEHUB_PUBLIC_URL`, que tiene prioridad cuando está configurada; sin ella, el comportamiento no cambia (compatible con los despliegues locales ya existentes).
+
+**Estado:** implementada el 2026-10-19.
+
+**Implementado:**
+
+- `src/server/config.ts`: `config.publicUrl` desde `LIFEHUB_PUBLIC_URL`.
+- `src/server/modules/googleCalendar/routes.ts`: `CLIENT_ORIGIN` usa `config.publicUrl` con prioridad sobre el cálculo anterior.
+- `deploy/lifehub.service`, `deploy/README.md`: unidad systemd + guía paso a paso (clonar, instalar, `.env`, systemd, Caddy/dominio+HTTPS, actualización, backups).
+- `README.md`: nueva variable `LIFEHUB_PUBLIC_URL` en la tabla de configuración, sección "Despliegue en un VPS" con puntero a `deploy/README.md`, y nota en "Google Calendar" sobre el caso de producción con dominio.
+
+**Probado:**
+
+- `npx tsc --noEmit`, `npx eslint .` — sin errores.
+- `npx vitest run` — 172/172 (sin tests nuevos: el cambio es un `??` adicional sobre una variable de entorno opcional, sin lógica nueva que probar unitariamente; cubierto por revisión de código).
+
+**Pendiente — no verificable desde este entorno:**
+
+- No hay acceso real al VPS del usuario desde este entorno de desarrollo; `deploy/README.md` documenta los pasos pero no se han ejecutado contra un servidor real. El usuario debe seguirlos y confirmar.
+
+**Fuera de alcance explícito:**
+
+- Docker/docker-compose para LifeHub (decisión: mantener consistencia con el despliegue real de ViperTrade en el mismo VPS, no con su `Dockerfile` de solo desarrollo).
+- CI/CD automático (despliegue manual vía `git pull` + `systemctl restart`, igual que ViperTrade).
+- HTTPS/Caddy como parte de este repo: se documenta el bloque de configuración pero la instalación de Caddy es responsabilidad del VPS, no de LifeHub.

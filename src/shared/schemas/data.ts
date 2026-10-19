@@ -243,6 +243,19 @@ const ExportFinanceEntrySchema = z.object({
   createdAt: z.coerce.date(),
 });
 
+// Fase 11: lista de seguimiento de mercados. Contenido normal (como las
+// finanzas de la fase 10), no credenciales — se exporta igual que el resto.
+const ExportWatchlistAssetSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(["crypto", "stock"]),
+  symbol: z.string(),
+  name: z.string(),
+  targetPrice: z.number().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+  deletedAt: z.coerce.date().nullable(),
+});
+
 export const ExportDataSchema = z.object({
   schemaVersion: z.number().int(),
   exportedAt: z.string(),
@@ -268,6 +281,7 @@ export const ExportDataSchema = z.object({
     financeAssets: z.array(ExportFinanceAssetSchema),
     financeGoals: z.array(ExportFinanceGoalSchema),
     financeEntries: z.array(ExportFinanceEntrySchema),
+    watchlistAssets: z.array(ExportWatchlistAssetSchema),
     meta: z.array(ExportMetaSchema),
     settings: SettingsSchema,
   }),

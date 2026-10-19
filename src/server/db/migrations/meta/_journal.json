@@ -22,6 +22,13 @@
       "when": 1792250559726,
       "tag": "0002_milky_toad_men",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792406697702,
+      "tag": "0003_shocking_yellow_claw",
+      "breakpoints": true
     }
   ]
 }
