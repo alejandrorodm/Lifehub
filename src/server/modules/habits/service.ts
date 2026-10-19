@@ -9,6 +9,7 @@ import {
   computeWeeklyProgress,
   buildHabitHistory,
   isHabitScheduledOn,
+  addDaysISO,
 } from "@shared/domain/habits";
 import type { HabitCreateInput, HabitPatchInput, HabitListQuery, HabitDto } from "@shared/schemas/habits";
 
@@ -106,6 +107,34 @@ export function restoreHabit(id: string): HabitDto {
   getHabitRow(id);
   getDb().update(habits).set({ archivedAt: null, updatedAt: new Date() }).where(eq(habits.id, id)).run();
   return getHabit(id);
+}
+
+/**
+ * Tasa de cumplimiento agregada de los hábitos activos en [startISO, endISO]
+ * (ambos inclusive), para la revisión periódica. Un día no programado no
+ * cuenta (mismo criterio que `computeHabitStreak`).
+ */
+export function getCompletionStats(
+  startISO: string,
+  endISO: string,
+): { scheduled: number; completed: number; rate: number } {
+  const activeHabits = getDb().select().from(habits).where(isNull(habits.archivedAt)).all();
+  let scheduled = 0;
+  let completed = 0;
+
+  for (const habit of activeHabits) {
+    const loggedDates = getLoggedDates(habit.id);
+    let cursor = startISO;
+    while (cursor <= endISO) {
+      if (isHabitScheduledOn(habit.scheduleType, habit.weekdaysMask, cursor)) {
+        scheduled++;
+        if (loggedDates.has(cursor)) completed++;
+      }
+      cursor = addDaysISO(cursor, 1);
+    }
+  }
+
+  return { scheduled, completed, rate: scheduled === 0 ? 0 : Math.round((completed / scheduled) * 100) };
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;

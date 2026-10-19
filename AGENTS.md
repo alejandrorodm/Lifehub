@@ -14,7 +14,7 @@ Estas reglas aplican a cualquier agente o persona que trabaje en este repositori
 - UI: usar tokens y componentes de `components/ui`; iconos lucide; sin emojis como iconos, sin gradientes decorativos, sin botones sin función; cada lista con estado de carga, vacío y error; acciones destructivas con confirmación o deshacer.
 - Accesibilidad: elementos interactivos accesibles por teclado, con `aria-label` cuando no hay texto, foco visible.
 - Textos de UI en español; código, nombres y commits en inglés (Conventional Commits).
-- Sin telemetría, sin CDNs, sin servicios externos, sin secretos en el repo.
+- Sin telemetría, sin CDNs, sin secretos en el repo. Excepción explícita (fase 9, decisión consciente del usuario): integraciones opcionales y opt-in con servicios externos (Google Calendar, Web Push) están permitidas; sus credenciales viven solo en `.env` (nunca en el repo ni en el export JSON) y la app sigue funcionando por completo sin activarlas.
 - IA: nunca acceso directo a la BD; solo herramientas sobre services; escrituras como propuestas confirmadas por el usuario.
 - Antes de dar por cerrada una tarea: `npm run typecheck && npm run lint && npm test` (y `npm run test:e2e` al cerrar fase). Informar resultados reales, distinguiendo implementado / probado / pendiente.
 - Comandos: `dev`, `build`, `start`, `typecheck`, `lint`, `test`, `test:e2e`, `db:generate`, `db:migrate`.

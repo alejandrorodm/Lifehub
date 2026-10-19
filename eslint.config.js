@@ -44,6 +44,14 @@ export default tseslint.config(
     },
   },
   {
+    // Service worker (fase 9): corre en su propio contexto global, sin DOM.
+    files: ["src/client/public/sw.js"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: globals.serviceworker,
+    },
+  },
+  {
     files: ["**/*.test.{ts,tsx}", "tests/**/*.ts"],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },

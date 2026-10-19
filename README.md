@@ -2,7 +2,7 @@
 
 LifeHub es un centro de organización personal, local-first: tareas, calendario, notas y diario, proyectos, hábitos, un inbox de captura rápida y búsqueda global, todo en una sola aplicación que corre en tu propio ordenador. Sin cuentas, sin nube, sin telemetría.
 
-> **Estado actual:** las 8 fases del plan están completadas (ver el detalle en [`PLAN.md`](./PLAN.md)). La aplicación es funcional de extremo a extremo: tareas, calendario, notas/diario, proyectos, hábitos/rutinas, ajustes y datos (exportar/restaurar/papelera), y una pasada de QA transversal (accesibilidad, teclado, README).
+> **Estado actual:** las 8 fases del plan original están completadas, más una fase 9 (integraciones opcionales: notificaciones push y sincronización con Google Calendar) y una fase 10 (revisión periódica, resumen de GitHub por proyecto y finanzas con metas) — ver el detalle en [`PLAN.md`](./PLAN.md). La aplicación es funcional de extremo a extremo: tareas, calendario, notas/diario, proyectos, hábitos/rutinas, finanzas, ajustes y datos (exportar/restaurar/papelera), con una pasada de QA transversal (accesibilidad, teclado) ya hecha.
 
 ## Funcionalidades
 
@@ -10,10 +10,14 @@ LifeHub es un centro de organización personal, local-first: tareas, calendario,
 - **Tareas**: subtareas, checklist, etiquetas, prioridad, fecha/hora límite, recurrencia, papelera con deshacer; vistas Hoy/Próximas/Atrasadas/Completadas/Todas.
 - **Calendario**: vistas mes/semana/día, eventos puntuales/de día completo/recurrentes (editar "solo esta ocurrencia" o "toda la serie"), bloques de tiempo, aviso de solapamiento, tareas con fecha visibles en la rejilla, recordatorios.
 - **Notas y diario**: editor con formato básico (TipTap), autoguardado, fijar/favorito/archivar, vínculo con tareas y proyectos, entrada de diario por fecha.
-- **Proyectos**: hitos, progreso real calculado desde las tareas, pestañas de tareas/notas/calendario del proyecto.
+- **Proyectos**: hitos, progreso real calculado desde las tareas, pestañas de tareas/notas/calendario/GitHub del proyecto.
 - **Hábitos y rutinas**: racha, objetivo y progreso semanal calculados desde el histórico; rutinas con pasos marcables; dashboard "Hoy" configurable (mostrar/ocultar y reordenar widgets).
+- **Finanzas** (fase 10): registro manual de aportaciones/retiros por activo (fondo, cripto, acciones, efectivo…) en céntimos enteros — sin precios en vivo, eres tú quien decide cuánto ha entrado o salido; metas de dinero con barra de progreso y asignación opcional de cada aportación a una meta.
+- **GitHub por proyecto** (fase 10, opcional): enlaza un repo (`owner/repo`) a cada proyecto desde su pestaña "GitHub" y verás un resumen general (último commit, actividad de los últimos 30 días) — nunca un listado commit a commit. Requiere `GITHUB_TOKEN`; ver "Integraciones" más abajo.
+- **Revisión periódica** (fase 10): `/review` agrega, sin tabla nueva, tareas completadas/creadas, cumplimiento de hábitos, proyectos activos con su progreso e hitos, notas creadas y aportación neta de finanzas — con selector semana/mes.
 - **Búsqueda global** (`Ctrl/⌘ K`): encuentra tareas, notas, proyectos y eventos desde cualquier pantalla.
 - **Ajustes y datos**: tema, zona horaria, inicio de semana, exportar/importar JSON con vista previa y validación, copias de seguridad automáticas, papelera, borrado total con confirmación tecleada.
+- **Integraciones** (opcionales, opt-in): notificaciones push (recordatorios aunque la pestaña esté cerrada, fase 9), sincronización bidireccional con Google Calendar (fase 9) y resumen de actividad de GitHub por proyecto (fase 10). Ver la sección "Integraciones" más abajo para configurarlas.
 
 ## Atajos de teclado
 
@@ -33,7 +37,7 @@ Toda la aplicación se puede usar sin ratón. Pulsa `?` en cualquier pantalla pa
 ## Tecnologías
 
 - **Cliente:** React 19, Vite, React Router, TanStack Query, Tailwind CSS v4, Radix UI, TipTap (editor), lucide-react.
-- **Servidor:** Node.js + Hono, SQLite (`better-sqlite3`) con Drizzle ORM y migraciones versionadas, Zod (validación compartida con el cliente).
+- **Servidor:** Node.js + Hono, SQLite (`better-sqlite3`) con Drizzle ORM y migraciones versionadas, Zod (validación compartida con el cliente). Fase 9: `web-push` (notificaciones) y llamadas REST directas a la API de Google (sin el paquete `googleapis`, para no traer un cliente generado enorme por solo tres endpoints). Fase 10: llamadas REST directas a la API de GitHub (mismo criterio, sin `octokit`).
 - **Calidad:** TypeScript estricto, ESLint, Prettier, Vitest + Testing Library, Playwright.
 
 Detalles y justificación de cada elección en [`PLAN.md`](./PLAN.md).
@@ -80,6 +84,61 @@ LifeHub no necesita configuración para funcionar. Si quieres cambiar algo, copi
 
 Ninguna de estas variables es un secreto; no hay claves ni credenciales que configurar en esta fase.
 
+## Integraciones (opcionales)
+
+Ninguna de las dos se activa sola: sin estas variables en `.env`, LifeHub funciona exactamente igual, solo que sin ellas. Los tokens y claves viven solo en `.env`/tu base de datos local — nunca en el repo ni en el export JSON (ver "Checklist de accesibilidad y QA").
+
+### Notificaciones push
+
+Para que un recordatorio llegue aunque tengas la pestaña cerrada:
+
+1. Genera un par de claves VAPID (una sola vez, se reutilizan siempre):
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+2. Añade a tu `.env`:
+   ```
+   VAPID_PUBLIC_KEY=<la clave pública que te ha dado el comando>
+   VAPID_PRIVATE_KEY=<la clave privada>
+   VAPID_SUBJECT=mailto:tu-email@ejemplo.com
+   ```
+3. Reinicia el servidor y activa el interruptor en **Ajustes → Integraciones → Notificaciones push**.
+
+### Google Calendar
+
+Sincroniza tus eventos con Google Calendar en ambos sentidos (crear/editar/borrar en cualquiera de los dos lados se refleja en el otro, con sondeo cada 5 minutos — sin webhooks, porque exigirían una URL pública y el servidor solo escucha en `127.0.0.1`).
+
+1. Crea un proyecto en [Google Cloud Console](https://console.cloud.google.com/) (o reutiliza uno).
+2. Activa la **Google Calendar API** (menú "APIs y servicios" → "Biblioteca").
+3. Crea credenciales OAuth ("APIs y servicios" → "Credenciales" → "Crear credenciales" → "ID de cliente de OAuth", tipo "Aplicación web").
+4. En "URIs de redireccionamiento autorizados" añade exactamente:
+   ```
+   http://127.0.0.1:3131/api/integrations/google/callback
+   ```
+   (cambia el puerto si usas `LIFEHUB_PORT` distinto de 3131).
+5. Copia el *Client ID* y el *Client Secret* a tu `.env`:
+   ```
+   GOOGLE_CLIENT_ID=<tu client id>
+   GOOGLE_CLIENT_SECRET=<tu client secret>
+   GOOGLE_REDIRECT_URI=http://127.0.0.1:3131/api/integrations/google/callback
+   ```
+6. Reinicia el servidor y pulsa "Conectar" en **Ajustes → Integraciones → Google Calendar**. Mientras el proyecto de Google Cloud esté en modo de prueba, tendrás que añadir tu propio correo como "usuario de prueba" en la pantalla de consentimiento OAuth.
+
+**Limitación conocida:** si editas o cancelas una sola ocurrencia (no toda la serie) de un evento recurrente desde Google Calendar, ese cambio todavía no se sincroniza a LifeHub — Google lo representa de una forma distinta a las excepciones de esta app. Editar la serie completa sí se sincroniza en ambos sentidos.
+
+### GitHub (fase 10)
+
+Resumen de solo lectura de la actividad de un repo por proyecto — no hay flujo de conexión ni OAuth, es una variable de entorno del servidor:
+
+1. Crea un [token de acceso personal](https://github.com/settings/tokens) en GitHub (basta con permiso de lectura sobre repos; `public_repo` si el repo es público, o acceso al repo concreto si es privado).
+2. Añade a tu `.env`:
+   ```
+   GITHUB_TOKEN=<tu token>
+   ```
+3. Reinicia el servidor. En **Ajustes → Integraciones** verás el badge "GitHub: configurado". Enlaza un repo (`owner/repo`) desde la pestaña "GitHub" de cada proyecto.
+
+**Limitación conocida:** `commitsLast30Days` es una cuenta aproximada (una sola llamada `GET /commits?per_page=100`); un repo con más de 100 commits en 30 días mostrará 100 como tope.
+
 ## Pruebas
 
 ```bash
@@ -119,6 +178,6 @@ Desde **Ajustes → Datos** puedes exportar todo a un archivo JSON (incluye `sch
 ## Limitaciones conocidas
 
 - **Un solo equipo:** no hay sincronización entre dispositivos; es una aplicación local-first por diseño.
-- **Recordatorios:** solo se disparan mientras la aplicación está abierta en el navegador (no hay notificaciones del sistema operativo).
+- **Recordatorios:** con las notificaciones push activadas (ver "Integraciones") llegan aunque la pestaña esté cerrada; sin activarlas, solo se disparan con la aplicación abierta en el navegador.
 - **Seguridad:** el servidor escucha únicamente en `127.0.0.1` y no tiene autenticación; la protección de tus datos depende del acceso a tu propio equipo.
 - **Asistente de IA local (Ollama/Qwen):** solo está planificado arquitectónicamente por ahora (ver sección 7 de `PLAN.md`); no hay ninguna funcionalidad de IA todavía.

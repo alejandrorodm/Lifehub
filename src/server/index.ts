@@ -2,6 +2,8 @@ import { serve } from "@hono/node-server";
 import { createApp } from "./app";
 import { runMigrations } from "./db/migrate";
 import { createSnapshot } from "./backup/snapshot";
+import { startReminderPushWorker } from "./modules/push/reminderPushWorker";
+import { startGoogleCalendarSyncWorker } from "./modules/googleCalendar/syncWorker";
 import { config } from "./config";
 
 async function main(): Promise<void> {
@@ -15,6 +17,8 @@ async function main(): Promise<void> {
   }
 
   const app = createApp();
+  startReminderPushWorker();
+  startGoogleCalendarSyncWorker();
 
   serve({ fetch: app.fetch, hostname: config.host, port: config.port }, (info) => {
     console.log(`LifeHub escuchando en http://${config.host}:${info.port}`);

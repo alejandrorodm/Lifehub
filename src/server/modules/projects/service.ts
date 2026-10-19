@@ -39,6 +39,7 @@ function toProjectDto(
     startDate: row.startDate,
     targetDate: row.targetDate,
     color: row.color,
+    githubRepo: row.githubRepo,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     taskCount,
@@ -142,6 +143,19 @@ export function listActiveProjects(limit = 5): ProjectDto[] {
   return rows.map(hydrate);
 }
 
+/** Hitos (de cualquier proyecto) completados en [startISO, endISO] (ambos inclusive), para la revisión periódica. */
+export function countMilestonesCompletedInRange(startISO: string, endISO: string): number {
+  return getDb()
+    .select({ id: milestones.id, completedAt: milestones.completedAt })
+    .from(milestones)
+    .where(isNotNull(milestones.completedAt))
+    .all()
+    .filter((row) => {
+      const date = row.completedAt!.toISOString().slice(0, 10);
+      return date >= startISO && date <= endISO;
+    }).length;
+}
+
 export function updateProject(id: string, patch: ProjectPatchInput): ProjectDto {
   const db = getDb();
   getProjectRow(id);
@@ -154,6 +168,7 @@ export function updateProject(id: string, patch: ProjectPatchInput): ProjectDto 
   if (patch.startDate !== undefined) changes.startDate = patch.startDate;
   if (patch.targetDate !== undefined) changes.targetDate = patch.targetDate;
   if (patch.color !== undefined) changes.color = patch.color;
+  if (patch.githubRepo !== undefined) changes.githubRepo = patch.githubRepo;
 
   db.update(projects).set(changes).where(eq(projects.id, id)).run();
   return hydrate(getProjectRow(id));

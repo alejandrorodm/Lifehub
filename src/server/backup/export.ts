@@ -19,6 +19,9 @@ import {
   inboxItems,
   reminders,
   meta,
+  financeAssets,
+  financeGoals,
+  financeEntries,
 } from "../db/schema";
 import { getSettings } from "../modules/settings/service";
 import { EXPORT_SCHEMA_VERSION, type ExportData } from "@shared/schemas/data";
@@ -53,6 +56,9 @@ export function exportData(): ExportData {
       routineStepLogs: db.select().from(routineStepLogs).all(),
       inboxItems: db.select().from(inboxItems).all(),
       reminders: db.select().from(reminders).all(),
+      financeAssets: db.select().from(financeAssets).all(),
+      financeGoals: db.select().from(financeGoals).all(),
+      financeEntries: db.select().from(financeEntries).all(),
       meta: db.select().from(meta).all(),
       settings: getSettings(),
     },

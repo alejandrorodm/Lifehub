@@ -1,19 +1,21 @@
 # LifeHub — Plan de desarrollo
 
-> Estado: **Fase 8 (QA, accesibilidad y pulido) completada** el 2026-10-17 — las 8 fases del plan están completadas.
+> Estado: **Fase 8 (QA, accesibilidad y pulido) completada** el 2026-10-17 — las 8 fases originales del plan están completadas. **Fase 9 (integraciones) implementada** el 2026-10-17 y **fase 10 (revisión, GitHub, finanzas) implementada** el 2026-10-19; ninguna de las dos estaba en el alcance original (ver nota en cada fase).
 
 ## Estado de las fases
 
-| #   | Fase                                        | Estado        |
-| --- | ------------------------------------------- | ------------- |
-| 1   | Fundamentos                                 | ✅ Completada |
-| 2   | Tareas, Inbox, captura rápida, Dashboard v1 | ✅ Completada |
-| 3   | Proyectos e hitos                           | ✅ Completada |
-| 4   | Calendario y recordatorios                  | ✅ Completada |
-| 5   | Notas, diario y búsqueda global             | ✅ Completada |
-| 6   | Hábitos y rutinas; dashboard configurable   | ✅ Completada |
-| 7   | Ajustes, exportación, copias y restauración | ✅ Completada |
-| 8   | QA, accesibilidad y pulido                  | ✅ Completada |
+| #   | Fase                                                     | Estado        |
+| --- | --------------------------------------------------------- | ------------- |
+| 1   | Fundamentos                                                | ✅ Completada |
+| 2   | Tareas, Inbox, captura rápida, Dashboard v1                | ✅ Completada |
+| 3   | Proyectos e hitos                                          | ✅ Completada |
+| 4   | Calendario y recordatorios                                 | ✅ Completada |
+| 5   | Notas, diario y búsqueda global                            | ✅ Completada |
+| 6   | Hábitos y rutinas; dashboard configurable                  | ✅ Completada |
+| 7   | Ajustes, exportación, copias y restauración                | ✅ Completada |
+| 8   | QA, accesibilidad y pulido                                 | ✅ Completada |
+| 9   | Integraciones: notificaciones push y Google Calendar       | ✅ Implementada (ver nota de verificación) |
+| 10  | Revisión periódica, GitHub por proyecto y finanzas con metas | ✅ Implementada |
 
 ## Situación inicial
 
@@ -431,3 +433,82 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 
 - Verificación visual en navegador real (sin extensión de Chrome conectada en este entorno, igual que en fases anteriores); la cobertura E2E con Playwright real —incluida la de accesibilidad con axe— sustituye esa verificación visual.
 - Métricas de rendimiento (Lighthouse, presupuestos de tamaño de bundle) y un rediseño visual: la fila de la tabla de fases menciona "rendimiento, pulido visual" pero ningún criterio de aceptación verificable los concreta, así que no se inventaron requisitos ni métricas nuevas.
+
+## Fase 9 — Integraciones: notificaciones push y Google Calendar (en curso, iniciada el 2026-10-17)
+
+**Nota sobre el alcance:** esta fase no estaba en el plan original de 8 fases; el usuario la pidió explícitamente tras completar la fase 8 ("sincronizar con Google Calendar... y lo de las notificaciones"). Introduce una excepción consciente a la regla de la sección "Riesgos y decisiones" / `AGENTS.md` de "sin servicios externos": ambas integraciones son **opt-in** (la app funciona igual sin activarlas) y sus credenciales viven solo en `.env`, nunca en el repo ni en el export JSON (que un usuario puede compartir o subir a cualquier sitio).
+
+**Decisiones tomadas con el usuario:**
+
+- Sincronización con Google Calendar **bidireccional**: crear/editar/borrar un evento en LifeHub lo sincroniza hacia Google y viceversa (no solo lectura).
+- Notificaciones push (Web Push) y Google Calendar se desarrollan en paralelo, no una detrás de la otra.
+- Política de conflicto bidireccional: "el cambio más reciente gana", comparando `updatedAt` local contra el `updated` que devuelve la API de Google por evento.
+
+**Diseño (basado en el mapeo de la arquitectura existente — eventos, recurrencia, recordatorios, ajustes, export/import — hecho antes de escribir código):**
+
+- Notificaciones: claves VAPID en variables de entorno (no en BD); tabla nueva `push_subscriptions` (una suscripción por navegador/dispositivo); un *service worker* que recibe el `push` y muestra la notificación aunque la pestaña esté cerrada; el servidor dispara el push desde el mismo punto que ya detecta recordatorios vencidos (`listDueReminders`), en vez de duplicar esa lógica.
+- Google Calendar: tabla nueva `google_calendar_connection` (fila única, como `settings`) con los tokens OAuth; tabla nueva `google_event_links` que mapea `events.id` ↔ id de evento de Google (no se añade ningún campo a `events`, para no tocar el modelo ya probado de recurrencia/excepciones). El RRULE y el patrón serie+excepción de esta app encajan razonablemente con el modelo de instancias de Google, lo que simplifica la traducción.
+- Las tablas nuevas con datos sensibles (tokens OAuth, claves de suscripción push) se excluyen deliberadamente del export JSON, pero sí se borran con "Borrar todo".
+
+**Límite de lo que se puede verificar en este entorno:** no hay acceso a un proyecto real de Google Cloud ni a internet desde este entorno de desarrollo. El código se prueba con tests de integración (cliente de Google mockeado) y `typecheck`/`lint`/suite existente; la verificación end-to-end real contra una cuenta de Google y la recepción real de un push en un dispositivo las tiene que hacer el usuario con sus propias credenciales en `.env`. Se informará siempre qué está implementado/probado con mocks y qué queda pendiente de probar con credenciales reales.
+
+**Estado:** implementada el 2026-10-17 (ver `odd/tasks/fase-9-integraciones.md` para el detalle de las 9 tareas).
+
+**Implementado:**
+
+- Notificaciones push: `web-push`, 3 rutas (`/push/public-key`, `/push/subscribe`, `/push/unsubscribe`), worker server-side cada 20s, *service worker* del cliente, botón "Activar" en Ajustes.
+- Google Calendar: OAuth sin `googleapis` (REST directo), motor de sincronización bidireccional con política "el cambio más reciente gana", worker cada 5 min + botón "Sincronizar ahora", botones "Conectar"/"Desconectar" en Ajustes.
+- 3 tablas nuevas (`push_subscriptions`, `google_calendar_connection`, `google_event_links`), excluidas del export JSON pero borradas con "Borrar todo".
+
+**Probado** (comandos ejecutados en esta sesión, todos en verde):
+
+- `npx tsc --noEmit`, `npx eslint .` — sin errores.
+- `npx vitest run` — 119/119 (26 nuevos: 6 de push con `web-push` mockeado, 10 de OAuth con `fetch` mockeado, 10 del motor de sync con `fetch` mockeado — cubren creación/edición/borrado en ambos sentidos, conflicto por `updatedAt`, cancelación y `syncToken` caducado).
+- `npx playwright test` con `.e2e-data/` limpio — 43/43 ejecutados en los 3 viewports (68 omitidos por diseño); axe sin violaciones nuevas en la pantalla de Ajustes con las dos secciones nuevas.
+
+**Pendiente — no verificable desde este entorno (sin acceso a internet ni a una cuenta real de Google):**
+
+- Conectar con una cuenta de Google real de verdad y confirmar que la sincronización bidireccional funciona contra la API real (lo probado aquí usa un `fetch` mockeado).
+- Recibir un push real en un dispositivo/navegador real con las claves VAPID generadas por el usuario.
+- El usuario debe crear sus propias credenciales en Google Cloud Console y las claves VAPID, y añadirlas a su `.env` (instrucciones en `README.md` → "Integraciones"); no se pudo tocar `.env.example` directamente (bloqueado por los permisos de este entorno de desarrollo para archivos `.env*`).
+
+**Fuera de alcance explícito:**
+
+- Sincronización en tiempo real vía webhooks (exigiría una URL pública; el servidor solo escucha en `127.0.0.1`) — se usa sondeo periódico + botón manual.
+- Sincronización de excepciones de una sola ocurrencia de una serie recurrente (Google las modela como un recurso de "instancia" distinto); se sincroniza la serie completa.
+- Varios calendarios de Google a la vez; multi-usuario.
+
+## Fase 10 — Revisión periódica, GitHub por proyecto y finanzas con metas (completada el 2026-10-19)
+
+**Nota sobre el alcance:** esta fase tampoco estaba en el plan original; el usuario la pidió tras cerrar la fase 9, respondiendo a una pregunta exploratoria sobre qué echaba en falta para el día a día (proyectos, carrera, trabajo). De las tres propuestas planteadas ("resumen temporal periódico", "GitHub de solo lectura", "finanzas manuales"), el usuario confirmó las tres ("Hazlas todas") con dos refinamientos explícitos: GitHub debía ser "general, no ir tras commit" (resumen por proyecto, no un listado commit a commit) y finanzas debía incluir metas de dinero con asignación de aportaciones. Detalle completo de specs y diseño en `odd/tasks/fase-10-revision-github-finanzas.md`.
+
+**Diseño:**
+
+- **Revisión periódica** (`/review`): sin tabla nueva — agrega datos ya existentes al vuelo (tareas completadas/creadas, cumplimiento de hábitos, proyectos activos con progreso e hitos completados, notas/diario creadas, aportación neta de finanzas) para el rango semana/mes actual. Deliberadamente no incluye actividad de GitHub: traer datos de una API externa en cada carga de una vista agregada la haría lenta y frágil.
+- **GitHub por proyecto**: columna `githubRepo` (`owner/repo`) en `projects`; `GITHUB_TOKEN` como variable de entorno opcional (mismo patrón que `config.google`/`config.webPush` de la fase 9); llamadas REST directas a `api.github.com` (sin el paquete `octokit`, mismo criterio que `googleapis` en la fase 9) para un resumen general (último commit, actividad de los últimos 30 días), nunca un listado commit a commit.
+- **Finanzas con metas**: 3 tablas nuevas (`finance_assets`, `finance_goals`, `finance_entries`) con cantidades en céntimos enteros (nunca `real`/float, para no depender de redondeo de coma flotante con dinero); una entrada es siempre "metí/retiré X en la fecha Y", sin precios en vivo ni valoración de mercado; asignación opcional de cada aportación a una meta. A diferencia de las tablas de la fase 9 (credenciales), las de finanzas son contenido normal y se incluyen en el export/import JSON.
+
+**Estado:** implementada el 2026-10-19 (ver `odd/tasks/fase-10-revision-github-finanzas.md` para el detalle de las 11 tareas).
+
+**Implementado:**
+
+- Finanzas: CRUD completo de activos/metas/entradas (`/finance/*`), página `/finance` (activos con balance y movimientos recientes, metas con barra de progreso, diálogos de alta con asignación opcional a meta), papelera a nivel de servicio para activos/metas (igual que proyectos).
+- GitHub: `GET /projects/:id/github-activity` (resumen general, nunca lanza — una API externa caída no rompe la pantalla del proyecto, solo muestra el motivo), pestaña "GitHub" en el detalle de proyecto, badge de solo lectura "GitHub: configurado/no configurado" en Ajustes → Integraciones.
+- Revisión: `GET /review/summary?period=week|month`, página `/review` con selector de periodo, tarjetas de tareas/hábitos/notas/finanzas, lista de proyectos activos y metas con su progreso.
+- Export/import/wipe: las 3 tablas de finanzas añadidas como contenido normal.
+
+**Probado** (comandos ejecutados en esta sesión, todos en verde):
+
+- `npx tsc --noEmit`, `npx eslint .` — sin errores.
+- `npx vitest run` — 153/153 (28 nuevos: 4 de `getPeriodRange`, y un `service.test.ts` de revisión que cubre las 5 funciones de rango nuevas — `countCompletedInRange`/`countCreatedInRange` en tareas, `getCompletionStats` en hábitos, `countCreatedInRange` en notas, `countMilestonesCompletedInRange` en proyectos, `getNetContributionsInRange` en finanzas — más un smoke test de `getSummary`).
+- `npx playwright test` con `.e2e-data/` limpio — 45/45 ejecutados en los 3 viewports (72 omitidos por diseño, +2 respecto a la fase 9 por las 2 pantallas nuevas en `a11y.spec.ts`: `/finance` y `/review`); axe sin violaciones críticas en ninguna de las dos.
+
+**Pendiente — no verificable desde este entorno (sin acceso a internet ni a un repo real de GitHub):**
+
+- Confirmar el resumen de actividad contra un repo de GitHub real con un `GITHUB_TOKEN` válido (lo probado aquí usa `fetch` mockeado).
+
+**Fuera de alcance explícito:**
+
+- Actividad de GitHub dentro de la revisión periódica (decisión deliberada, no omisión — ver "Diseño").
+- Valoración de mercado o precios en vivo en finanzas (solo registro manual de aportaciones/retiros).
+- Varios repos de GitHub por proyecto; un listado commit a commit.

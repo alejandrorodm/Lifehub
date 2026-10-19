@@ -164,6 +164,19 @@ export function listTrash(): NoteDto[] {
   return hydrate(rows);
 }
 
+/** Notas y entradas de diario creadas en [startISO, endISO] (ambos inclusive), para la revisión periódica. */
+export function countCreatedInRange(startISO: string, endISO: string): number {
+  return getDb()
+    .select({ id: notes.id, createdAt: notes.createdAt })
+    .from(notes)
+    .where(isNull(notes.deletedAt))
+    .all()
+    .filter((row) => {
+      const date = row.createdAt.toISOString().slice(0, 10);
+      return date >= startISO && date <= endISO;
+    }).length;
+}
+
 export function listNotesForProject(projectId: string): NoteDto[] {
   const rows = getDb()
     .select()

@@ -5,6 +5,10 @@ export const ProjectStatusSchema = z.enum(["planned", "active", "paused", "compl
 export type ProjectStatus = z.infer<typeof ProjectStatusSchema>;
 
 const ISO_DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida (se espera AAAA-MM-DD).");
+const GITHUB_REPO = z
+  .string()
+  .trim()
+  .regex(/^[\w.-]+\/[\w.-]+$/, "Formato esperado: owner/repo.");
 
 export const ProjectCreateSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio.").max(200),
@@ -26,6 +30,7 @@ export const ProjectPatchSchema = z
     startDate: ISO_DATE.nullable(),
     targetDate: ISO_DATE.nullable(),
     color: z.string().max(32).nullable(),
+    githubRepo: GITHUB_REPO.nullable(),
   })
   .partial();
 export type ProjectPatchInput = z.infer<typeof ProjectPatchSchema>;
@@ -67,6 +72,7 @@ export interface ProjectDto {
   startDate: string | null;
   targetDate: string | null;
   color: string | null;
+  githubRepo: string | null;
   createdAt: string;
   updatedAt: string;
   taskCount: number;

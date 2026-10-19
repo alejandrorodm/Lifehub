@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Select } from "@client/components/ui/Select";
 import { Skeleton } from "@client/components/ui/Skeleton";
 import { Checkbox } from "@client/components/ui/Checkbox";
@@ -9,6 +9,9 @@ import { Input } from "@client/components/ui/Input";
 import { useToast } from "@client/components/ui/Toast";
 import { useSettings, useUpdateSettings } from "./useSettings";
 import { useExportData, useImportPreview, useRestoreImport, useWipeAll } from "./useData";
+import { usePushStatus, useEnablePush, useDisablePush } from "./usePush";
+import { useGoogleStatus, useDisconnectGoogle, useSyncGoogleNow } from "./useGoogleCalendar";
+import { useGithubStatus } from "./useGithub";
 import { api } from "@client/lib/api";
 import { DASHBOARD_WIDGETS } from "@shared/schemas/settings";
 import type { Theme, DashboardWidgetId } from "@shared/schemas/settings";
@@ -16,7 +19,20 @@ import type { ImportPreview } from "@shared/schemas/data";
 import { DASHBOARD_WIDGET_LABELS } from "@client/features/dashboard/dashboardWidgets";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { Archive, ChevronUp, ChevronDown, Download, Upload, Trash2 } from "lucide-react";
+import {
+  Archive,
+  ChevronUp,
+  ChevronDown,
+  Download,
+  Upload,
+  Trash2,
+  Bell,
+  BellOff,
+  CalendarDays,
+  Unlink,
+  RefreshCw,
+  GitFork,
+} from "lucide-react";
 import { EmptyState } from "@client/components/ui/EmptyState";
 
 const WIPE_CONFIRM_PHRASE = "BORRAR TODO";
@@ -270,6 +286,183 @@ function WipeAllSection() {
   );
 }
 
+/** Fase 9: notificaciones push (recordatorios aunque la pestaña esté cerrada). Opt-in. */
+function PushNotificationsSection() {
+  const { data: status, isLoading } = usePushStatus();
+  const enable = useEnablePush();
+  const disable = useDisablePush();
+  const { show } = useToast();
+
+  if (isLoading || !status) return <Skeleton className="h-16" />;
+
+  if (!status.supported) {
+    return (
+      <p className="text-sm text-text-muted">Tu navegador no soporta notificaciones push.</p>
+    );
+  }
+
+  if (!status.configured) {
+    return (
+      <p className="text-sm text-text-muted">
+        El servidor no tiene configuradas las claves VAPID necesarias (ver{" "}
+        <code className="rounded bg-bg-subtle px-1">README.md</code>).
+      </p>
+    );
+  }
+
+  const handleEnable = () =>
+    enable.mutate(undefined, {
+      onError: (error) =>
+        show({ tone: "error", title: "No se pudo activar", description: (error as Error).message }),
+    });
+
+  const handleDisable = () =>
+    disable.mutate(undefined, {
+      onError: (error) =>
+        show({ tone: "error", title: "No se pudo desactivar", description: (error as Error).message }),
+    });
+
+  return (
+    <div className="flex items-center justify-between rounded-md border border-border bg-bg-elevated px-4 py-3">
+      <div>
+        <p className="text-sm font-medium">Notificaciones push</p>
+        <p className="text-sm text-text-muted">
+          Recibe el aviso de un recordatorio aunque tengas la pestaña cerrada.
+        </p>
+      </div>
+      {status.subscribed ? (
+        <Button variant="secondary" size="sm" onClick={handleDisable} disabled={disable.isPending}>
+          <BellOff className="size-4" aria-hidden />
+          Desactivar
+        </Button>
+      ) : (
+        <Button variant="secondary" size="sm" onClick={handleEnable} disabled={enable.isPending}>
+          <Bell className="size-4" aria-hidden />
+          Activar
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/** Fase 9: sincronización bidireccional con Google Calendar. Opt-in. */
+function GoogleCalendarSection() {
+  const { data: status, isLoading } = useGoogleStatus();
+  const disconnect = useDisconnectGoogle();
+  const sync = useSyncGoogleNow();
+  const { show } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const result = searchParams.get("google");
+    if (!result) return;
+    if (result === "connected") {
+      show({ tone: "success", title: "Google Calendar conectado" });
+    } else if (result === "error") {
+      show({ tone: "error", title: "No se pudo conectar con Google Calendar" });
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("google");
+    setSearchParams(next, { replace: true });
+    // Solo al cargar la página con el parámetro del callback de OAuth.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (isLoading || !status) return <Skeleton className="h-16" />;
+
+  if (!status.connected) {
+    return (
+      <div className="flex items-center justify-between rounded-md border border-border bg-bg-elevated px-4 py-3">
+        <div>
+          <p className="text-sm font-medium">Google Calendar</p>
+          <p className="text-sm text-text-muted">
+            Sincroniza tus eventos con tu Google Calendar en ambos sentidos.
+          </p>
+        </div>
+        <a
+          href="/api/integrations/google/connect"
+          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-bg-subtle px-3 text-sm font-medium text-text hover:border-border-strong"
+        >
+          <CalendarDays className="size-4" aria-hidden />
+          Conectar
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between rounded-md border border-border bg-bg-elevated px-4 py-3">
+      <div>
+        <p className="text-sm font-medium">Google Calendar</p>
+        <p className="text-sm text-text-muted">
+          Conectado
+          {status.lastSyncedAt &&
+            ` · última sincronización ${formatDistanceToNow(new Date(status.lastSyncedAt), { addSuffix: true, locale: es })}`}
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() =>
+            sync.mutate(undefined, {
+              onSuccess: ({ pulled, pushed }) =>
+                show({ tone: "success", title: `Sincronizado (${pulled} recibidos, ${pushed} enviados)` }),
+              onError: (error) =>
+                show({ tone: "error", title: "No se pudo sincronizar", description: (error as Error).message }),
+            })
+          }
+          disabled={sync.isPending}
+        >
+          <RefreshCw className="size-4" aria-hidden />
+          Sincronizar ahora
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => disconnect.mutate()}
+          disabled={disconnect.isPending}
+          aria-label="Desconectar Google Calendar"
+        >
+          <Unlink className="size-4" aria-hidden />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Fase 10: badge de solo lectura — GitHub no tiene flujo de conexión propio
+ * (es una variable de entorno del servidor, `GITHUB_TOKEN`), solo se enlaza
+ * un repo por proyecto desde la pestaña "GitHub" de cada proyecto.
+ */
+function GithubSection() {
+  const { data: status, isLoading } = useGithubStatus();
+
+  if (isLoading || !status) return <Skeleton className="h-16" />;
+
+  return (
+    <div className="flex items-center justify-between rounded-md border border-border bg-bg-elevated px-4 py-3">
+      <div>
+        <p className="text-sm font-medium">GitHub</p>
+        <p className="text-sm text-text-muted">
+          Resumen de actividad por proyecto. Enlaza un repo desde la pestaña &quot;GitHub&quot; de cada proyecto.
+        </p>
+      </div>
+      <span
+        className={
+          status.configured
+            ? "inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent"
+            : "inline-flex items-center gap-1.5 rounded-full bg-bg-subtle px-2.5 py-1 text-xs font-medium text-text-muted"
+        }
+      >
+        <GitFork className="size-3.5" aria-hidden />
+        {status.configured ? "Configurado" : "No configurado"}
+      </span>
+    </div>
+  );
+}
+
 export function SettingsPage() {
   const { data: settings, isPending } = useSettings();
   const updateSettings = useUpdateSettings();
@@ -343,6 +536,16 @@ export function SettingsPage() {
               onChange={(dashboardWidgets) => updateSettings.mutate({ dashboardWidgets })}
             />
           )}
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold text-text-muted">Integraciones</h2>
+          <p className="text-sm text-text-muted">
+            Funciones opcionales que conectan con un servicio externo. Nada de esto se activa solo.
+          </p>
+          <PushNotificationsSection />
+          <GoogleCalendarSection />
+          <GithubSection />
         </section>
 
         <section className="space-y-4">

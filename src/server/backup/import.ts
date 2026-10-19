@@ -20,6 +20,12 @@ import {
   reminders,
   meta,
   settings as settingsTable,
+  pushSubscriptions,
+  googleCalendarConnection,
+  googleEventLinks,
+  financeAssets,
+  financeGoals,
+  financeEntries,
 } from "../db/schema";
 import { AppError } from "../lib/errors";
 import { createSnapshot } from "./snapshot";
@@ -47,7 +53,12 @@ export function previewImport(raw: unknown): ImportPreview {
   return { schemaVersion: parsed.schemaVersion, exportedAt: parsed.exportedAt, counts: countsOf(parsed.data) };
 }
 
-/** Vacía todas las tablas de contenido (y los ajustes) dentro de la transacción ya abierta. */
+/**
+ * Vacía todas las tablas de contenido (y los ajustes) dentro de la transacción
+ * ya abierta. Incluye las tablas de integraciones (fase 9) aunque nunca
+ * salgan en el export: "Borrar todo" también debe desconectar Google
+ * Calendar y las suscripciones push.
+ */
 function wipeContentTables(tx: ReturnType<typeof getDb>): void {
   for (const table of [
     checklistItems,
@@ -55,6 +66,7 @@ function wipeContentTables(tx: ReturnType<typeof getDb>): void {
     noteTags,
     noteTasks,
     eventExceptions,
+    googleEventLinks,
     routineStepLogs,
     habitLogs,
     routineSteps,
@@ -67,9 +79,14 @@ function wipeContentTables(tx: ReturnType<typeof getDb>): void {
     reminders,
     inboxItems,
     tags,
+    financeEntries,
+    financeGoals,
+    financeAssets,
     projects,
     meta,
     settingsTable,
+    pushSubscriptions,
+    googleCalendarConnection,
   ]) {
     tx.delete(table).run();
   }
@@ -115,6 +132,9 @@ export async function restoreFromImport(raw: unknown): Promise<{ counts: Record<
       if (data.routineStepLogs.length) tx.insert(routineStepLogs).values(data.routineStepLogs).run();
       if (data.inboxItems.length) tx.insert(inboxItems).values(data.inboxItems).run();
       if (data.reminders.length) tx.insert(reminders).values(data.reminders).run();
+      if (data.financeAssets.length) tx.insert(financeAssets).values(data.financeAssets).run();
+      if (data.financeGoals.length) tx.insert(financeGoals).values(data.financeGoals).run();
+      if (data.financeEntries.length) tx.insert(financeEntries).values(data.financeEntries).run();
       if (data.meta.length) tx.insert(meta).values(data.meta).run();
       tx.insert(settingsTable).values({ key: "app", value: data.settings, updatedAt: new Date() }).run();
 

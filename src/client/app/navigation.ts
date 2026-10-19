@@ -7,6 +7,8 @@ import {
   BookOpen,
   FolderKanban,
   Flame,
+  Wallet,
+  BarChart3,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -28,6 +30,8 @@ export const primaryNavItems: NavItem[] = [
   { to: "/journal", label: "Diario", icon: BookOpen },
   { to: "/projects", label: "Proyectos", icon: FolderKanban, shortcutHint: "G P" },
   { to: "/habits", label: "Hábitos", icon: Flame },
+  { to: "/finance", label: "Finanzas", icon: Wallet },
+  { to: "/review", label: "Revisión", icon: BarChart3 },
 ];
 
 export const secondaryNavItems: NavItem[] = [{ to: "/settings", label: "Ajustes", icon: Settings }];

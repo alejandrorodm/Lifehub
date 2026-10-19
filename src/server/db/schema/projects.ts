@@ -18,6 +18,8 @@ export const projects = sqliteTable("projects", {
   targetDate: text("target_date"), // YYYY-MM-DD
   color: text("color"),
   archivedAt: integer("archived_at", { mode: "timestamp_ms" }),
+  // Repo vinculado para el resumen de actividad de GitHub (fase 10), formato "owner/repo".
+  githubRepo: text("github_repo"),
   ...timestamps,
   ...softDelete,
 });

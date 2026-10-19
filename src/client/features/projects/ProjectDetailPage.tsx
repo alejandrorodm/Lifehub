@@ -1,13 +1,24 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Calendar as CalendarIcon, StickyNote, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar as CalendarIcon,
+  StickyNote,
+  Trash2,
+  GitFork,
+  GitCommitHorizontal,
+} from "lucide-react";
 import { Button } from "@client/components/ui/Button";
 import { Input, Label, Textarea } from "@client/components/ui/Input";
 import { Select } from "@client/components/ui/Select";
 import { Checkbox } from "@client/components/ui/Checkbox";
 import { ProgressBar } from "@client/components/ui/ProgressBar";
 import { EmptyState } from "@client/components/ui/EmptyState";
+import { Skeleton } from "@client/components/ui/Skeleton";
 import { useToast } from "@client/components/ui/Toast";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
+import { useProjectGithubActivity } from "./useProjectGithub";
 import { TaskRow } from "@client/features/tasks/TaskRow";
 import { TaskDetailSheet } from "@client/features/tasks/TaskDetailSheet";
 import { useProjectTasks, useCreateTask, useUpdateTask } from "@client/features/tasks/useTasks";
@@ -35,7 +46,76 @@ const PRIORITY_OPTIONS = (Object.keys(PRIORITY_LABELS) as TaskPriority[]).map((v
   label: PRIORITY_LABELS[value],
 }));
 
-type Tab = "tasks" | "notes" | "calendar";
+type Tab = "tasks" | "notes" | "calendar" | "github";
+
+/** Fase 10: resumen general de actividad de GitHub por proyecto, solo lectura. */
+function ProjectGithubTab({ project }: { project: ProjectDto }) {
+  const updateProject = useUpdateProject();
+  const { data, isLoading } = useProjectGithubActivity(project.id, project.githubRepo);
+
+  return (
+    <div className="space-y-4 px-6 py-4">
+      <div>
+        <Label htmlFor="project-github-repo">Repositorio de GitHub</Label>
+        <Input
+          id="project-github-repo"
+          defaultValue={project.githubRepo ?? ""}
+          onBlur={(e) => {
+            const value = e.target.value.trim();
+            if (value === (project.githubRepo ?? "")) return;
+            updateProject.mutate({ id: project.id, patch: { githubRepo: value || null } });
+          }}
+          placeholder="owner/repo"
+          aria-describedby="project-github-repo-hint"
+        />
+        <p id="project-github-repo-hint" className="mt-1.5 text-xs text-text-muted">
+          Resumen general de actividad (último commit, actividad reciente), no un listado commit a commit.
+        </p>
+      </div>
+
+      {!project.githubRepo ? null : isLoading || !data ? (
+        <Skeleton className="h-20" />
+      ) : !data.configured ? (
+        <EmptyState
+          icon={GitFork}
+          title="GitHub no está configurado"
+          description="Falta la variable GITHUB_TOKEN en el servidor; el repositorio queda guardado pero sin resumen."
+          className="py-10"
+        />
+      ) : data.error ? (
+        <EmptyState icon={GitFork} title="No se pudo obtener la actividad" description={data.error} className="py-10" />
+      ) : data.activity ? (
+        <div className="space-y-2 rounded-md border border-border bg-bg-elevated p-4">
+          <a
+            href={data.activity.repoUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
+          >
+            <GitFork className="size-4" aria-hidden />
+            {data.activity.repo}
+          </a>
+          <p className="flex items-center gap-1.5 text-sm text-text-muted">
+            <GitCommitHorizontal className="size-3.5 shrink-0" aria-hidden />
+            {data.activity.lastCommitAt ? (
+              <>
+                Último commit {formatDistanceToNow(new Date(data.activity.lastCommitAt), { addSuffix: true, locale: es })}
+                {data.activity.lastCommitMessage && ` · "${data.activity.lastCommitMessage}"`}
+                {data.activity.lastCommitAuthor && ` · ${data.activity.lastCommitAuthor}`}
+              </>
+            ) : (
+              "Sin commits todavía"
+            )}
+          </p>
+          <p className="text-sm text-text-muted">
+            {data.activity.commitsLast30Days} commit{data.activity.commitsLast30Days === 1 ? "" : "s"} en los
+            últimos 30 días
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function MilestonesSection({
   projectId,
@@ -277,6 +357,7 @@ function ProjectDetailView({ project }: { project: ProjectDto }) {
             { id: "tasks" as Tab, label: "Tareas" },
             { id: "notes" as Tab, label: "Notas" },
             { id: "calendar" as Tab, label: "Calendario" },
+            { id: "github" as Tab, label: "GitHub" },
           ] as const
         ).map((t) => (
           <button
@@ -306,6 +387,7 @@ function ProjectDetailView({ project }: { project: ProjectDto }) {
             description="Los eventos vinculados a este proyecto aparecerán aquí."
           />
         )}
+        {tab === "github" && <ProjectGithubTab project={project} />}
       </div>
 
       <div className="border-t border-border px-6 py-3">

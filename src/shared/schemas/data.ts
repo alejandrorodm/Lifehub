@@ -7,6 +7,13 @@ import { SettingsSchema } from "./settings";
  * reflejan exactamente las columnas de la tabla (incluye `id`, marcas de
  * tiempo y filas archivadas/en papelera) para que un export→import sea
  * idéntico byte a byte en los datos, no solo "equivalente".
+ *
+ * Deliberadamente excluidas (fase 9): `push_subscriptions`,
+ * `google_calendar_connection` y `google_event_links`. Contienen tokens
+ * OAuth, claves de suscripción push o solo tienen sentido junto a una
+ * conexión activa — nunca deben salir en un archivo que el usuario puede
+ * compartir o subir a cualquier sitio. Sí se borran con "Borrar todo"
+ * (`wipeContentTables` en `src/server/backup/import.ts`).
  */
 
 export const EXPORT_SCHEMA_VERSION = 1;
@@ -23,6 +30,7 @@ const ExportProjectSchema = z.object({
   targetDate: dateOnly().nullable(),
   color: z.string().nullable(),
   archivedAt: z.coerce.date().nullable(),
+  githubRepo: z.string().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
   deletedAt: z.coerce.date().nullable(),
@@ -202,6 +210,39 @@ const ExportMetaSchema = z.object({
   value: z.string().nullable(),
 });
 
+// Fase 10: finanzas. Contenido normal (como tareas/notas/proyectos), no
+// credenciales — a diferencia de las tablas de la fase 9, sí se exportan.
+const ExportFinanceAssetSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  type: z.enum(["fund", "crypto", "stock", "cash", "other"]),
+  note: z.string().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+  deletedAt: z.coerce.date().nullable(),
+});
+
+const ExportFinanceGoalSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  targetAmountCents: z.number().int(),
+  targetDate: dateOnly().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+  deletedAt: z.coerce.date().nullable(),
+});
+
+const ExportFinanceEntrySchema = z.object({
+  id: z.string().min(1),
+  assetId: z.string().min(1),
+  goalId: z.string().nullable(),
+  date: dateOnly(),
+  type: z.enum(["deposit", "withdrawal"]),
+  amountCents: z.number().int(),
+  note: z.string().nullable(),
+  createdAt: z.coerce.date(),
+});
+
 export const ExportDataSchema = z.object({
   schemaVersion: z.number().int(),
   exportedAt: z.string(),
@@ -224,6 +265,9 @@ export const ExportDataSchema = z.object({
     routineStepLogs: z.array(ExportRoutineStepLogSchema),
     inboxItems: z.array(ExportInboxItemSchema),
     reminders: z.array(ExportReminderSchema),
+    financeAssets: z.array(ExportFinanceAssetSchema),
+    financeGoals: z.array(ExportFinanceGoalSchema),
+    financeEntries: z.array(ExportFinanceEntrySchema),
     meta: z.array(ExportMetaSchema),
     settings: SettingsSchema,
   }),

@@ -299,6 +299,32 @@ export function countTasksByStatus(): { pending: number; completedToday: number 
   return { pending, completedToday };
 }
 
+/** Tareas completadas en [startISO, endISO] (ambos inclusive), para la revisión periódica. */
+export function countCompletedInRange(startISO: string, endISO: string): number {
+  return getDb()
+    .select({ id: tasks.id, completedAt: tasks.completedAt })
+    .from(tasks)
+    .where(and(isNull(tasks.deletedAt), isNotNull(tasks.completedAt)))
+    .all()
+    .filter((row) => {
+      const date = row.completedAt!.toISOString().slice(0, 10);
+      return date >= startISO && date <= endISO;
+    }).length;
+}
+
+/** Tareas creadas en [startISO, endISO] (ambos inclusive), para la revisión periódica. */
+export function countCreatedInRange(startISO: string, endISO: string): number {
+  return getDb()
+    .select({ id: tasks.id, createdAt: tasks.createdAt })
+    .from(tasks)
+    .where(isNull(tasks.deletedAt))
+    .all()
+    .filter((row) => {
+      const date = row.createdAt.toISOString().slice(0, 10);
+      return date >= startISO && date <= endISO;
+    }).length;
+}
+
 function applyRecurrenceOnComplete(current: TaskRow): Partial<TaskRow> {
   if (!current.recurrenceRule || !current.dueDate) {
     return { status: "done", completedAt: new Date() };

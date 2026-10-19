@@ -13,6 +13,11 @@ import { notesRoutes } from "./modules/notes/routes";
 import { searchRoutes } from "./modules/search/routes";
 import { habitsRoutes } from "./modules/habits/routes";
 import { routinesRoutes } from "./modules/routines/routes";
+import { pushRoutes } from "./modules/push/routes";
+import { googleCalendarRoutes } from "./modules/googleCalendar/routes";
+import { financeRoutes } from "./modules/finance/routes";
+import { githubRoutes } from "./modules/github/routes";
+import { reviewRoutes } from "./modules/review/routes";
 import { config } from "./config";
 
 export function createApp(): Hono {
@@ -43,7 +48,12 @@ export function createApp(): Hono {
     .route("/notes", notesRoutes)
     .route("/search", searchRoutes)
     .route("/habits", habitsRoutes)
-    .route("/routines", routinesRoutes);
+    .route("/routines", routinesRoutes)
+    .route("/push", pushRoutes)
+    .route("/integrations/google", googleCalendarRoutes)
+    .route("/integrations/github", githubRoutes)
+    .route("/finance", financeRoutes)
+    .route("/review", reviewRoutes);
 
   app.route("/api", api);
 

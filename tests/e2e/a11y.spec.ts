@@ -29,6 +29,8 @@ const pages = [
   { path: "/journal", name: "Diario" },
   { path: "/projects", name: "Proyectos" },
   { path: "/habits", name: "Hábitos" },
+  { path: "/finance", name: "Finanzas" },
+  { path: "/review", name: "Revisión" },
   { path: "/settings", name: "Ajustes" },
   { path: "/trash", name: "Papelera" },
 ];
