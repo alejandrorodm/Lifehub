@@ -605,18 +605,28 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 
 **Importante, para que no se perciba como más avanzado de lo que está:** con lo hecho hasta ahora, Ioana y Alex inician sesión por separado pero **todavía ven los mismos datos** — ninguna tabla de contenido tiene `userId` todavía. Eso es el trabajo de T6-T15.
 
-## Fase 14 — APK (TWA con Bubblewrap) (en curso, iniciada el 2026-10-19)
+## Fase 14 — APK (TWA con Bubblewrap) (completada el 2026-10-19)
 
-**Nota sobre el alcance:** pedida por el usuario junto con la fase 13. Elegido TWA (Trusted Web Activity) sobre Capacitor: LifeHub ya tiene service worker (fase 9, push), no hay nada que empaquetar aparte — la TWA carga siempre el sitio en vivo, así que las actualizaciones normales de la app no requieren tocar la APK en absoluto, que es exactamente lo que pidió el usuario ("que pueda actualizarse directamente sin tener que reinstalar").
+**Nota sobre el alcance:** pedida por el usuario junto con la fase 13, con instrucción explícita de instalar lo necesario y terminarlo de forma autónoma. Elegido TWA (Trusted Web Activity) sobre Capacitor: LifeHub ya tiene service worker (fase 9, push), no hay nada que empaquetar aparte — la TWA carga siempre el sitio en vivo, así que las actualizaciones normales de la app no requieren tocar la APK en absoluto, que es exactamente lo que pidió el usuario ("que pueda actualizarse directamente sin tener que reinstalar").
 
 **Implementado:**
 
 - `src/client/public/manifest.webmanifest` + iconos (`src/client/public/icons/`, generados con un codificador PNG propio de ~80 líneas en vez de añadir una dependencia o depender de herramientas del sistema que no estaban disponibles) + enlazado en `index.html`.
-- `src/server/lib/assetLinks.ts` + ruta `GET /.well-known/assetlinks.json` (fuera de `/api`, sin sesión) — Digital Asset Links para que la TWA abra a pantalla completa; vacío hasta tener la huella real del keystore.
-- `deploy/android/twa-manifest.json` (config de Bubblewrap) + `deploy/android/README.md` (pasos completos, con énfasis en por qué el keystore de firma debe generarse una única vez y conservarse con cuidado — es lo que permite actualizar sin desinstalar).
-- `.gitignore`: excluidos el keystore y los artefactos de build de Android.
+- `src/server/lib/assetLinks.ts` + ruta `GET /.well-known/assetlinks.json` (fuera de `/api`, sin sesión) — Digital Asset Links, ya con la huella SHA-256 real del keystore de firma, para que la TWA abra a pantalla completa.
+- `deploy/android/twa-manifest.json` (config de Bubblewrap, generado con todos los valores por defecto reales de la librería, no a mano) + `deploy/android/generate-project.cjs` (genera el proyecto Android sin el asistente interactivo, que exige una terminal real) + `deploy/android/README.md`.
+- `.gitignore`: excluidos el keystore, la contraseña, y todo el proyecto Android generado (`app/`, `build.gradle`, `gradlew`...) — se recrea desde `twa-manifest.json` + `generate-project.cjs`, igual que `dist/`.
 
-**Pendiente — bloqueado por el entorno, no por el diseño:**
+**JDK y Android SDK instalados sin root, en esta sesión:**
 
-- No pude ejecutar `bubblewrap build` yo mismo: ni esta máquina de desarrollo ni el VPS tienen Java/Android SDK, y esta máquina no tiene `sudo` sin contraseña; el VPS sí, pero con ~1&nbsp;GB de RAM y ViperTrade+LifeHub ya corriendo, una build de Gradle ahí arriesga los servicios en producción. Se le preguntó al usuario dónde prefiere ejecutarlo.
-- Huella SHA-256 del keystore (y por tanto `assetLinks.ts` relleno) pendiente de que exista el keystore.
+- Ni esta máquina (sin `sudo` sin contraseña) ni el VPS (RAM demasiado justa para arriesgar los servicios en producción) permitían instalar paquetes del sistema. Se descargó un JDK 17 portátil (Temurin, tarball oficial) y el Android SDK (cmdline-tools + platform-tools + `platforms;android-36` + `build-tools;36.1.0`) directamente en `~/.local/lifehub-tools/`, sin tocar el sistema.
+- `bubblewrap build` exige una terminal real para varios asistentes interactivos (JDK/SDK la primera vez, confirmar regenerar el proyecto, contraseñas del keystore) que no funcionan en este entorno ni con la entrada redirigida (el proceso cierra el `readline` en cuanto deja de haber una TTY real). Se resolvió sin tocar el propio bubblewrap: `~/.bubblewrap/config.json` escrito a mano (evita el asistente de JDK/SDK), `BUBBLEWRAP_KEYSTORE_PASSWORD`/`BUBBLEWRAP_KEY_PASSWORD` por variable de entorno (evita el de contraseñas), y `generate-project.cjs`, que llama a la librería `@bubblewrap/core` directamente (la misma que usa el asistente por debajo) para generar el proyecto sin preguntar nada.
+- Hallazgo real durante el build (no al diseñar): `minSdkVersion` por defecto (21) es menor que el mínimo que exige la librería `androidbrowserhelper` (24) — build fallaba con un error de fusión de manifests. Corregido fijando `minSdkVersion: 24`.
+- Keystore de firma (`android.keystore`, alias `lifehub`) generado una sola vez con `keytool`, contraseña aleatoria fuerte guardada en `~/.local/lifehub-tools/lifehub-keystore-password.txt` (permisos 600, fuera del repo) — es lo único que permite publicar actualizaciones de la APK sin que Android obligue a desinstalar.
+- Para no desplegar a producción el trabajo a medias de separación de datos (fase 13) solo para poder generar los iconos de la APK, se montó el sitio en local (`npm run build && npm start`, puerto aislado) y se apuntó la generación ahí; el `twa-manifest.json` final y el proyecto Android generado sí referencian el dominio real (`lifehub.alejandrorodm.com`).
+
+**Resultado:** `app-release-signed.apk` (~977&nbsp;KB) y `app-release-bundle.aab` generados y firmados correctamente (verificado con `apksigner verify --print-certs`). No se commitean (binarios generados, excluidos).
+
+**Pendiente:**
+
+- La pantalla completa (sin barra de Chrome Custom Tabs) solo funcionará una vez que el código de las fases 13/14 esté desplegado en `lifehub.alejandrorodm.com` — en el momento de generar esta APK el servidor de producción todavía tenía el código anterior (`/.well-known/assetlinks.json` ahí no tiene la huella real todavía).
+- Backup del keystore y su contraseña fuera de esta máquina: responsabilidad del usuario (documentado en `deploy/android/README.md`, no es algo que yo pueda hacer por él).

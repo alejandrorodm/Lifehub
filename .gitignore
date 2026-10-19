@@ -31,11 +31,19 @@ deploy/android/android.keystore
 deploy/android/android.keystore.properties
 deploy/android/*.apk
 deploy/android/*.aab
+deploy/android/*.idsig
 deploy/android/.bubblewrap/
+# El resto del proyecto Android (app/, build.gradle, gradlew...) lo recrea
+# `generate-project.cjs` a partir de `twa-manifest.json` — es un artefacto
+# generado, igual que `dist/`, no la fuente de verdad.
 deploy/android/app/
 deploy/android/build/
 deploy/android/.gradle/
 deploy/android/gradle/
 deploy/android/gradlew
 deploy/android/gradlew.bat
-deploy/android/*.idsig
+deploy/android/build.gradle
+deploy/android/settings.gradle
+deploy/android/gradle.properties
+deploy/android/manifest-checksum.txt
+deploy/android/store_icon.png

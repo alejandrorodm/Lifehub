@@ -1,91 +1,87 @@
-# APK de LifeHub (TWA con Bubblewrap)
+# APK de LifeHub (TWA)
 
 Es una **Trusted Web Activity**: un envoltorio Android finísimo que abre
 `https://lifehub.alejandrorodm.com` a pantalla completa, sin barra de
 navegador. La "app" no lleva código propio del front — cada vez que la abres
 carga la versión en vivo del sitio, así que **las actualizaciones normales
-(nuevas pantallas, arreglos, fase 13 en marcha, etc.) no necesitan ni tocar
-la APK**: se ven solas, como en el navegador. La APK solo hay que
-reconstruirla si cambia algo del propio envoltorio (icono, nombre, color).
+no necesitan tocar la APK en absoluto**: se ven solas, como en el navegador.
+La APK solo hay que reconstruirla si cambia algo del propio envoltorio
+(icono, nombre, color).
 
-**No pude generar la APK yo mismo en este entorno**: ni esta máquina de
-desarrollo ni el VPS tienen Java/Android SDK, y no tengo permisos para
-instalarlos sin pedírtelo (este equipo no tiene `sudo` sin contraseña; el
-VPS sí, pero con solo ~1&nbsp;GB de RAM y ViperTrade + LifeHub ya corriendo,
-una build de Gradle ahí es arriesgada para los servicios en producción). Lo
-que sí dejé listo y lo puedes ejecutar tú donde prefieras: el manifest PWA
-(`src/client/public/manifest.webmanifest`), los iconos, y la config de
-Bubblewrap (`twa-manifest.json`, en este directorio).
+Generada y firmada en esta sesión: `app-release-signed.apk` (para instalar
+directo en un móvil) y `app-release-bundle.aab` (para Google Play, si algún
+día quieres). Ninguno de los dos se commitea (`.gitignore`).
 
 ## Lo más importante: el keystore de firma
 
 Android exige que **todas** las versiones de una app estén firmadas con el
 **mismo** certificado — si el siguiente build usa uno distinto, Android lo
-trata como una app diferente y te obliga a desinstalar la anterior antes de
-instalar la nueva (perdiendo lo que hubiera en local, aunque aquí no hay
-nada local que perder porque todo vive en el servidor).
+trata como una app diferente y obliga a desinstalar la anterior.
 
-- El paso 2 de abajo genera `android.keystore` **una sola vez, para
-  siempre**.
-- **Haz una copia de seguridad de `android.keystore` y de su contraseña en
-  un sitio seguro fuera de este repo** (gestor de contraseñas, USB cifrado…).
-  Si lo pierdes, no hay forma de recuperarlo ni de "resetearlo": tendrías
-  que publicar la app como una nueva, distinta, y todo el mundo perdería la
-  instalada.
-- Nunca se commitea (`.gitignore` ya lo excluye).
-- Cada build nueva reutiliza el mismo `android.keystore` y solo sube
-  `appVersionCode` en `twa-manifest.json`.
+- `android.keystore` (en este directorio, no commiteado) se generó **una
+  sola vez**, con `keytool`, alias `lifehub`.
+- Su contraseña vive en `~/.local/lifehub-tools/lifehub-keystore-password.txt`
+  en esta máquina (permisos 600) — **haz una copia de `android.keystore` y de
+  esa contraseña en un sitio seguro fuera de este repo** (gestor de
+  contraseñas, USB cifrado…). Si se pierden, no hay forma de recuperarlos:
+  tendrías que publicar la app como una nueva, distinta, y quien la tenga
+  instalada perdería la actualización automática.
+- Huella SHA-256 del certificado (para `assetlinks.json`, ya puesta en
+  `src/server/lib/assetLinks.ts`):
+  `F6:1E:92:49:C4:4D:88:AC:AE:67:50:CA:AF:A0:26:40:A5:CB:7D:69:65:BA:CC:5F:2E:2A:73:2D:BD:4D:46:C6`
 
-## Pasos
+## Cómo se construyó (y cómo reconstruir para una actualización de la APK)
 
-Necesitas JDK 17+ (`sudo apt install openjdk-17-jdk-headless` en Linux) y
-conexión a internet (Bubblewrap descarga su propio Android SDK/Gradle la
-primera vez, ~1-2&nbsp;GB).
+`bubblewrap build` normal pide varias cosas por un asistente interactivo
+(JDK, Android SDK, regenerar el proyecto, contraseñas del keystore) que
+necesitan una terminal real — en un entorno sin terminal interactiva falla.
+`generate-project.cjs` hace lo mismo que ese asistente pero sin preguntar
+nada, usando directamente la librería `@bubblewrap/core`.
+
+Necesitas:
+- JDK 17+ y el Android SDK (`platform-tools`, `platforms;android-36`,
+  `build-tools;36.1.0`) — aquí se instalaron sin root en
+  `~/.local/lifehub-tools/` (JDK) y `~/.local/lifehub-tools/android-sdk/`
+  (SDK), sin usar el paquete del sistema.
+- `~/.bubblewrap/config.json` con `{"jdkPath": "...", "androidSdkPath": "..."}`
+  apuntando a esas rutas (evita el asistente de primera vez).
+- El sitio tiene que estar sirviendo `manifest.webmanifest` y los iconos en
+  una URL alcanzable — en producción ya lo hace
+  (`https://lifehub.alejandrorodm.com`); si no está desplegado, se puede
+  levantar `npm run build && npm start` en local y apuntar
+  `LOCAL_MANIFEST_URL` a esa instancia (`generate-project.cjs` ya separa las
+  URLs usadas solo para generar de las que quedan guardadas en
+  `twa-manifest.json`, que siempre son las de producción).
 
 ```bash
-npm install -g @bubblewrap/cli   # o npx @bubblewrap/cli, sin instalar global
 cd deploy/android
-bubblewrap build                 # lee twa-manifest.json; la 1ª vez pide
-                                  # generar android.keystore (guarda bien la contraseña)
+npm install --no-save @bubblewrap/cli   # si no está ya
+
+# si necesitas generar contra un servidor local en vez del de producción:
+#   LOCAL_MANIFEST_URL=http://127.0.0.1:PUERTO/manifest.webmanifest node generate-project.cjs
+node generate-project.cjs
+
+BUBBLEWRAP_KEYSTORE_PASSWORD=$(cat ~/.local/lifehub-tools/lifehub-keystore-password.txt) \
+BUBBLEWRAP_KEY_PASSWORD=$(cat ~/.local/lifehub-tools/lifehub-keystore-password.txt) \
+  ../../node_modules/.bin/bubblewrap build
 ```
 
-Esto produce `app-release-signed.apk` (para instalar directo en un móvil) y
-`app-release-bundle.aab` (para subirla a Google Play, si algún día quieres).
+Antes de una actualización de verdad, sube `appVersionCode` en
+`twa-manifest.json` (y usa el mismo `android.keystore` de siempre).
 
-### Huella del certificado (para que la app abra a pantalla completa)
+## Instalar en el móvil
 
-Sin esto, Android abre la TWA con la barra de Chrome Custom Tabs en vez de a
-pantalla completa — funciona igual, pero se ve peor.
+Pásate `app-release-signed.apk` (USB, Drive, lo que sea) e instálalo —
+tendrás que permitir "orígenes desconocidos" la primera vez. Para
+actualizarla más adelante, basta con instalar el nuevo `.apk` encima: al
+estar firmado con el mismo keystore, Android lo actualiza sin pedir
+desinstalar nada.
 
-```bash
-keytool -list -v -keystore android.keystore -alias lifehub
-```
+## Pantalla completa (Digital Asset Links)
 
-Copia la línea `SHA256:`. Con ese valor, edita
-`src/server/lib/assetLinks.ts` (descomenta el bloque, pon tu `packageId` —
-`com.alejandrorodm.lifehub`, ya en `twa-manifest.json` — y esa huella),
-redespliega LifeHub, y comprueba:
-
-```bash
-curl https://lifehub.alejandrorodm.com/.well-known/assetlinks.json
-```
-
-### Instalar en el móvil
-
-Pásate el `.apk` (USB, Drive, lo que sea) e instálalo — tendrás que permitir
-"orígenes desconocidos" la primera vez. Para una actualización posterior,
-basta con instalar el nuevo `.apk` encima: al estar firmado con el mismo
-keystore, Android lo actualiza sin pedir desinstalar nada.
-
-## Si prefieres que lo monte yo
-
-Dos opciones que sí podría ejecutar:
-
-- **En el VPS**, aceptando el riesgo de que una build de Gradle (bastante
-  más pesada que Node) presione la RAM mientras ViperTrade/LifeHub siguen
-  corriendo — lo haría en una ventana controlada y vigilando memoria.
-- **GitHub Actions**, en este repo: un workflow que instala Bubblewrap, usa
-  un keystore guardado como *secret* del repo, y te deja la APK como
-  artefacto descargable en cada ejecución. No lo he montado todavía — hay
-  que decidirlo porque toca GitHub Actions, que de momento está fuera de
-  alcance del proyecto (ver fase 12, "CI/CD automático").
+Ya configurado: `src/server/lib/assetLinks.ts` tiene la huella real del
+keystore, servida en `/.well-known/assetlinks.json`. Esto solo hace efecto
+una vez que ese código esté desplegado en `lifehub.alejandrorodm.com` (en
+el momento de generar esta APK, el servidor de producción todavía tenía el
+código de antes de la fase 13/14 — hay que desplegar antes de que la TWA
+abra a pantalla completa en vez de con la barra de Chrome Custom Tabs).

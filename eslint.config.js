@@ -5,7 +5,20 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 
 export default tseslint.config(
-  { ignores: ["dist", "node_modules", "src/server/db/migrations", "playwright-report", "test-results"] },
+  {
+    ignores: [
+      "dist",
+      "node_modules",
+      "src/server/db/migrations",
+      "playwright-report",
+      "test-results",
+      // Script de build de la APK (deploy/android/, ver su README): un .cjs
+      // suelto fuera de src/, ejecutado directamente con Node, no con el
+      // resto del bundle — no tiene sentido aplicarle las reglas de estilo
+      // del proyecto (ESM, sin `require`, etc.).
+      "deploy/android/generate-project.cjs",
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
