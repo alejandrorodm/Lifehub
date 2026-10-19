@@ -18,6 +18,8 @@ let getDb: typeof import("../../db/client").getDb;
 let closeDb: typeof import("../../db/client").closeDb;
 let pushSubscriptions: typeof import("../../db/schema").pushSubscriptions;
 
+const TEST_USER_ID = "test-user-1";
+
 beforeAll(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lifehub-push-test-"));
   process.env.LIFEHUB_DATA_DIR = tmpDir;
@@ -32,7 +34,9 @@ beforeAll(async () => {
   const client = await import("../../db/client");
   getDb = client.getDb;
   closeDb = client.closeDb;
-  pushSubscriptions = (await import("../../db/schema")).pushSubscriptions;
+  const { users, pushSubscriptions: pushSubs } = await import("../../db/schema");
+  pushSubscriptions = pushSubs;
+  getDb().insert(users).values({ id: TEST_USER_ID, name: "Test", passwordHash: "x" }).run();
 });
 
 afterAll(() => {
@@ -58,8 +62,8 @@ describe("push service", () => {
   });
 
   it("guardar una suscripción con el mismo endpoint actualiza sus claves en vez de duplicarla", () => {
-    push.saveSubscription({ endpoint: "https://push.example/a", keys: { p256dh: "p1", auth: "a1" } });
-    push.saveSubscription({ endpoint: "https://push.example/a", keys: { p256dh: "p2", auth: "a2" } });
+    push.saveSubscription(TEST_USER_ID, { endpoint: "https://push.example/a", keys: { p256dh: "p1", auth: "a1" } });
+    push.saveSubscription(TEST_USER_ID, { endpoint: "https://push.example/a", keys: { p256dh: "p2", auth: "a2" } });
 
     const rows = getDb().select().from(pushSubscriptions).all();
     expect(rows).toHaveLength(1);
@@ -67,15 +71,15 @@ describe("push service", () => {
   });
 
   it("removeSubscription() borra la suscripción por endpoint", () => {
-    push.saveSubscription({ endpoint: "https://push.example/b", keys: { p256dh: "p", auth: "a" } });
-    push.removeSubscription("https://push.example/b");
+    push.saveSubscription(TEST_USER_ID, { endpoint: "https://push.example/b", keys: { p256dh: "p", auth: "a" } });
+    push.removeSubscription(TEST_USER_ID, "https://push.example/b");
 
     expect(getDb().select().from(pushSubscriptions).all()).toEqual([]);
   });
 
   it("sendDueReminderPushes() envía un push por cada suscripción y marca el recordatorio disparado", async () => {
-    push.saveSubscription({ endpoint: "https://push.example/c", keys: { p256dh: "p", auth: "a" } });
-    const reminder = reminders.createReminder({
+    push.saveSubscription(TEST_USER_ID, { endpoint: "https://push.example/c", keys: { p256dh: "p", auth: "a" } });
+    const reminder = reminders.createReminder(TEST_USER_ID, {
       targetType: "none",
       title: "Recordatorio vencido",
       remindAt: new Date(Date.now() - 1000).toISOString(),
@@ -85,11 +89,11 @@ describe("push service", () => {
     await push.sendDueReminderPushes();
 
     expect(sendNotification).toHaveBeenCalledTimes(1);
-    expect(reminders.listDueReminders().map((r) => r.id)).not.toContain(reminder.id);
+    expect(reminders.listDueReminders(TEST_USER_ID).map((r) => r.id)).not.toContain(reminder.id);
   });
 
   it("sin recordatorios vencidos no envía nada", async () => {
-    push.saveSubscription({ endpoint: "https://push.example/d", keys: { p256dh: "p", auth: "a" } });
+    push.saveSubscription(TEST_USER_ID, { endpoint: "https://push.example/d", keys: { p256dh: "p", auth: "a" } });
 
     await push.sendDueReminderPushes();
 
@@ -97,8 +101,8 @@ describe("push service", () => {
   });
 
   it("una suscripción caducada (410) se borra sola en el siguiente envío", async () => {
-    push.saveSubscription({ endpoint: "https://push.example/e", keys: { p256dh: "p", auth: "a" } });
-    reminders.createReminder({
+    push.saveSubscription(TEST_USER_ID, { endpoint: "https://push.example/e", keys: { p256dh: "p", auth: "a" } });
+    reminders.createReminder(TEST_USER_ID, {
       targetType: "none",
       title: "Otro vencido",
       remindAt: new Date(Date.now() - 1000).toISOString(),
@@ -107,8 +111,8 @@ describe("push service", () => {
 
     await push.sendDueReminderPushes();
 
-    push.saveSubscription({ endpoint: "https://push.example/f", keys: { p256dh: "p", auth: "a" } });
-    reminders.createReminder({
+    push.saveSubscription(TEST_USER_ID, { endpoint: "https://push.example/f", keys: { p256dh: "p", auth: "a" } });
+    reminders.createReminder(TEST_USER_ID, {
       targetType: "none",
       title: "Tercero",
       remindAt: new Date(Date.now() - 1000).toISOString(),

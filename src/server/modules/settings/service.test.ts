@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -8,7 +8,12 @@ import path from "node:path";
 // (config, db/client, el propio service). Por eso los imports son dinámicos.
 let tmpDir: string;
 let service: typeof import("./service");
+let getDb: typeof import("../../db/client").getDb;
 let closeDb: typeof import("../../db/client").closeDb;
+let enterWithUserId: typeof import("../../lib/requestContext").enterWithUserId;
+
+const TEST_USER_ID = "test-user-1";
+const OTHER_USER_ID = "test-user-2";
 
 beforeAll(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lifehub-settings-test-"));
@@ -18,13 +23,30 @@ beforeAll(async () => {
   runMigrations();
 
   service = await import("./service");
-  closeDb = (await import("../../db/client")).closeDb;
+  const client = await import("../../db/client");
+  getDb = client.getDb;
+  closeDb = client.closeDb;
+  enterWithUserId = (await import("../../lib/requestContext")).enterWithUserId;
+
+  const { users } = await import("../../db/schema");
+  getDb()
+    .insert(users)
+    .values([
+      { id: TEST_USER_ID, name: "Test", passwordHash: "x" },
+      { id: OTHER_USER_ID, name: "Otro", passwordHash: "x" },
+    ])
+    .run();
 });
 
 afterAll(() => {
   closeDb();
   fs.rmSync(tmpDir, { recursive: true, force: true });
   delete process.env.LIFEHUB_DATA_DIR;
+});
+
+beforeEach(() => {
+  enterWithUserId(TEST_USER_ID);
+  getDb().run("delete from settings");
 });
 
 describe("settings service (SQLite real)", () => {
@@ -48,5 +70,18 @@ describe("settings service (SQLite real)", () => {
 
     expect(updated.theme).toBe("dark");
     expect(updated.weekStartsOn).toBe(0); // no se tocó en el segundo patch
+  });
+
+  // Fase 13: `settings` pasó de fila única (clave "app") a clave compuesta
+  // (userId, "app") — cada perfil tiene sus propios ajustes.
+  it("cada perfil tiene sus propios ajustes, sin pisarse entre sí", () => {
+    service.updateSettings({ theme: "dark" });
+
+    enterWithUserId(OTHER_USER_ID);
+    expect(service.getSettings().theme).toBe("system"); // valor por defecto, no "dark"
+    service.updateSettings({ theme: "light" });
+
+    enterWithUserId(TEST_USER_ID);
+    expect(service.getSettings().theme).toBe("dark"); // el otro perfil no me lo cambió
   });
 });

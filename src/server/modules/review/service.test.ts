@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -16,6 +16,9 @@ let closeDb: typeof import("../../db/client").closeDb;
 let schema: typeof import("../../db/schema");
 let todayISODate: typeof import("@shared/domain/dates").todayISODate;
 let addDaysISO: typeof import("@shared/domain/habits").addDaysISO;
+let enterWithUserId: typeof import("../../lib/requestContext").enterWithUserId;
+
+const TEST_USER_ID = "test-user-1";
 
 let today: string;
 let yesterday: string;
@@ -38,6 +41,10 @@ beforeAll(async () => {
   getDb = client.getDb;
   closeDb = client.closeDb;
   schema = await import("../../db/schema");
+  enterWithUserId = (await import("../../lib/requestContext")).enterWithUserId;
+
+  const { users } = schema;
+  getDb().insert(users).values({ id: TEST_USER_ID, name: "Test", passwordHash: "x" }).run();
 
   const dates = await import("@shared/domain/dates");
   const habitsDomain = await import("@shared/domain/habits");
@@ -52,6 +59,10 @@ beforeAll(async () => {
 afterAll(() => {
   closeDb();
   fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+beforeEach(() => {
+  enterWithUserId(TEST_USER_ID);
 });
 
 describe("countCompletedInRange / countCreatedInRange (tasks)", () => {

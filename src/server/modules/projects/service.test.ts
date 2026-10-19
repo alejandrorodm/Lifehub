@@ -10,6 +10,10 @@ let projects: typeof import("./service");
 let tasks: typeof import("../tasks/service");
 let getDb: typeof import("../../db/client").getDb;
 let closeDb: typeof import("../../db/client").closeDb;
+let enterWithUserId: typeof import("../../lib/requestContext").enterWithUserId;
+
+const TEST_USER_ID = "test-user-1";
+const OTHER_USER_ID = "test-user-2";
 
 beforeAll(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lifehub-projects-test-"));
@@ -23,6 +27,16 @@ beforeAll(async () => {
   const client = await import("../../db/client");
   getDb = client.getDb;
   closeDb = client.closeDb;
+  enterWithUserId = (await import("../../lib/requestContext")).enterWithUserId;
+
+  const { users } = await import("../../db/schema");
+  getDb()
+    .insert(users)
+    .values([
+      { id: TEST_USER_ID, name: "Test", passwordHash: "x" },
+      { id: OTHER_USER_ID, name: "Otro", passwordHash: "x" },
+    ])
+    .run();
 });
 
 afterAll(() => {
@@ -32,6 +46,7 @@ afterAll(() => {
 });
 
 beforeEach(() => {
+  enterWithUserId(TEST_USER_ID);
   const db = getDb();
   for (const table of ["milestones", "tasks", "projects"]) {
     db.run(`delete from ${table}`);
@@ -113,5 +128,34 @@ describe("projects service", () => {
 
     expect(projects.listProjects({}).map((p) => p.name)).toContain("Restaurable");
     expect(projects.listTrash().map((p) => p.name)).not.toContain("Restaurable");
+  });
+});
+
+// Fase 13: bug real encontrado y corregido — updateMilestone/deleteMilestone/
+// getMilestoneRow no comprobaban que el proyecto fuera del usuario actual.
+describe("aislamiento entre perfiles", () => {
+  it("un proyecto de otro perfil no aparece en mis listas, y tocarlo lanza NOT_FOUND", () => {
+    enterWithUserId(TEST_USER_ID);
+    const mine = projects.createProject({ name: "Mío", status: "active", priority: "normal" });
+
+    enterWithUserId(OTHER_USER_ID);
+    expect(projects.listProjects({})).toEqual([]);
+    expect(() => projects.getProject(mine.id)).toThrow();
+    expect(() => projects.updateProject(mine.id, { name: "Hackeado" })).toThrow();
+    expect(() => projects.deleteProject(mine.id)).toThrow();
+  });
+
+  it("no se puede añadir/editar/borrar un hito de un proyecto ajeno, aunque se conozca su id", () => {
+    enterWithUserId(TEST_USER_ID);
+    const mine = projects.createProject({ name: "Con hitos", status: "active", priority: "normal" });
+    const milestone = projects.addMilestone(mine.id, { title: "Hito propio" });
+
+    enterWithUserId(OTHER_USER_ID);
+    expect(() => projects.addMilestone(mine.id, { title: "Intruso" })).toThrow();
+    expect(() => projects.updateMilestone(mine.id, milestone.id, { done: true })).toThrow();
+    expect(() => projects.deleteMilestone(mine.id, milestone.id)).toThrow();
+
+    enterWithUserId(TEST_USER_ID);
+    expect(projects.getProject(mine.id).milestones[0]!.completedAt).toBeNull(); // intacto
   });
 });

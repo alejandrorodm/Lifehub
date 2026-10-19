@@ -11,6 +11,8 @@ let getDb: typeof import("../../db/client").getDb;
 let closeDb: typeof import("../../db/client").closeDb;
 let googleCalendarConnection: typeof import("../../db/schema").googleCalendarConnection;
 
+const TEST_USER_ID = "test-user-1";
+
 function jsonResponse(body: unknown, ok = true): Response {
   return {
     ok,
@@ -35,6 +37,9 @@ beforeAll(async () => {
   getDb = client.getDb;
   closeDb = client.closeDb;
   googleCalendarConnection = (await import("../../db/schema")).googleCalendarConnection;
+
+  const { users } = await import("../../db/schema");
+  getDb().insert(users).values({ id: TEST_USER_ID, name: "Test", passwordHash: "x" }).run();
 });
 
 afterAll(() => {
@@ -57,25 +62,25 @@ afterEach(() => {
 
 describe("google calendar service", () => {
   it("getStatus() sin conexión devuelve connected: false", () => {
-    expect(google.getStatus()).toEqual({ connected: false });
+    expect(google.getStatus(TEST_USER_ID)).toEqual({ connected: false });
   });
 
   it("startConnect() construye la URL de autorización con el client_id configurado", () => {
-    const url = google.startConnect();
+    const url = google.startConnect(TEST_USER_ID);
     expect(url).toContain("client_id=test-client-id");
     expect(url).toContain("accounts.google.com");
   });
 
   it("handleCallback con un state que no coincide lanza un error de validación sin tocar la BD", async () => {
-    google.startConnect();
+    google.startConnect(TEST_USER_ID);
 
     await expect(google.handleCallback("code-1", "state-que-no-coincide")).rejects.toThrow();
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(google.getStatus()).toEqual({ connected: false });
+    expect(google.getStatus(TEST_USER_ID)).toEqual({ connected: false });
   });
 
   it("handleCallback con state válido intercambia el código y guarda la conexión", async () => {
-    const authUrl = google.startConnect();
+    const authUrl = google.startConnect(TEST_USER_ID);
     const state = new URL(authUrl).searchParams.get("state")!;
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
@@ -88,11 +93,11 @@ describe("google calendar service", () => {
 
     await google.handleCallback("code-1", state);
 
-    expect(google.getStatus()).toMatchObject({ connected: true, calendarId: "primary" });
+    expect(google.getStatus(TEST_USER_ID)).toMatchObject({ connected: true, calendarId: "primary" });
   });
 
   it("handleCallback vuelve a usar el mismo state solo una vez (se consume al primer intento)", async () => {
-    const authUrl = google.startConnect();
+    const authUrl = google.startConnect(TEST_USER_ID);
     const state = new URL(authUrl).searchParams.get("state")!;
     fetchMock.mockResolvedValue(
       jsonResponse({ access_token: "a", refresh_token: "r", expires_in: 3600, scope: "s" }),
@@ -103,18 +108,18 @@ describe("google calendar service", () => {
   });
 
   it("handleCallback sin refresh_token en la respuesta lanza un error claro", async () => {
-    const authUrl = google.startConnect();
+    const authUrl = google.startConnect(TEST_USER_ID);
     const state = new URL(authUrl).searchParams.get("state")!;
     fetchMock.mockResolvedValueOnce(
       jsonResponse({ access_token: "access-1", expires_in: 3600, scope: "s" }),
     );
 
     await expect(google.handleCallback("code-1", state)).rejects.toThrow(/token de actualización/);
-    expect(google.getStatus()).toEqual({ connected: false });
+    expect(google.getStatus(TEST_USER_ID)).toEqual({ connected: false });
   });
 
   it("getValidAccessToken() reutiliza el token mientras no esté a punto de caducar", async () => {
-    const authUrl = google.startConnect();
+    const authUrl = google.startConnect(TEST_USER_ID);
     const state = new URL(authUrl).searchParams.get("state")!;
     fetchMock.mockResolvedValueOnce(
       jsonResponse({ access_token: "access-1", refresh_token: "refresh-1", expires_in: 3600, scope: "s" }),
@@ -122,14 +127,14 @@ describe("google calendar service", () => {
     await google.handleCallback("code-1", state);
     fetchMock.mockClear();
 
-    const token = await google.getValidAccessToken();
+    const token = await google.getValidAccessToken(TEST_USER_ID);
 
     expect(token).toBe("access-1");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("getValidAccessToken() refresca el token cuando ya está caducado", async () => {
-    const authUrl = google.startConnect();
+    const authUrl = google.startConnect(TEST_USER_ID);
     const state = new URL(authUrl).searchParams.get("state")!;
     fetchMock.mockResolvedValueOnce(
       jsonResponse({ access_token: "access-1", refresh_token: "refresh-1", expires_in: -10, scope: "s" }),
@@ -137,7 +142,7 @@ describe("google calendar service", () => {
     await google.handleCallback("code-1", state);
     fetchMock.mockResolvedValueOnce(jsonResponse({ access_token: "access-2", expires_in: 3600 }));
 
-    const token = await google.getValidAccessToken();
+    const token = await google.getValidAccessToken(TEST_USER_ID);
 
     expect(token).toBe("access-2");
     const row = getDb().select().from(googleCalendarConnection).get();
@@ -145,11 +150,11 @@ describe("google calendar service", () => {
   });
 
   it("getValidAccessToken() sin conexión lanza un error claro", async () => {
-    await expect(google.getValidAccessToken()).rejects.toThrow(/no está conectado/);
+    await expect(google.getValidAccessToken(TEST_USER_ID)).rejects.toThrow(/no está conectado/);
   });
 
   it("disconnect() revoca el token y borra la conexión local", async () => {
-    const authUrl = google.startConnect();
+    const authUrl = google.startConnect(TEST_USER_ID);
     const state = new URL(authUrl).searchParams.get("state")!;
     fetchMock.mockResolvedValueOnce(
       jsonResponse({ access_token: "access-1", refresh_token: "refresh-1", expires_in: 3600, scope: "s" }),
@@ -157,8 +162,8 @@ describe("google calendar service", () => {
     await google.handleCallback("code-1", state);
     fetchMock.mockResolvedValueOnce(jsonResponse({}));
 
-    await google.disconnect();
+    await google.disconnect(TEST_USER_ID);
 
-    expect(google.getStatus()).toEqual({ connected: false });
+    expect(google.getStatus(TEST_USER_ID)).toEqual({ connected: false });
   });
 });

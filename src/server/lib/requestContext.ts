@@ -12,6 +12,16 @@ export function runWithUserId<T>(userId: string, fn: () => T): T {
   return storage.run({ userId }, fn);
 }
 
+/**
+ * Para tests: fija el `userId` para el resto del flujo asíncrono actual sin
+ * envolver una función (a diferencia de `runWithUserId`). Pensado para un
+ * `beforeEach` de Vitest — persiste hacia los `it()` siguientes mientras no
+ * haya un límite asíncrono "desconectado" (p. ej. `setTimeout`) entre medias.
+ */
+export function enterWithUserId(userId: string): void {
+  storage.enterWith({ userId });
+}
+
 /** Lanza si se llama fuera de una request autenticada — sería un error de programación, no un caso de usuario. */
 export function getCurrentUserId(): string {
   const ctx = storage.getStore();

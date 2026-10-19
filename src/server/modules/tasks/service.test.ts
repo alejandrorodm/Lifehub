@@ -11,7 +11,10 @@ let tmpDir: string;
 let tasks: typeof import("./service");
 let getDb: typeof import("../../db/client").getDb;
 let closeDb: typeof import("../../db/client").closeDb;
+let enterWithUserId: typeof import("../../lib/requestContext").enterWithUserId;
 
+const TEST_USER_ID = "test-user-1";
+const OTHER_USER_ID = "test-user-2";
 const today = todayISODate("UTC");
 const yesterday = shiftDate(today, -1);
 const tomorrow = shiftDate(today, 1);
@@ -33,6 +36,16 @@ beforeAll(async () => {
   const client = await import("../../db/client");
   getDb = client.getDb;
   closeDb = client.closeDb;
+  enterWithUserId = (await import("../../lib/requestContext")).enterWithUserId;
+
+  const { users } = await import("../../db/schema");
+  getDb()
+    .insert(users)
+    .values([
+      { id: TEST_USER_ID, name: "Test", passwordHash: "x" },
+      { id: OTHER_USER_ID, name: "Otro", passwordHash: "x" },
+    ])
+    .run();
 });
 
 afterAll(() => {
@@ -41,8 +54,10 @@ afterAll(() => {
   delete process.env.LIFEHUB_DATA_DIR;
 });
 
-// Cada test parte de una base de datos vacía (solo borra las tablas que tocamos).
+// Cada test parte de una base de datos vacía (solo borra las tablas que tocamos)
+// y con el userId de sesión fijado (los servicios ahora exigen una request con sesión).
 beforeEach(() => {
+  enterWithUserId(TEST_USER_ID);
   const db = getDb();
   for (const table of ["task_tags", "checklist_items", "tasks", "tags", "inbox_items"]) {
     db.run(`delete from ${table}`);
@@ -171,5 +186,59 @@ describe("inbox service — captura y conversión", () => {
     expect(task.title).toBe("Idea suelta");
     expect(inboxItem.status).toBe("processed");
     expect(inbox.countOpenInboxItems()).toBe(0);
+  });
+});
+
+// Fase 13: cada perfil debe ver y poder tocar solo sus propios datos. Estos
+// tests fijan justo el tipo de bug (IDOR) que se encontró y corrigió al
+// implementar la separación — no son solo "funciona para un usuario".
+describe("aislamiento entre perfiles", () => {
+  it("la tarea de un perfil no aparece en las listas del otro", () => {
+    enterWithUserId(TEST_USER_ID);
+    tasks.createTask({ title: "Solo de Test", priority: "normal" });
+
+    enterWithUserId(OTHER_USER_ID);
+    expect(tasks.listTasks({ view: "all" })).toEqual([]);
+    expect(tasks.listTags()).toEqual([]);
+  });
+
+  it("getTask/updateTask/deleteTask/restoreTask de la tarea de otro perfil lanzan NOT_FOUND, no filtran ni la modifican", () => {
+    enterWithUserId(TEST_USER_ID);
+    const mine = tasks.createTask({ title: "Privada", priority: "normal" });
+
+    enterWithUserId(OTHER_USER_ID);
+    expect(() => tasks.getTask(mine.id)).toThrow();
+    expect(() => tasks.updateTask(mine.id, { title: "Hackeada" })).toThrow();
+    expect(() => tasks.deleteTask(mine.id)).toThrow();
+    expect(() => tasks.restoreTask(mine.id)).toThrow();
+
+    enterWithUserId(TEST_USER_ID);
+    expect(tasks.getTask(mine.id).title).toBe("Privada"); // intacta
+  });
+
+  it("no se puede añadir/editar/borrar un elemento de checklist de una tarea ajena", () => {
+    enterWithUserId(TEST_USER_ID);
+    const mine = tasks.createTask({ title: "Con checklist", priority: "normal" });
+    const item = tasks.addChecklistItem(mine.id, "Paso propio");
+
+    enterWithUserId(OTHER_USER_ID);
+    expect(() => tasks.addChecklistItem(mine.id, "Intruso")).toThrow();
+    expect(() => tasks.updateChecklistItem(mine.id, item.id, { done: true })).toThrow();
+    expect(() => tasks.deleteChecklistItem(mine.id, item.id)).toThrow();
+  });
+
+  it("las etiquetas son por perfil: mismo nombre, dos filas distintas, sin cruzarse", () => {
+    enterWithUserId(TEST_USER_ID);
+    tasks.createTask({ title: "T", priority: "normal", tagNames: ["trabajo"] });
+    expect(tasks.listTags().map((t) => t.name)).toEqual(["trabajo"]);
+
+    enterWithUserId(OTHER_USER_ID);
+    expect(tasks.listTags()).toEqual([]);
+    // Crear una tarea con el mismo nombre de etiqueta no debe fallar ni reutilizar la del otro perfil.
+    tasks.createTask({ title: "T2", priority: "normal", tagNames: ["trabajo"] });
+    expect(tasks.listTags().map((t) => t.name)).toEqual(["trabajo"]);
+
+    enterWithUserId(TEST_USER_ID);
+    expect(tasks.listTags()).toHaveLength(1); // la mía sigue siendo solo la mía
   });
 });

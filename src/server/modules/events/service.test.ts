@@ -7,6 +7,9 @@ let tmpDir: string;
 let events: typeof import("./service");
 let getDb: typeof import("../../db/client").getDb;
 let closeDb: typeof import("../../db/client").closeDb;
+let enterWithUserId: typeof import("../../lib/requestContext").enterWithUserId;
+
+const TEST_USER_ID = "test-user-1";
 
 beforeAll(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lifehub-events-test-"));
@@ -19,6 +22,10 @@ beforeAll(async () => {
   const client = await import("../../db/client");
   getDb = client.getDb;
   closeDb = client.closeDb;
+  enterWithUserId = (await import("../../lib/requestContext")).enterWithUserId;
+
+  const { users } = await import("../../db/schema");
+  getDb().insert(users).values({ id: TEST_USER_ID, name: "Test", passwordHash: "x" }).run();
 });
 
 afterAll(() => {
@@ -28,6 +35,7 @@ afterAll(() => {
 });
 
 beforeEach(() => {
+  enterWithUserId(TEST_USER_ID);
   const db = getDb();
   for (const table of ["event_exceptions", "events"]) {
     db.run(`delete from ${table}`);

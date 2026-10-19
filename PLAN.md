@@ -588,18 +588,19 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - CI/CD automático (despliegue manual vía `git pull` + `systemctl restart`, igual que ViperTrade).
 - HTTPS/Caddy como parte de este repo: se documenta el bloque de configuración pero la instalación de Caddy es responsabilidad del VPS, no de LifeHub.
 
-## Fase 13 — Perfiles con login (en curso, iniciada el 2026-10-19)
+## Fase 13 — Perfiles con login (completada el 2026-10-19)
 
 **Nota sobre el alcance:** fase no planificada originalmente; pedida por el usuario al preguntar por la URL del despliegue de la fase 12. Antes de diseñar se confirmó con el usuario (pregunta enfocada, única decisión de producto real abierta) el alcance: "acceso compartido" (un login delante de los mismos datos) vs. "datos totalmente separados" (cada perfil con su propia información). El usuario eligió la segunda — es un cambio arquitectónico grande, detallado completo en `odd/tasks/fase-13-perfiles-multiusuario.md`.
 
 **Diseño:** ver el documento de la fase para el detalle completo (tabla `users`, `scrypt` + cookie firmada con `sessionVersion` para invalidar de verdad al cerrar sesión, `AsyncLocalStorage` para propagar el `userId` sin tocar la firma de cada función de cada `service.ts`, `userId` directo en cada tabla de contenido en vez de depender de JOINs de autorización).
 
-**Estado:** T1-T16 completados y desplegados en producción (`https://lifehub.alejandrorodm.com`). Pendiente: T17, adaptar la suite de tests unitaria anterior a esta fase (llama a `service.ts` fuera de una request).
+**Estado:** T1-T17 completados. Fase cerrada por completo: desplegada en producción (`https://lifehub.alejandrorodm.com`) y con la suite de tests (antigua adaptada + nuevos tests de aislamiento entre perfiles) en verde.
 
 **Implementado y probado hasta ahora:**
 
 - T1-T5: `npx tsc --noEmit`, `npx eslint .`, `npx vitest run` (194/194), `npx playwright test` (46/46, 74 omitidos por diseño) — todos en verde; verificación real contra producción (login de Ioana y Alex, cookie de sesión, 401 sin sesión). Dominio `lifehub.alejandrorodm.com` (Namecheap) + nginx + certbot en el VPS compartido con ViperTrade.
-- T6-T15: `npx tsc --noEmit` y `npx eslint .` limpios en todo el código de producción; migración `0005_new_wild_child.sql` probada de extremo a extremo (BD nueva y BD con datos reales existentes). Pendiente de correr contra el VPS y de adaptar la suite de tests unitaria previa a esta fase (llama a `service.ts` fuera de una request; ahora esas funciones exigen `userId` de sesión).
+- T6-T15: `npx tsc --noEmit` y `npx eslint .` limpios en todo el código de producción; migración `0005_new_wild_child.sql` probada de extremo a extremo (BD nueva y BD con datos reales existentes).
+- T17: suite de tests adaptada (`enterWithUserId` en `lib/requestContext.ts`, fijado en el `beforeEach` de cada archivo — no hizo falta envolver cada `it()`) + tests nuevos de aislamiento entre perfiles en tasks/projects/settings/search. `npx vitest run` 203/203, `npx playwright test` 46/46.
 - Hallazgos reales durante los tests/revisión propios (no al diseñar): cookie de sesión seguía siendo válida tras "cerrar sesión" (corregido con `sessionVersion`); varias funciones de `restore`/`update` no comprobaban el dueño antes de actuar (IDOR); el índice de búsqueda global (FTS5) no tenía `userId` (habría mezclado resultados de ambos perfiles); las notificaciones push de un recordatorio se enviaban a los dispositivos de **ambos** perfiles; "Borrar todo"/restaurar un import afectaban a la base de datos entera, no solo al perfil que los pedía. Detalle completo de cada uno en el log de la tarea.
 
 **Desplegado y verificado en producción el 2026-10-19:** el VPS no tenía datos reales (todas las tablas de contenido vacías), así que la migración no tuvo nada que retropoblar. Prueba real contra `lifehub.alejandrorodm.com` (no solo en el código): login de Ioana y Alex, Ioana crea una tarea, la ve en su lista, Alex no la ve en la suya.

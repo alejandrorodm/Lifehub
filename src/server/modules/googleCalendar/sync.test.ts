@@ -18,10 +18,13 @@ let getDb: typeof import("../../db/client").getDb;
 let closeDb: typeof import("../../db/client").closeDb;
 let events: typeof import("../../db/schema").events;
 let googleEventLinks: typeof import("../../db/schema").googleEventLinks;
+let enterWithUserId: typeof import("../../lib/requestContext").enterWithUserId;
+
+const TEST_USER_ID = "test-user-1";
 
 /** Conecta la cuenta de Google (igual que el flujo real de OAuth) sin pasar por rutas HTTP. */
 async function connect(): Promise<void> {
-  const authUrl = google.startConnect();
+  const authUrl = google.startConnect(TEST_USER_ID);
   const state = new URL(authUrl).searchParams.get("state")!;
   fetchMock.mockResolvedValueOnce(
     jsonResponse({ access_token: "access-1", refresh_token: "refresh-1", expires_in: 3600, scope: "s" }),
@@ -50,6 +53,9 @@ beforeAll(async () => {
   const schema = await import("../../db/schema");
   events = schema.events;
   googleEventLinks = schema.googleEventLinks;
+  enterWithUserId = (await import("../../lib/requestContext")).enterWithUserId;
+
+  getDb().insert(schema.users).values({ id: TEST_USER_ID, name: "Test", passwordHash: "x" }).run();
 });
 
 afterAll(() => {
@@ -63,6 +69,7 @@ afterAll(() => {
 });
 
 beforeEach(async () => {
+  enterWithUserId(TEST_USER_ID);
   getDb().run("delete from google_event_links");
   getDb().run("delete from events");
   getDb().run("delete from google_calendar_connection");
@@ -84,7 +91,7 @@ describe("google calendar sync — push (local → Google)", () => {
     });
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "g-1", updated: new Date().toISOString() }));
 
-    const { pushed } = await sync.pushLocalChanges();
+    const { pushed } = await sync.pushLocalChanges(TEST_USER_ID);
 
     expect(pushed).toBe(1);
     const [request] = fetchMock.mock.calls[0]!;
@@ -102,10 +109,10 @@ describe("google calendar sync — push (local → Google)", () => {
       endAt: new Date(Date.now() + 3_600_000).toISOString(),
     });
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "g-2", updated: new Date().toISOString() }));
-    await sync.pushLocalChanges();
+    await sync.pushLocalChanges(TEST_USER_ID);
     fetchMock.mockReset();
 
-    const { pushed } = await sync.pushLocalChanges();
+    const { pushed } = await sync.pushLocalChanges(TEST_USER_ID);
 
     expect(pushed).toBe(0);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -120,7 +127,7 @@ describe("google calendar sync — push (local → Google)", () => {
       endAt: new Date(Date.now() + 3_600_000).toISOString(),
     });
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "g-3", updated: new Date().toISOString() }));
-    await sync.pushLocalChanges();
+    await sync.pushLocalChanges(TEST_USER_ID);
     fetchMock.mockReset();
 
     getDb()
@@ -130,7 +137,7 @@ describe("google calendar sync — push (local → Google)", () => {
       .run();
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "g-3", updated: new Date().toISOString() }));
 
-    const { pushed } = await sync.pushLocalChanges();
+    const { pushed } = await sync.pushLocalChanges(TEST_USER_ID);
 
     expect(pushed).toBe(1);
     const [, init] = fetchMock.mock.calls[0]!;
@@ -146,13 +153,13 @@ describe("google calendar sync — push (local → Google)", () => {
       endAt: new Date(Date.now() + 3_600_000).toISOString(),
     });
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "g-4", updated: new Date().toISOString() }));
-    await sync.pushLocalChanges();
+    await sync.pushLocalChanges(TEST_USER_ID);
     fetchMock.mockReset();
 
     eventsService.deleteEvent(event.eventId, "all");
     fetchMock.mockResolvedValueOnce(jsonResponse({}));
 
-    const { pushed } = await sync.pushLocalChanges();
+    const { pushed } = await sync.pushLocalChanges(TEST_USER_ID);
 
     expect(pushed).toBe(1);
     expect(getDb().select().from(googleEventLinks).all()).toEqual([]);
@@ -176,7 +183,7 @@ describe("google calendar sync — pull (Google → local)", () => {
       }),
     );
 
-    const { pulled } = await sync.pullFromGoogle();
+    const { pulled } = await sync.pullFromGoogle(TEST_USER_ID);
 
     expect(pulled).toBe(1);
     const row = getDb().select().from(events).all();
@@ -197,12 +204,12 @@ describe("google calendar sync — pull (Google → local)", () => {
         ],
       }),
     );
-    await sync.pullFromGoogle();
+    await sync.pullFromGoogle(TEST_USER_ID);
     fetchMock.mockResolvedValueOnce(
       jsonResponse({ items: [{ id: "g-11", status: "cancelled" }] }),
     );
 
-    const { pulled } = await sync.pullFromGoogle();
+    const { pulled } = await sync.pullFromGoogle(TEST_USER_ID);
 
     expect(pulled).toBe(1);
     const row = getDb().select().from(events).all();
@@ -226,7 +233,7 @@ describe("google calendar sync — pull (Google → local)", () => {
       }),
     );
 
-    const { pulled } = await sync.pullFromGoogle();
+    const { pulled } = await sync.pullFromGoogle(TEST_USER_ID);
 
     expect(pulled).toBe(0);
     expect(getDb().select().from(events).all()).toEqual([]);
@@ -246,7 +253,7 @@ describe("google calendar sync — pull (Google → local)", () => {
         ],
       }),
     );
-    await sync.pullFromGoogle();
+    await sync.pullFromGoogle(TEST_USER_ID);
     const [localRow] = getDb().select().from(events).all();
     getDb()
       .update(events)
@@ -268,7 +275,7 @@ describe("google calendar sync — pull (Google → local)", () => {
       }),
     );
 
-    const { pulled } = await sync.pullFromGoogle();
+    const { pulled } = await sync.pullFromGoogle(TEST_USER_ID);
 
     expect(pulled).toBe(0);
     const row = getDb().select().from(events).where(eq(events.id, localRow!.id)).get();
@@ -277,13 +284,13 @@ describe("google calendar sync — pull (Google → local)", () => {
 
   it("un syncToken caducado (410) reinicia la sincronización completa sin fallar", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ items: [], nextSyncToken: "token-caduco" }));
-    await sync.pullFromGoogle();
+    await sync.pullFromGoogle(TEST_USER_ID);
     fetchMock.mockClear();
 
     fetchMock.mockResolvedValueOnce(jsonResponse({ error: "sync token expired" }, false, 410));
     fetchMock.mockResolvedValueOnce(jsonResponse({ items: [], nextSyncToken: "token-nuevo" }));
 
-    await expect(sync.pullFromGoogle()).resolves.toEqual({ pulled: 0 });
+    await expect(sync.pullFromGoogle(TEST_USER_ID)).resolves.toEqual({ pulled: 0 });
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
@@ -292,7 +299,7 @@ describe("google calendar sync — syncNow()", () => {
   it("hace primero el pull y después el push", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ items: [] }));
 
-    const result = await sync.syncNow();
+    const result = await sync.syncNow(TEST_USER_ID);
 
     expect(result).toEqual({ pulled: 0, pushed: 0 });
   });

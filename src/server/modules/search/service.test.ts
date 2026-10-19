@@ -10,6 +10,10 @@ let notes: typeof import("../notes/service");
 let projects: typeof import("../projects/service");
 let getDb: typeof import("../../db/client").getDb;
 let closeDb: typeof import("../../db/client").closeDb;
+let enterWithUserId: typeof import("../../lib/requestContext").enterWithUserId;
+
+const TEST_USER_ID = "test-user-1";
+const OTHER_USER_ID = "test-user-2";
 
 beforeAll(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lifehub-search-test-"));
@@ -25,6 +29,16 @@ beforeAll(async () => {
   const client = await import("../../db/client");
   getDb = client.getDb;
   closeDb = client.closeDb;
+  enterWithUserId = (await import("../../lib/requestContext")).enterWithUserId;
+
+  const { users } = await import("../../db/schema");
+  getDb()
+    .insert(users)
+    .values([
+      { id: TEST_USER_ID, name: "Test", passwordHash: "x" },
+      { id: OTHER_USER_ID, name: "Otro", passwordHash: "x" },
+    ])
+    .run();
 });
 
 afterAll(() => {
@@ -34,6 +48,7 @@ afterAll(() => {
 });
 
 beforeEach(() => {
+  enterWithUserId(TEST_USER_ID);
   const db = getDb();
   for (const table of ["notes", "tasks", "projects"]) {
     db.run(`delete from ${table}`);
@@ -77,5 +92,20 @@ describe("search service (FTS5 real)", () => {
 
   it("sin coincidencias devuelve una lista vacía", () => {
     expect(search.search({ q: "xyznoexiste" })).toEqual([]);
+  });
+
+  // Fase 13: bug real — el índice FTS5 no tenía userId, así que la búsqueda
+  // global mezclaba resultados de los dos perfiles.
+  it("la búsqueda de un perfil nunca devuelve contenido del otro", () => {
+    tasks.createTask({ title: "Tarea secreta de Test", priority: "normal" });
+
+    enterWithUserId(OTHER_USER_ID);
+    expect(search.search({ q: "secreta" })).toEqual([]);
+
+    tasks.createTask({ title: "Tarea secreta del otro perfil", priority: "normal" });
+    expect(search.search({ q: "secreta" })).toHaveLength(1);
+
+    enterWithUserId(TEST_USER_ID);
+    expect(search.search({ q: "secreta" })).toHaveLength(1); // solo la mía, no las dos
   });
 });
