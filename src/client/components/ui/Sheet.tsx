@@ -11,7 +11,11 @@ interface SheetProps {
   footer?: ReactNode;
 }
 
-/** Panel lateral deslizante: para el detalle de una tarea u otro contenido extenso. */
+/**
+ * Panel de contenido extenso (detalle de una tarea, menú "Más"...): hoja
+ * anclada abajo en móvil (igual que el breakpoint `md` que separa el
+ * bottom-nav del sidebar en `AppShell`) y panel lateral deslizante desde `md`.
+ */
 export function Sheet({ open, onOpenChange, title, children, footer }: SheetProps) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -19,8 +23,10 @@ export function Sheet({ open, onOpenChange, title, children, footer }: SheetProp
         <DialogPrimitive.Overlay className="fixed inset-0 z-[var(--z-overlay)] bg-black/40" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed inset-y-0 right-0 z-[var(--z-dialog)] flex w-[min(480px,100vw)] flex-col",
-            "border-l border-border bg-bg-elevated shadow-lg focus:outline-none",
+            "fixed inset-x-0 bottom-0 top-auto z-[var(--z-dialog)] flex max-h-[85vh] w-full flex-col",
+            "rounded-t-xl border-t border-border bg-bg-elevated shadow-lg focus:outline-none",
+            "md:inset-y-0 md:right-0 md:left-auto md:top-0 md:bottom-0 md:w-[min(480px,100vw)] md:max-h-none",
+            "md:rounded-none md:border-l md:border-t-0",
           )}
         >
           <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">

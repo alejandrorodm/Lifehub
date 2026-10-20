@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { SettingsSchema, SettingsPatchSchema, DEFAULT_SETTINGS, DASHBOARD_WIDGETS } from "./settings";
+import {
+  SettingsSchema,
+  SettingsPatchSchema,
+  DEFAULT_SETTINGS,
+  DASHBOARD_WIDGETS,
+  NAV_SECTIONS,
+} from "./settings";
 
 describe("SettingsSchema", () => {
   it("rellena los valores por defecto cuando no se indican", () => {
@@ -8,6 +14,7 @@ describe("SettingsSchema", () => {
     expect(parsed.theme).toBe("system");
     expect(parsed.weekStartsOn).toBe(1);
     expect(parsed.dashboardWidgets).toEqual([...DASHBOARD_WIDGETS]);
+    expect(parsed.visibleNavSections).toEqual([...NAV_SECTIONS]);
   });
 
   it("rechaza un tema no soportado", () => {
@@ -16,6 +23,15 @@ describe("SettingsSchema", () => {
 
   it("rechaza un inicio de semana que no sea 0 o 1", () => {
     expect(() => SettingsSchema.parse({ weekStartsOn: 3 })).toThrow();
+  });
+
+  it("rechaza una sección de navegación desconocida", () => {
+    expect(() => SettingsSchema.parse({ visibleNavSections: ["no-existe"] })).toThrow();
+  });
+
+  it("acepta un subconjunto ordenado de secciones visibles", () => {
+    const parsed = SettingsSchema.parse({ visibleNavSections: ["finance", "notes"] });
+    expect(parsed.visibleNavSections).toEqual(["finance", "notes"]);
   });
 });
 

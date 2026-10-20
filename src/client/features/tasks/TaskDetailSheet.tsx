@@ -101,7 +101,7 @@ function TaskDetailForm({ task, onClose }: { task: TaskDto; onClose: () => void 
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <Label htmlFor="task-priority">Prioridad</Label>
             <Select
@@ -127,7 +127,7 @@ function TaskDetailForm({ task, onClose }: { task: TaskDto; onClose: () => void 
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <Label htmlFor="task-due-date">Fecha límite</Label>
             <Input

@@ -13,10 +13,11 @@ import { usePushStatus, useEnablePush, useDisablePush } from "./usePush";
 import { useGoogleStatus, useDisconnectGoogle, useSyncGoogleNow } from "./useGoogleCalendar";
 import { useGithubStatus } from "./useGithub";
 import { api } from "@client/lib/api";
-import { DASHBOARD_WIDGETS } from "@shared/schemas/settings";
-import type { Theme, DashboardWidgetId } from "@shared/schemas/settings";
+import { DASHBOARD_WIDGETS, NAV_SECTIONS } from "@shared/schemas/settings";
+import type { Theme, DashboardWidgetId, NavSectionId } from "@shared/schemas/settings";
 import type { ImportPreview } from "@shared/schemas/data";
 import { DASHBOARD_WIDGET_LABELS } from "@client/features/dashboard/dashboardWidgets";
+import { navItemsBySectionId } from "@client/app/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import {
@@ -165,6 +166,76 @@ function DashboardWidgetsSection({
   );
 }
 
+function NavSectionsSection({
+  sections,
+  onChange,
+}: {
+  sections: NavSectionId[];
+  onChange: (next: NavSectionId[]) => void;
+}) {
+  const hidden = NAV_SECTIONS.filter((id) => !sections.includes(id));
+  const order = [...sections, ...hidden];
+
+  const toggle = (id: NavSectionId) => {
+    onChange(sections.includes(id) ? sections.filter((s) => s !== id) : [...sections, id]);
+  };
+
+  const move = (id: NavSectionId, direction: -1 | 1) => {
+    const index = sections.indexOf(id);
+    const target = index + direction;
+    if (index === -1 || target < 0 || target >= sections.length) return;
+    const next = sections.filter((s) => s !== id);
+    next.splice(target, 0, id);
+    onChange(next);
+  };
+
+  return (
+    <ul className="divide-y divide-border rounded-md border border-border">
+      {order.map((id) => {
+        const item = navItemsBySectionId[id];
+        const Icon = item.icon;
+        const isVisible = sections.includes(id);
+        const index = sections.indexOf(id);
+        return (
+          <li key={id} className="flex items-center justify-between gap-2 px-4 py-2.5">
+            <label className="flex flex-1 items-center gap-2.5 text-sm">
+              <Checkbox
+                checked={isVisible}
+                onCheckedChange={() => toggle(id)}
+                aria-label={`Mostrar "${item.label}" en la navegación`}
+              />
+              <Icon className="size-4 shrink-0 text-text-muted" aria-hidden />
+              <span className={isVisible ? "text-text" : "text-text-muted"}>{item.label}</span>
+            </label>
+            {isVisible && (
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => move(id, -1)}
+                  disabled={index === 0}
+                  aria-label={`Subir "${item.label}"`}
+                >
+                  <ChevronUp className="size-4" aria-hidden />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => move(id, 1)}
+                  disabled={index === sections.length - 1}
+                  aria-label={`Bajar "${item.label}"`}
+                >
+                  <ChevronDown className="size-4" aria-hidden />
+                </Button>
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function ImportSection() {
   const [preview, setPreview] = useState<{ raw: unknown; info: ImportPreview } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -224,7 +295,7 @@ function ImportSection() {
             Esto va a <strong>reemplazar todos los datos actuales</strong> por los del archivo (se crea
             una copia de seguridad automática antes de restaurar):
           </p>
-          <ul className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-text-muted">
+          <ul className="mb-3 grid grid-cols-1 gap-x-4 gap-y-1 text-text-muted sm:grid-cols-2">
             {Object.entries(preview.info.counts).map(([key, count]) => (
               <li key={key}>
                 {key}: <span className="font-medium text-text">{count}</span>
@@ -534,6 +605,22 @@ export function SettingsPage() {
             <DashboardWidgetsSection
               widgets={settings.dashboardWidgets}
               onChange={(dashboardWidgets) => updateSettings.mutate({ dashboardWidgets })}
+            />
+          )}
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold text-text-muted">Navegación</h2>
+          <p className="text-sm text-text-muted">
+            Elige qué secciones aparecen en el menú (barra inferior en móvil, barra lateral en
+            escritorio) y en qué orden. Las que ocultes siguen accesibles desde el buscador (⌘K).
+          </p>
+          {isPending || !settings ? (
+            <Skeleton className="h-48" />
+          ) : (
+            <NavSectionsSection
+              sections={settings.visibleNavSections}
+              onChange={(visibleNavSections) => updateSettings.mutate({ visibleNavSections })}
             />
           )}
         </section>

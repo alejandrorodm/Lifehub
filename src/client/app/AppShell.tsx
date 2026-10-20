@@ -1,11 +1,15 @@
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { Search, Plus, LogOut } from "lucide-react";
-import { primaryNavItems, secondaryNavItems, type NavItem } from "./navigation";
+import { Search, Plus, LogOut, MoreHorizontal } from "lucide-react";
+import { fixedNavItems, secondaryNavItems, visibleMoreNavItems, type NavItem } from "./navigation";
 import { cn } from "@client/lib/utils";
 import { useInboxCount } from "@client/features/inbox/useInbox";
 import { ShortcutsProvider, useShortcuts } from "./shortcuts/ShortcutsContext";
 import { useSessionUser, useLogout } from "@client/features/auth/useAuth";
 import { LoginPage } from "@client/features/auth/LoginPage";
+import { useSettings } from "@client/features/settings/useSettings";
+import { Sheet } from "@client/components/ui/Sheet";
+import { NAV_SECTIONS } from "@shared/schemas/settings";
 
 function NavBadge({ item }: { item: NavItem }) {
   const { data } = useInboxCount();
@@ -48,7 +52,7 @@ function BottomNavLink({ item }: { item: NavItem }) {
       end={item.to === "/"}
       className={({ isActive }) =>
         cn(
-          "relative flex min-w-16 flex-col items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium",
+          "relative flex flex-1 flex-col items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium",
           isActive ? "text-accent" : "text-text-muted",
         )
       }
@@ -56,6 +60,42 @@ function BottomNavLink({ item }: { item: NavItem }) {
       <Icon className="size-5" aria-hidden />
       <span>{item.label}</span>
     </NavLink>
+  );
+}
+
+function MoreMenuSheet({
+  open,
+  onOpenChange,
+  items,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  items: NavItem[];
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange} title="Más">
+      <nav aria-label="Más secciones" className="flex flex-col gap-0.5">
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={() => onOpenChange(false)}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                  isActive ? "bg-accent-soft text-accent" : "text-text hover:bg-bg-subtle",
+                )
+              }
+            >
+              <Icon className="size-4.5 shrink-0" aria-hidden />
+              <span>{item.label}</span>
+            </NavLink>
+          );
+        })}
+      </nav>
+    </Sheet>
   );
 }
 
@@ -108,6 +148,10 @@ function ShellHeaderActions() {
 }
 
 function AppShellContent() {
+  const { data: settings } = useSettings();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const visibleMore = visibleMoreNavItems(settings?.visibleNavSections ?? [...NAV_SECTIONS]);
+
   return (
     <div className="flex min-h-screen bg-bg text-text">
       <a
@@ -128,7 +172,10 @@ function AppShellContent() {
         </div>
         <ShellHeaderActions />
         <div className="flex flex-1 flex-col gap-0.5">
-          {primaryNavItems.map((item) => (
+          {fixedNavItems.map((item) => (
+            <SidebarLink key={item.to} item={item} />
+          ))}
+          {visibleMore.map((item) => (
             <SidebarLink key={item.to} item={item} />
           ))}
         </div>
@@ -145,15 +192,24 @@ function AppShellContent() {
         </main>
       </div>
 
-      {/* Navegación inferior — móvil */}
+      {/* Navegación inferior — móvil: 4 secciones fijas + "Más" */}
       <nav
         aria-label="Navegación principal"
-        className="fixed inset-x-0 bottom-0 z-[var(--z-sidebar)] flex gap-1 overflow-x-auto border-t border-border bg-bg-elevated px-2 py-1.5 md:hidden"
+        className="fixed inset-x-0 bottom-0 z-[var(--z-sidebar)] flex border-t border-border bg-bg-elevated px-1 py-1.5 md:hidden"
       >
-        {[...primaryNavItems, ...secondaryNavItems].map((item) => (
+        {fixedNavItems.map((item) => (
           <BottomNavLink key={item.to} item={item} />
         ))}
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          className="relative flex flex-1 flex-col items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-text-muted"
+        >
+          <MoreHorizontal className="size-5" aria-hidden />
+          <span>Más</span>
+        </button>
       </nav>
+      <MoreMenuSheet open={moreOpen} onOpenChange={setMoreOpen} items={[...visibleMore, ...secondaryNavItems]} />
     </div>
   );
 }

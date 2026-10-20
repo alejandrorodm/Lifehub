@@ -197,7 +197,7 @@ function EventForm({
         <Input id="event-title" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <Label htmlFor="event-kind">Tipo</Label>
           <Select aria-label="Tipo" value={kind} onValueChange={setKind} options={KIND_OPTIONS} />
@@ -209,7 +209,7 @@ function EventForm({
       </div>
 
       {allDay ? (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <Label htmlFor="event-start-date">Fecha de inicio</Label>
             <Input id="event-start-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -225,7 +225,7 @@ function EventForm({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
             <Label htmlFor="event-date">Fecha</Label>
             <Input id="event-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -310,7 +310,7 @@ function EventForm({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <Label htmlFor="event-project">Proyecto</Label>
           <Select
