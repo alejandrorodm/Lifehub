@@ -631,7 +631,7 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - La pantalla completa (sin barra de Chrome Custom Tabs) solo funcionará una vez que el código de las fases 13/14 esté desplegado en `lifehub.alejandrorodm.com` — en el momento de generar esta APK el servidor de producción todavía tenía el código anterior (`/.well-known/assetlinks.json` ahí no tiene la huella real todavía).
 - Backup del keystore y su contraseña fuera de esta máquina: responsabilidad del usuario (documentado en `deploy/android/README.md`, no es algo que yo pueda hacer por él).
 
-## Fase 15 — Navegación móvil minimalista y ajuste de vistas a móvil (en curso, iniciada el 2026-10-20)
+## Fase 15 — Navegación móvil minimalista y ajuste de vistas a móvil (completada el 2026-10-20)
 
 **Nota sobre el alcance:** fase no planificada originalmente; pedida por el usuario tras usar la app en móvil ("tiene que ser más minimalista... y adaptarlas a interfaz móvil lo máximo posible"). Antes de diseñar se confirmó con el usuario (pregunta enfocada) qué secciones quedan fijas en la barra inferior; el usuario eligió Hoy/Inbox/Tareas/Calendario y pidió además poder ocultar secciones que no usa, y un rediseño general de las vistas que no se ajustan bien a móvil. Detalle completo en `odd/tasks/fase-15-nav-movil.md`.
 
@@ -642,4 +642,6 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - `Sheet` (panel de detalle/menú) ahora se ancla abajo en móvil en vez de deslizar desde la derecha; formularios en modal (`EventFormDialog`, `TaskDetailSheet`, resumen de importación en Ajustes) pasan a una columna en pantallas estrechas.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run` (205/205) en verde; `playwright test` de `shell.spec.ts`, `calendar.spec.ts`, `tasks.spec.ts` y `a11y.spec.ts` en verde (Desktop; Tablet/Mobile omitidos por diseño en los specs funcionales).
 
-**Pendiente (T5):** las vistas de semana/mes del calendario usan una grid de 7 columnas sin variante móvil — queda bloqueado hasta que el usuario decida el enfoque (vista de un día con navegación vs. grid comprimida).
+**T5 (calendario):** el usuario eligió "vista de un día" (navegación con flechas anterior/siguiente) frente a mantener semana/mes comprimida. La app ya tenía ese modo de vista; ahora se fuerza como vista por defecto y única en móvil (incluso con un enlace que pida semana/mes) y se oculta el selector Mes/Semana/Día, redundante en ese ancho. Nuevo hook `useIsMobile` (mismo breakpoint `md`=768px que el resto del shell).
+
+**Verificación final:** `npx tsc --noEmit`, `npx eslint .`, `npx vitest run` (205/205) y `npm run test:e2e` completo (52/52 en Desktop; Tablet/Mobile omitidos por diseño salvo en los specs de layout, que corren en los 3 viewports) en verde contra una base de datos de pruebas limpia.
