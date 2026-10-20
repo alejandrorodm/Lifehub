@@ -22,11 +22,13 @@ Branch: `feat/fase-15-nav-movil`. Runner: `npm run typecheck && npm run lint && 
 
 ## Tasks
 
-- T1 (S1, S2) — Reestructurar `navigation.ts` (id de sección estable) + `AppShell.tsx`: bottom-nav fijo de 4 + botón "Más" con sheet. Inline. Riesgo: ninguno (navegación interna, sin contrato externo).
-- T2 (S3) — Esquema `visibleNavSections` en `src/shared/schemas/settings.ts` (patrón idéntico a `dashboardWidgets`) + sección nueva en `SettingsPage.tsx` + filtrado en sidebar/bottom-nav/Más. Inline. Riesgo: ninguno (JSON ya existente, sin migración).
-- T3 (S4) — `Sheet.tsx`: bottom-sheet por debajo de `md`, panel lateral desde `md` (mismo breakpoint que el split sidebar/bottom-nav en `AppShell.tsx`). Reusado automáticamente por `TaskDetailSheet` y por el nuevo menú "Más". Inline. Riesgo: ninguno (solo CSS/breakpoints).
-- T4 (S4) — Grids de formulario fijos → 1 columna en móvil, columnas desde `sm:` (`EventFormDialog.tsx`, `TaskDetailSheet.tsx`, `SettingsPage.tsx`). Inline. Riesgo: ninguno.
+- T1 (S1, S2) — Reestructurar `navigation.ts` (id de sección estable) + `AppShell.tsx`: bottom-nav fijo de 4 + botón "Más" con sheet. Inline. Riesgo: ninguno (navegación interna, sin contrato externo). **Hecho**, commit `3ccb9b9`.
+- T2 (S3) — Esquema `visibleNavSections` en `src/shared/schemas/settings.ts` (patrón idéntico a `dashboardWidgets`) + sección nueva en `SettingsPage.tsx` + filtrado en sidebar/bottom-nav/Más. Inline. Riesgo: ninguno (JSON ya existente, sin migración). **Hecho**, commit `3ccb9b9`.
+- T3 (S4) — `Sheet.tsx`: bottom-sheet por debajo de `md`, panel lateral desde `md` (mismo breakpoint que el split sidebar/bottom-nav en `AppShell.tsx`). Reusado automáticamente por `TaskDetailSheet` y por el nuevo menú "Más". Inline. Riesgo: ninguno (solo CSS/breakpoints). **Hecho**, commit `3ccb9b9`.
+- T4 (S4) — Grids de formulario fijos → 1 columna en móvil, columnas desde `sm:` (`EventFormDialog.tsx`, `TaskDetailSheet.tsx`, `SettingsPage.tsx`). Inline. Riesgo: ninguno. **Hecho**, commit `3ccb9b9`.
 - T5 (S4, calendario) — Pendiente de una decisión de producto real (ver Log L3): vista de un día con navegación en móvil vs. mantener grid semanal/mensual comprimida. Bloqueado hasta respuesta del usuario.
+
+**Verificación T1-T4:** `npx tsc --noEmit`, `npx eslint .`, `npx vitest run` (205/205) en verde. `npx playwright test tests/e2e/shell.spec.ts` (13/13, 2 omitidos por diseño) y `tests/e2e/calendar.spec.ts tests/e2e/tasks.spec.ts tests/e2e/a11y.spec.ts` (25/25 en Desktop, el resto omitido por diseño) en verde. `shell.spec.ts` ajustado: el test de navegación por teclado ahora abre "Más" antes de pulsar una sección no fija; test nuevo que fija el comportamiento (4 fijas visibles, el resto oculto hasta abrir "Más").
 
 ## Log
 
