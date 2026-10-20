@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@client/components/ui/Button";
 import { useRegisterNewHandler } from "@client/app/shortcuts/ShortcutsContext";
 import { useSettings } from "@client/features/settings/useSettings";
+import { useIsMobile } from "@client/lib/useIsMobile";
 import { useScheduledTasks, useUpdateTask } from "@client/features/tasks/useTasks";
 import {
   getMonthGrid,
@@ -30,8 +31,15 @@ const VIEWS: { value: ViewMode; label: string }[] = [
 
 export function CalendarPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const isMobile = useIsMobile();
+  // En móvil la grid de semana/mes no cabe bien (fase 15): se fuerza "día",
+  // incluso si la URL trae otra vista (p. ej. un enlace guardado).
   const view = (
-    ["month", "week", "day"].includes(searchParams.get("view") ?? "") ? searchParams.get("view") : "week"
+    isMobile
+      ? "day"
+      : ["month", "week", "day"].includes(searchParams.get("view") ?? "")
+        ? searchParams.get("view")
+        : "week"
   ) as ViewMode;
   const dateParam = searchParams.get("date");
   // Memoizado por `dateParam`: sin esto, `anchor` sería un `Date` nuevo en
@@ -120,7 +128,7 @@ export function CalendarPage() {
         </div>
         <span className="text-sm font-medium capitalize text-text-muted">{label}</span>
 
-        <div role="tablist" aria-label="Vista del calendario" className="ml-auto flex gap-1">
+        <div role="tablist" aria-label="Vista del calendario" className="ml-auto hidden gap-1 md:flex">
           {VIEWS.map((v) => (
             <button
               key={v.value}

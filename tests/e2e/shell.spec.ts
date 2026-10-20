@@ -74,6 +74,17 @@ test("en móvil solo quedan 4 secciones fijas y el resto vive en \"Más\"", asyn
   await expect(page.getByRole("link", { name: "Notas", exact: true })).not.toBeVisible();
 });
 
+// Fase 15: la grid de semana/mes del calendario no cabe bien en móvil, así
+// que se fuerza la vista de día (incluso viniendo de un enlace a "semana").
+test("en móvil el calendario fuerza la vista de día", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/calendar?view=week&date=2026-01-15");
+
+  await expect(page.getByRole("tablist", { name: "Vista del calendario" })).not.toBeVisible();
+  await page.getByRole("button", { name: "Siguiente" }).click();
+  await expect(page).toHaveURL(/date=2026-01-16/);
+});
+
 // Fase 8: un recorrido real (navegar con el atajo "G T", crear, abrir, leer y
 // cerrar) hecho enteramente con teclado, sin ningún `.click()`. El `.focus()`
 // sobre la fila de la tarea sustituye a contar cuántos `Tab` hacen falta para
