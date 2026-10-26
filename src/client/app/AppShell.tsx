@@ -9,6 +9,7 @@ import { useSessionUser, useLogout } from "@client/features/auth/useAuth";
 import { LoginPage } from "@client/features/auth/LoginPage";
 import { useSettings } from "@client/features/settings/useSettings";
 import { Sheet } from "@client/components/ui/Sheet";
+import { GoogleAutoSync } from "@client/features/settings/GoogleAutoSync";
 import { NAV_SECTIONS } from "@shared/schemas/settings";
 
 function NavBadge({ item }: { item: NavItem }) {
@@ -222,6 +223,7 @@ export function AppShell() {
 
   return (
     <ShortcutsProvider>
+      <GoogleAutoSync />
       <AppShellContent />
     </ShortcutsProvider>
   );

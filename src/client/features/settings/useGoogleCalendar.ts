@@ -33,6 +33,7 @@ export function useSyncGoogleNow() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: googleStatusQueryKey });
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 }
