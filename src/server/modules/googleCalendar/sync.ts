@@ -1,7 +1,9 @@
 import { and, eq, isNull, isNotNull } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { events, googleEventLinks } from "../../db/schema";
+import { AppError } from "../../lib/errors";
 import * as connection from "./service";
+import { describeGoogleFailure } from "./googleErrors";
 
 const CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 
@@ -41,7 +43,9 @@ async function googleFetch<T>(userId: string, path: string, init?: RequestInit):
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(`Google Calendar API respondió ${response.status}: ${JSON.stringify(body)}`);
+    // El detalle técnico queda en el registro del servidor; al usuario se le explica la causa.
+    console.error(`Google Calendar API respondió ${response.status}: ${JSON.stringify(body)}`);
+    throw new AppError("EXTERNAL_SERVICE_ERROR", describeGoogleFailure(response.status, body));
   }
   return body as T;
 }

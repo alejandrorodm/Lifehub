@@ -304,3 +304,28 @@ describe("google calendar sync — syncNow()", () => {
     expect(result).toEqual({ pulled: 0, pushed: 0 });
   });
 });
+
+describe("google calendar sync — errores de Google", () => {
+  it("una API deshabilitada en el proyecto se muestra como causa clara, no como error inesperado", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: {
+            code: 403,
+            message: "Google Calendar API has not been used in project 500925819073 before or it is disabled.",
+            errors: [{ reason: "accessNotConfigured", domain: "usageLimits" }],
+            status: "PERMISSION_DENIED",
+          },
+        },
+        false,
+        403,
+      ),
+    );
+
+    await expect(sync.syncNow(TEST_USER_ID)).rejects.toMatchObject({
+      code: "EXTERNAL_SERVICE_ERROR",
+      status: 502,
+      message: expect.stringMatching(/no está habilitada en el proyecto/),
+    });
+  });
+});
