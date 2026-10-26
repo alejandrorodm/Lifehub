@@ -3,6 +3,7 @@ import { getDb } from "../../db/client";
 import { events, googleEventLinks } from "../../db/schema";
 import * as connection from "./service";
 import { googleFetch, type GoogleEvent, type GoogleEventListPage } from "./client";
+import { applyRemoteTask, getTaskLinksByGoogleId, pushTaskChanges } from "./taskSync";
 
 type EventRow = typeof events.$inferSelect;
 type EventLinkRow = typeof googleEventLinks.$inferSelect;
@@ -205,6 +206,7 @@ export async function pullFromGoogle(userId: string): Promise<{ pulled: number }
 
   const links = getLinksForUser(userId);
   const linkByGoogleId = new Map(links.map((link) => [link.googleEventId, link]));
+  const taskLinkByGoogleId = getTaskLinksByGoogleId(userId);
 
   do {
     const query = new URLSearchParams({ singleEvents: "false" });
@@ -228,7 +230,11 @@ export async function pullFromGoogle(userId: string): Promise<{ pulled: number }
     }
 
     for (const googleEvent of page.items) {
-      if (applyGoogleEvent(userId, googleEvent, linkByGoogleId)) pulled++;
+      const taskLink = taskLinkByGoogleId.get(googleEvent.id);
+      const applied = taskLink
+        ? applyRemoteTask(userId, googleEvent, taskLink)
+        : applyGoogleEvent(userId, googleEvent, linkByGoogleId);
+      if (applied) pulled++;
     }
 
     pageToken = page.nextPageToken;
@@ -244,6 +250,7 @@ export async function syncNow(userId: string): Promise<{ pulled: number; pushed:
   // "el cambio más reciente gana" ya descarta el lado más antiguo aquí, y
   // el push que sigue solo sube lo que de verdad es más nuevo en local.
   const { pulled } = await pullFromGoogle(userId);
-  const { pushed } = await pushLocalChanges(userId);
-  return { pulled, pushed };
+  const { pushed: eventsPushed } = await pushLocalChanges(userId);
+  const { pushed: tasksPushed } = await pushTaskChanges(userId);
+  return { pulled, pushed: eventsPushed + tasksPushed };
 }

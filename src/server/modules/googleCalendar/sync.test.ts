@@ -304,3 +304,137 @@ describe("google calendar sync — syncNow()", () => {
     expect(result).toEqual({ pulled: 0, pushed: 0 });
   });
 });
+
+describe("google calendar sync — tareas con fecha (bidireccional)", () => {
+  let tasksService: typeof import("../tasks/service");
+  let googleTaskLinks: typeof import("../../db/schema").googleTaskLinks;
+  let tasksTable: typeof import("../../db/schema").tasks;
+
+  beforeAll(async () => {
+    tasksService = await import("../tasks/service");
+    const schema = await import("../../db/schema");
+    googleTaskLinks = schema.googleTaskLinks;
+    tasksTable = schema.tasks;
+  });
+
+  beforeEach(() => {
+    getDb().run("delete from google_task_links");
+    getDb().run("delete from tasks");
+  });
+
+  /** Lista de Google vacía (pull) seguida de la respuesta que se pase para el push. */
+  function queuePullThen(...responses: Response[]) {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [] }));
+    for (const response of responses) fetchMock.mockResolvedValueOnce(response);
+  }
+
+  function linkFor(taskId: string) {
+    return getDb().select().from(googleTaskLinks).where(eq(googleTaskLinks.taskId, taskId)).get();
+  }
+
+  it("una tarea con fecha y hora se crea como evento en Google con su franja de 30 min", async () => {
+    const task = tasksService.createTask({ title: "Llamar al proveedor", priority: "normal", dueDate: "2026-10-26", dueTime: "17:00" });
+    queuePullThen(jsonResponse({ id: "g-task-1", updated: "2026-10-26T10:00:00Z" }));
+
+    await sync.syncNow(TEST_USER_ID);
+
+    const [, init] = fetchMock.mock.calls[1]!;
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toMatchObject({
+      summary: "Llamar al proveedor",
+      start: { dateTime: "2026-10-26T17:00:00", timeZone: expect.any(String) },
+      end: { dateTime: "2026-10-26T17:30:00" },
+    });
+    expect(linkFor(task.id)).toMatchObject({ googleEventId: "g-task-1" });
+  });
+
+  it("una tarea completada se borra de Google y pierde su enlace", async () => {
+    const task = tasksService.createTask({ title: "Entregar informe", priority: "normal", dueDate: "2026-10-26" });
+    queuePullThen(jsonResponse({ id: "g-task-2", updated: "2026-10-26T10:00:00Z" }));
+    await sync.syncNow(TEST_USER_ID);
+
+    tasksService.updateTask(task.id, { status: "done" });
+    fetchMock.mockReset();
+    queuePullThen(jsonResponse({}));
+    await sync.syncNow(TEST_USER_ID);
+
+    const deleteCall = fetchMock.mock.calls.find(([, init]) => init?.method === "DELETE");
+    expect(deleteCall?.[0]).toContain("/events/g-task-2");
+    expect(linkFor(task.id)).toBeUndefined();
+  });
+
+  it("una tarea sin fecha no genera ninguna llamada de escritura a Google", async () => {
+    tasksService.createTask({ title: "Idea sin fecha", priority: "normal" });
+    queuePullThen();
+
+    await sync.syncNow(TEST_USER_ID);
+
+    expect(fetchMock.mock.calls.filter(([, init]) => init && init.method && init.method !== "GET")).toHaveLength(0);
+  });
+
+  it("un cambio remoto en el evento enlazado actualiza la tarea", async () => {
+    const task = tasksService.createTask({ title: "Llamar al proveedor", priority: "normal", dueDate: "2026-10-26", dueTime: "17:00" });
+    queuePullThen(jsonResponse({ id: "g-task-3", updated: "2026-10-26T10:00:00Z" }));
+    await sync.syncNow(TEST_USER_ID);
+
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          {
+            id: "g-task-3",
+            status: "confirmed",
+            summary: "Llamar al proveedor (urgente)",
+            start: { date: "2026-10-27" },
+            end: { date: "2026-10-28" },
+            updated: "2026-10-26T12:00:00Z",
+          },
+        ],
+      }),
+    );
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [] }));
+    await sync.syncNow(TEST_USER_ID);
+
+    const updated = getDb().select().from(tasksTable).where(eq(tasksTable.id, task.id)).get();
+    expect(updated).toMatchObject({ title: "Llamar al proveedor (urgente)", dueDate: "2026-10-27", dueTime: null });
+  });
+
+  it("borrar el evento enlazado en Google borra la tarea en LifeHub", async () => {
+    const task = tasksService.createTask({ title: "Tarea que se borra en Google", priority: "normal", dueDate: "2026-10-26" });
+    queuePullThen(jsonResponse({ id: "g-task-4", updated: "2026-10-26T10:00:00Z" }));
+    await sync.syncNow(TEST_USER_ID);
+
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ items: [{ id: "g-task-4", status: "cancelled", updated: "2026-10-26T12:00:00Z" }] }),
+    );
+    await sync.syncNow(TEST_USER_ID);
+
+    const row = getDb().select().from(tasksTable).where(eq(tasksTable.id, task.id)).get();
+    expect(row?.deletedAt).not.toBeNull();
+    expect(linkFor(task.id)).toBeUndefined();
+  });
+
+  it("si la tarea cambió localmente después del último estado remoto, el cambio remoto no la sobrescribe", async () => {
+    const task = tasksService.createTask({ title: "Versión original", priority: "normal", dueDate: "2026-10-26" });
+    queuePullThen(jsonResponse({ id: "g-task-5", updated: "2026-10-26T10:00:00Z" }));
+    await sync.syncNow(TEST_USER_ID);
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    tasksService.updateTask(task.id, { title: "Versión local más reciente" });
+
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [{ id: "g-task-5", status: "confirmed", summary: "Versión remota", start: { date: "2026-10-26" }, end: { date: "2026-10-27" }, updated: "2026-10-26T12:00:00Z" }],
+      }),
+    );
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "g-task-5", updated: "2026-10-26T13:00:00Z" }));
+    await sync.syncNow(TEST_USER_ID);
+
+    const row = getDb().select().from(tasksTable).where(eq(tasksTable.id, task.id)).get();
+    expect(row?.title).toBe("Versión local más reciente");
+    const patchCall = fetchMock.mock.calls.find(([, init]) => init?.method === "PATCH");
+    expect(JSON.parse(patchCall![1].body).summary).toBe("Versión local más reciente");
+  });
+});
