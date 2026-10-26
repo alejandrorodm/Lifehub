@@ -21,6 +21,8 @@ export const tasks = sqliteTable("tasks", {
     .default("normal"),
   dueDate: text("due_date"), // YYYY-MM-DD
   dueTime: text("due_time"), // HH:mm
+  scheduledStart: text("scheduled_start"), // HH:mm, hueco planificado en la línea de tiempo
+  estimatedMinutes: integer("estimated_minutes"), // duración planificada en minutos
   projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
   milestoneId: text("milestone_id").references(() => milestones.id, { onDelete: "set null" }),
   parentTaskId: text("parent_task_id").references((): AnySQLiteColumn => tasks.id, { onDelete: "cascade" }),

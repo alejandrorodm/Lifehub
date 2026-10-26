@@ -38,6 +38,8 @@ function toTaskDto(
     priority: row.priority,
     dueDate: row.dueDate,
     dueTime: row.dueTime,
+    scheduledStart: row.scheduledStart,
+    estimatedMinutes: row.estimatedMinutes,
     projectId: row.projectId,
     parentTaskId: row.parentTaskId,
     recurrencePreset: row.recurrenceRule ? rruleToPreset(row.recurrenceRule) : null,
@@ -361,6 +363,8 @@ export function updateTask(id: string, patch: TaskPatchInput): TaskDto {
   if (patch.description !== undefined) changes.description = patch.description;
   if (patch.dueDate !== undefined) changes.dueDate = patch.dueDate;
   if (patch.dueTime !== undefined) changes.dueTime = patch.dueTime;
+  if (patch.scheduledStart !== undefined) changes.scheduledStart = patch.scheduledStart;
+  if (patch.estimatedMinutes !== undefined) changes.estimatedMinutes = patch.estimatedMinutes;
   if (patch.priority !== undefined) changes.priority = patch.priority;
   if (patch.projectId !== undefined) changes.projectId = patch.projectId;
   if (patch.recurrencePreset !== undefined) {

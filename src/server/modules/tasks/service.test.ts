@@ -242,3 +242,27 @@ describe("aislamiento entre perfiles", () => {
     expect(tasks.listTags()).toHaveLength(1); // la mía sigue siendo solo la mía
   });
 });
+
+describe("planificación: hora programada y duración estimada", () => {
+  it("guarda scheduledStart y estimatedMinutes y los devuelve en la tarea", () => {
+    const created = tasks.createTask({ title: "Bloque de foco", priority: "normal" });
+    const updated = tasks.updateTask(created.id, { scheduledStart: "09:30", estimatedMinutes: 45 });
+
+    expect(updated).toMatchObject({ scheduledStart: "09:30", estimatedMinutes: 45 });
+    expect(tasks.getTask(created.id)).toMatchObject({ scheduledStart: "09:30", estimatedMinutes: 45 });
+  });
+
+  it("null limpia la planificación sin tocar el resto de campos", () => {
+    const created = tasks.createTask({ title: "Planificada", priority: "high", dueDate: today });
+    tasks.updateTask(created.id, { scheduledStart: "10:00", estimatedMinutes: 30 });
+
+    const cleared = tasks.updateTask(created.id, { scheduledStart: null, estimatedMinutes: null });
+
+    expect(cleared).toMatchObject({ scheduledStart: null, estimatedMinutes: null, dueDate: today, priority: "high" });
+  });
+
+  it("una tarea nueva no tiene planificación", () => {
+    const created = tasks.createTask({ title: "Sin planificar", priority: "normal" });
+    expect(created).toMatchObject({ scheduledStart: null, estimatedMinutes: null });
+  });
+});

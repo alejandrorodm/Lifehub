@@ -43,6 +43,13 @@
       "when": 1792433353722,
       "tag": "0005_new_wild_child",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1793035704574,
+      "tag": "0006_milky_omega_sentinel",
+      "breakpoints": true
     }
   ]
 }

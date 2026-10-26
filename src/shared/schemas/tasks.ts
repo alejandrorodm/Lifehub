@@ -36,6 +36,8 @@ export const TaskPatchSchema = z
     priority: TaskPrioritySchema,
     dueDate: ISO_DATE.nullable(),
     dueTime: ISO_TIME.nullable(),
+    scheduledStart: ISO_TIME.nullable(),
+    estimatedMinutes: z.number().int().min(5).max(720).nullable(),
     projectId: z.string().nullable(),
     recurrencePreset: TaskRecurrencePresetSchema.nullable(),
     tagNames: z.array(z.string().trim().min(1).max(40)).max(20),
@@ -84,6 +86,8 @@ export interface TaskDto {
   priority: TaskPriority;
   dueDate: string | null;
   dueTime: string | null;
+  scheduledStart: string | null;
+  estimatedMinutes: number | null;
   projectId: string | null;
   parentTaskId: string | null;
   recurrencePreset: z.infer<typeof TaskRecurrencePresetSchema> | null;
