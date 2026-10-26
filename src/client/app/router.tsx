@@ -19,8 +19,11 @@ import { TrashPage } from "@client/features/trash/TrashPage";
 import { FinancePage } from "@client/features/finance/FinancePage";
 import { ReviewPage } from "@client/features/review/ReviewPage";
 import { MarketsPage } from "@client/features/markets/MarketsPage";
+import { PrivacyPage } from "@client/features/legal/PrivacyPage";
 
 export const router = createBrowserRouter([
+  // Pública: sin sesión y fuera de AppShell (Google la exige para la app de OAuth).
+  { path: "/privacidad", element: <PrivacyPage /> },
   {
     path: "/",
     element: <AppShell />,
