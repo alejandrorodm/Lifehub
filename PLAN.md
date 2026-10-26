@@ -701,6 +701,7 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 
 - Revisión visual en modo claro: no se han hecho capturas.
 - Hoy, Calendario y el resto de pantallas solo reciben la fuente de titulares y el enlace al plan; no tienen un rediseño de composición.
-- Arrastrar y soltar para programar no está implementado: la planificación es por diálogo.
 - El temporizador de foco no sobrevive a una recarga, por diseño (sin tablas nuevas).
-- No hay push ni PR: esa decisión es del usuario.
+- Arrastrar y soltar: implementado después de la primera entrega. Tareas de las listas y bloques existentes se sueltan en la línea de tiempo (cuartos de hora, acotado a 07:00–22:00). Dependencia nueva `@dnd-kit/core`: el HTML5 DnD nativo no funciona en táctil y el seguimiento manual de puntero y táctil sería más código y riesgo.
+- APK: no se ha regenerado. La TWA carga el sitio en vivo (fase 14), así que estos cambios llegan con el despliegue al VPS; el despliegue de la fase 16 aún no se ha hecho.
+- Sin PR abierta todavía: la rama está publicada en origin.
