@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { Select } from "@client/components/ui/Select";
 import { Skeleton } from "@client/components/ui/Skeleton";
@@ -533,28 +533,50 @@ function GoogleCalendarSection() {
  */
 function GithubSection() {
   const { data: status, isLoading } = useGithubStatus();
+  const queryClient = useQueryClient();
+  const { show } = useToast();
 
   if (isLoading || !status) return <Skeleton className="h-16" />;
 
+  const syncAll = () => {
+    queryClient.invalidateQueries({ predicate: (query) => query.queryKey.includes("github-activity") });
+    show({ tone: "success", title: "Actualizando la actividad de GitHub de tus proyectos" });
+  };
+
   return (
-    <div className="flex items-center justify-between rounded-md border border-border bg-bg-elevated px-4 py-3">
-      <div>
-        <p className="text-sm font-medium">GitHub</p>
-        <p className="text-sm text-text-muted">
-          Resumen de actividad por proyecto. Enlaza un repo desde la pestaña &quot;GitHub&quot; de cada
-          proyecto.
-        </p>
+    <div className="space-y-2 rounded-md border border-border bg-bg-elevated px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium">GitHub</p>
+          <p className="text-sm text-text-muted">
+            Actividad de los repositorios enlazados a tus proyectos (último commit y commits de los últimos 30
+            días).
+          </p>
+        </div>
+        <span
+          className={
+            status.configured
+              ? "inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent"
+              : "inline-flex items-center gap-1.5 rounded-full bg-bg-subtle px-2.5 py-1 text-xs font-medium text-text-muted"
+          }
+        >
+          <GitFork className="size-3.5" aria-hidden />
+          {status.configured ? "Configurado" : "No configurado"}
+        </span>
       </div>
-      <span
-        className={
-          status.configured
-            ? "inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent"
-            : "inline-flex items-center gap-1.5 rounded-full bg-bg-subtle px-2.5 py-1 text-xs font-medium text-text-muted"
-        }
-      >
-        <GitFork className="size-3.5" aria-hidden />
-        {status.configured ? "Configurado" : "No configurado"}
-      </span>
+      {status.configured ? (
+        <div className="flex justify-end">
+          <Button variant="secondary" size="sm" onClick={syncAll}>
+            <RefreshCw className="size-4" aria-hidden />
+            Sincronizar proyectos
+          </Button>
+        </div>
+      ) : (
+        <p className="text-xs text-text-muted">
+          Para activarlo, añade GITHUB_TOKEN (un token de GitHub de solo lectura) al .env del servidor y
+          reinicia LifeHub. Enlaza un repo desde la pestaña &quot;GitHub&quot; de cada proyecto.
+        </p>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   Trash2,
   GitFork,
   GitCommitHorizontal,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@client/components/ui/Button";
 import { Input, Label, Textarea } from "@client/components/ui/Input";
@@ -51,7 +52,10 @@ type Tab = "tasks" | "notes" | "calendar" | "github";
 /** Fase 10: resumen general de actividad de GitHub por proyecto, solo lectura. */
 function ProjectGithubTab({ project }: { project: ProjectDto }) {
   const updateProject = useUpdateProject();
-  const { data, isLoading } = useProjectGithubActivity(project.id, project.githubRepo);
+  const { data, isLoading, refetch, isFetching, dataUpdatedAt } = useProjectGithubActivity(
+    project.id,
+    project.githubRepo,
+  );
 
   return (
     <div className="space-y-4 px-6 py-4">
@@ -83,7 +87,12 @@ function ProjectGithubTab({ project }: { project: ProjectDto }) {
           className="py-10"
         />
       ) : data.error ? (
-        <EmptyState icon={GitFork} title="No se pudo obtener la actividad" description={data.error} className="py-10" />
+        <EmptyState
+          icon={GitFork}
+          title="No se pudo obtener la actividad"
+          description={data.error}
+          className="py-10"
+        />
       ) : data.activity ? (
         <div className="space-y-2 rounded-md border border-border bg-bg-elevated p-4">
           <a
@@ -99,7 +108,8 @@ function ProjectGithubTab({ project }: { project: ProjectDto }) {
             <GitCommitHorizontal className="size-3.5 shrink-0" aria-hidden />
             {data.activity.lastCommitAt ? (
               <>
-                Último commit {formatDistanceToNow(new Date(data.activity.lastCommitAt), { addSuffix: true, locale: es })}
+                Último commit{" "}
+                {formatDistanceToNow(new Date(data.activity.lastCommitAt), { addSuffix: true, locale: es })}
                 {data.activity.lastCommitMessage && ` · "${data.activity.lastCommitMessage}"`}
                 {data.activity.lastCommitAuthor && ` · ${data.activity.lastCommitAuthor}`}
               </>
@@ -113,6 +123,19 @@ function ProjectGithubTab({ project }: { project: ProjectDto }) {
           </p>
         </div>
       ) : null}
+      {project.githubRepo && data?.configured && (
+        <div className="flex items-center justify-between gap-2 text-xs text-text-subtle">
+          <span>
+            {dataUpdatedAt
+              ? `Actualizado ${formatDistanceToNow(new Date(dataUpdatedAt), { addSuffix: true, locale: es })}`
+              : "Sin actualizar todavía"}
+          </span>
+          <Button variant="secondary" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={isFetching ? "size-4 animate-spin" : "size-4"} aria-hidden />
+            Sincronizar
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
