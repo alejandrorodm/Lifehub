@@ -764,3 +764,32 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - No se ha probado con Gemini CLI real: el formato `httpUrl` de `settings.json` viene de guías de terceros. Hay que confirmarlo con la versión instalada.
 - La app web de Gemini: no se ha comprobado que admita servidores MCP personalizados (la única fuente es de terceros).
 - Escritura desde Gemini (crear tareas o eventos como propuestas que confirmas tú): fuera de esta versión.
+
+## Fase 9c — Google Tasks: tareas con fecha en ambos sentidos (rama `feat/google-tasks`, 2026-10-26)
+
+**Nota sobre el alcance:** pedida por el usuario ("sincroniza google tasks también"). Se eligió que las tareas con fecha vivan **a la vez** en Google Calendar (con su hora, fase 9b) y en Google Tasks (solo la fecha).
+
+**Implementado:**
+
+- Permiso `https://www.googleapis.com/auth/tasks` en la petición de consentimiento. Las conexiones anteriores no lo tienen: Ajustes muestra "vuelve a conectar para activar Google Tasks".
+- Tabla `google_tasks_links` (migración `0009`, aditiva) con las mismas marcas de tiempo que los demás enlaces.
+- `googleTasksSync.ts`: subida (crear, actualizar, marcar como completada, borrar) y bajada (crear tareas nuevas de Google, completar, borrar). Política "el cambio más reciente gana".
+- `syncNow` ejecuta Google Tasks solo si el token tiene el permiso.
+- Cliente HTTP generalizado (`googleApiFetch`), usado por Calendar y Tasks.
+
+**Decisiones:**
+
+- Google Tasks guarda solo la **fecha**: la hora de una tarea (hueco o hora límite) se queda en Calendar y no viaja a Tasks.
+- Completar una tarea la marca como `completed` en Google, no la borra.
+- Solo tareas con fecha, abiertas o completadas, no recurrentes y sin subtareas. Las tareas sin fecha no se suben.
+- Lista usada: la predeterminada (`@default`).
+
+**Probado (comandos ejecutados):**
+
+- 45 tests del módulo de Google (incluye 5 nuevos de Tasks y 1 de `syncNow`), con `fetch` simulado. Suite completa: 297/297. Tipos y lint sin errores.
+
+**Pendiente / requiere al usuario:**
+
+- Habilitar la **Google Tasks API** en el mismo proyecto de Google Cloud (si no, la sincronización falla con un aviso que lo indica).
+- Volver a conectar Google Calendar en Ajustes para aceptar el permiso de Tasks.
+- No probado contra Google real; no desplegado.
