@@ -25,6 +25,7 @@ import { financeRoutes } from "./modules/finance/routes";
 import { githubRoutes } from "./modules/github/routes";
 import { reviewRoutes } from "./modules/review/routes";
 import { marketsRoutes } from "./modules/markets/routes";
+import { mcpRoutes } from "./modules/mcp/routes";
 import { config } from "./config";
 
 export function createApp(): Hono {
@@ -73,6 +74,9 @@ export function createApp(): Hono {
     .route("/markets", marketsRoutes);
 
   app.route("/api", api);
+
+  // Servidor MCP para clientes de IA externos (token propio, no cookie de sesión).
+  app.route("/mcp", mcpRoutes);
 
   // Digital Asset Links: verifica ante Android que la APK (TWA, ver
   // deploy/android/) y este dominio son del mismo dueño, para que la app
