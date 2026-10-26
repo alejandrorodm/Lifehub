@@ -307,6 +307,22 @@ export function getPlanDay(date: string): PlanDayDto {
     .limit(20)
     .all();
 
+  const backlogRows = db
+    .select()
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.userId, userId),
+        isNull(tasks.deletedAt),
+        isNull(tasks.parentTaskId),
+        isNull(tasks.dueDate),
+        openStatus,
+      ),
+    )
+    .orderBy(asc(tasks.position), asc(tasks.createdAt))
+    .limit(30)
+    .all();
+
   const scheduledRows = dayRows.filter((row) => row.scheduledStart !== null);
   const unscheduledRows = dayRows.filter((row) => row.scheduledStart === null && row.status !== "done");
 
@@ -315,6 +331,7 @@ export function getPlanDay(date: string): PlanDayDto {
     scheduled: hydrate(scheduledRows),
     unscheduled: hydrate(unscheduledRows),
     overdue: hydrate(overdueRows),
+    backlog: hydrate(backlogRows),
   };
 }
 

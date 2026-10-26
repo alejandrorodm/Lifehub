@@ -303,3 +303,12 @@ describe("plan del día", () => {
     expect(tasks.carryOverOpenTasks(shiftDate(today, 40), shiftDate(today, 41))).toEqual({ moved: 0 });
   });
 });
+
+describe("plan del día: backlog sin fecha", () => {
+  it("incluye las tareas abiertas sin fecha para poder programarlas desde el plan", () => {
+    const undated = tasks.createTask({ title: "Sin fecha para plan", priority: "normal" });
+    const plan = tasks.getPlanDay(tomorrow);
+    expect(plan.backlog.map((t) => t.id)).toContain(undated.id);
+    expect(plan.unscheduled.map((t) => t.id)).not.toContain(undated.id);
+  });
+});

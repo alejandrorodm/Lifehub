@@ -94,6 +94,8 @@ export interface PlanDayDto {
   unscheduled: TaskDto[];
   /** Tareas abiertas con fecha anterior a hoy (zona del usuario). */
   overdue: TaskDto[];
+  /** Tareas abiertas sin fecha: se programan asignándoles el día del plan. */
+  backlog: TaskDto[];
 }
 
 export interface TaskDto {
