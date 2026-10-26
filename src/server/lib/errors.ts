@@ -52,6 +52,8 @@ function defaultStatusFor(code: AppErrorCode): number {
       return 401;
     case "INTERNAL_ERROR":
       return 500;
+    case "EXTERNAL_SERVICE_ERROR":
+      return 502;
   }
 }
 

@@ -4,6 +4,7 @@ import { events, googleEventLinks } from "../../db/schema";
 import * as connection from "./service";
 import { googleFetch, type GoogleEvent, type GoogleEventListPage } from "./client";
 import { applyRemoteTask, getTaskLinksByGoogleId, pushTaskChanges } from "./taskSync";
+import { googleEndToInclusive, inclusiveEndToGoogle } from "@shared/domain/allDayDates";
 
 type EventRow = typeof events.$inferSelect;
 type EventLinkRow = typeof googleEventLinks.$inferSelect;
@@ -23,7 +24,7 @@ function toGooglePayload(row: EventRow): Record<string, unknown> {
   };
   if (row.allDay) {
     payload.start = { date: row.startDate };
-    payload.end = { date: row.endDate };
+    payload.end = { date: inclusiveEndToGoogle(row.endDate!) };
   } else {
     payload.start = { dateTime: row.startAt!.toISOString(), timeZone: row.timeZone };
     payload.end = { dateTime: row.endAt!.toISOString(), timeZone: row.timeZone };
@@ -43,7 +44,7 @@ function fromGoogleEvent(googleEvent: GoogleEvent) {
     startAt: allDay ? null : new Date(googleEvent.start!.dateTime!),
     endAt: allDay ? null : new Date(googleEvent.end!.dateTime!),
     startDate: allDay ? googleEvent.start!.date! : null,
-    endDate: allDay ? googleEvent.end!.date! : null,
+    endDate: allDay ? googleEndToInclusive(googleEvent.end!.date!) : null,
     timeZone: googleEvent.start?.timeZone ?? "UTC",
     rrule: rruleLine ? rruleLine.slice("RRULE:".length) : null,
   };

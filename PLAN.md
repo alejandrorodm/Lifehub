@@ -735,3 +735,32 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - Conectar una cuenta de Google real y comprobar la sincronización contra la API de verdad.
 - Producción (VPS): el `.env` no tiene `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` ni `GOOGLE_REDIRECT_URI`. Sin ellos "Conectar" no funciona allí. La URI de redirección debe ser `https://lifehub.alejandrorodm.com/api/integrations/google/callback`, autorizada en Google Cloud Console.
 - Tareas recurrentes y subtareas: no se sincronizan.
+## Fase 17 — Gemini y otros clientes de IA mediante servidor MCP (rama `feat/gemini-mcp`, 2026-10-26)
+
+**Nota sobre el alcance:** pedida por el usuario ("me gustaría que se pudiera conectar de alguna manera con Gemini"). Se eligió que Gemini lea LifeHub como cliente externo, en vez de integrar un proveedor de IA dentro de la app (opción descartada por ahora: el asistente local con Ollama de la sección de IA sigue siendo la vía planeada para uso interno).
+
+**Implementado:**
+
+- Servidor MCP en `POST /mcp` (Streamable HTTP con respuestas JSON), fuera de `/api` y autenticado con token propio, no con la cookie de sesión.
+- Tokens personales (`lhk_…`): aleatorios, mostrados una sola vez, guardados como hash SHA-256 y revocables por perfil. Tablas `mcp_tokens` y `mcp_audit_log` (migración `0007`, aditiva).
+- Herramientas **solo de lectura**, todas a través de los servicios: `get_today`, `get_plan_day`, `list_tasks`, `list_events`, `search_notes`. Devuelven resúmenes compactos.
+- Auditoría: cada `tools/call` queda registrado con el token que lo hizo.
+- Ajustes → "Gemini y otros clientes de IA": crear, copiar y revocar tokens (la revocación pide confirmación en dos pasos).
+- Política de privacidad actualizada: los datos consultados por un cliente de IA salen al proveedor de ese cliente.
+
+**Cómo se activa (para el usuario):**
+
+1. En LifeHub: Ajustes → Gemini y otros clientes de IA → crear token. Copia el token en ese momento.
+2. Añade a `~/.gemini/settings.json` el bloque que muestra la pantalla, con el token pegado.
+3. Reinicia Gemini CLI y comprueba que aparece el servidor `lifehub` con las 5 herramientas.
+
+**Probado (comandos ejecutados):**
+
+- Tests de tokens (7), de protocolo y herramientas de extremo a extremo con HTTP real (19), y de rutas de tokens con sesión (4). Incluyen: sin token → 401, token revocado → 401, JSON mal formado, método desconocido, herramienta desconocida, argumentos no válidos, aislamiento entre perfiles y auditoría.
+- Suite completa de tests unitarios, tipos y lint.
+
+**Pendiente / no verificado:**
+
+- No se ha probado con Gemini CLI real: el formato `httpUrl` de `settings.json` viene de guías de terceros. Hay que confirmarlo con la versión instalada.
+- La app web de Gemini: no se ha comprobado que admita servidores MCP personalizados (la única fuente es de terceros).
+- Escritura desde Gemini (crear tareas o eventos como propuestas que confirmas tú): fuera de esta versión.

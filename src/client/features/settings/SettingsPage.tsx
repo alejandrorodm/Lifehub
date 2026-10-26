@@ -12,6 +12,7 @@ import { useExportData, useImportPreview, useRestoreImport, useWipeAll } from ".
 import { usePushStatus, useEnablePush, useDisablePush } from "./usePush";
 import { useGoogleStatus, useDisconnectGoogle, useSyncGoogleNow } from "./useGoogleCalendar";
 import { useGithubStatus } from "./useGithub";
+import { McpSection } from "./McpSection";
 import { api } from "@client/lib/api";
 import { DASHBOARD_WIDGETS, NAV_SECTIONS } from "@shared/schemas/settings";
 import type { Theme, DashboardWidgetId, NavSectionId } from "@shared/schemas/settings";
@@ -633,6 +634,7 @@ export function SettingsPage() {
           <PushNotificationsSection />
           <GoogleCalendarSection />
           <GithubSection />
+          <McpSection />
         </section>
 
         <section className="space-y-4">

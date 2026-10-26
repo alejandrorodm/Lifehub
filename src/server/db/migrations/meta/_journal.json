@@ -54,8 +54,15 @@
     {
       "idx": 7,
       "version": "6",
-      "when": 1793041353244,
-      "tag": "0007_complete_justin_hammer",
+      "when": 1793044258156,
+      "tag": "0007_lyrical_whizzer",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1793046340743,
+      "tag": "0008_unknown_mauler",
       "breakpoints": true
     }
   ]

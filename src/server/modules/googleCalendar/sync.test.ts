@@ -305,6 +305,69 @@ describe("google calendar sync — syncNow()", () => {
   });
 });
 
+describe("google calendar sync — errores de Google", () => {
+  it("una API deshabilitada en el proyecto se muestra como causa clara, no como error inesperado", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: {
+            code: 403,
+            message: "Google Calendar API has not been used in project 500925819073 before or it is disabled.",
+            errors: [{ reason: "accessNotConfigured", domain: "usageLimits" }],
+            status: "PERMISSION_DENIED",
+          },
+        },
+        false,
+        403,
+      ),
+    );
+
+    await expect(sync.syncNow(TEST_USER_ID)).rejects.toMatchObject({
+      code: "EXTERNAL_SERVICE_ERROR",
+      status: 502,
+      message: expect.stringMatching(/no está habilitada en el proyecto/),
+    });
+  });
+});
+
+describe("google calendar sync — días completos", () => {
+  it("un evento de un día que llega de Google dura un solo día en LifeHub", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          {
+            id: "g-allday-1",
+            status: "confirmed",
+            summary: "Cumple de prueba",
+            start: { date: "2026-11-10" },
+            end: { date: "2026-11-11" },
+            updated: "2026-10-26T12:00:00Z",
+          },
+        ],
+      }),
+    );
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [] }));
+    await sync.syncNow(TEST_USER_ID);
+
+    const row = getDb().select().from(events).where(eq(events.title, "Cumple de prueba")).get();
+    expect(row).toMatchObject({ allDay: true, startDate: "2026-11-10", endDate: "2026-11-10" });
+  });
+
+  it("un evento de día completo creado en LifeHub se envía a Google con el fin exclusivo", async () => {
+    eventsService.createEvent({ kind: "event", title: "Día libre", allDay: true, startDate: "2026-11-10" });
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [] }));
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "g-allday-2", updated: "2026-10-26T13:00:00Z" }));
+    await sync.syncNow(TEST_USER_ID);
+
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === "POST");
+    expect(JSON.parse(post![1].body)).toMatchObject({
+      summary: "Día libre",
+      start: { date: "2026-11-10" },
+      end: { date: "2026-11-11" },
+    });
+  });
+});
+
 describe("google calendar sync — tareas con fecha (bidireccional)", () => {
   let tasksService: typeof import("../tasks/service");
   let googleTaskLinks: typeof import("../../db/schema").googleTaskLinks;

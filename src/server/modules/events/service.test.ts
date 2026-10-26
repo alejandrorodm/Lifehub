@@ -223,3 +223,22 @@ describe("events service — papelera", () => {
     expect(events.listOccurrences(RANGE_START, RANGE_END).map((o) => o.eventId)).toContain(event.id);
   });
 });
+
+describe("eventos recurrentes de día completo (cumpleaños)", () => {
+  it("un cumpleaños anual aparece una sola vez por año al expandir el rango", () => {
+    events.createEvent({
+      kind: "event",
+      title: "Cumple de prueba",
+      allDay: true,
+      startDate: "2026-12-14",
+      recurrence: { frequency: "yearly" },
+    });
+
+    const occurrences = events
+      .listOccurrences(new Date("2026-10-01T00:00:00Z"), new Date("2028-01-31T23:59:59Z"))
+      .filter((o) => o.title === "Cumple de prueba");
+
+    expect(occurrences.map((o) => o.startDate)).toEqual(["2026-12-14", "2027-12-14"]);
+    expect(new Set(occurrences.map((o) => o.id)).size).toBe(occurrences.length);
+  });
+});

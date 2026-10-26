@@ -5,7 +5,8 @@ export type AppErrorCode =
   | "CONFLICT"
   | "BAD_REQUEST"
   | "UNAUTHORIZED"
-  | "INTERNAL_ERROR";
+  | "INTERNAL_ERROR"
+  | "EXTERNAL_SERVICE_ERROR";
 
 export interface ApiErrorBody {
   error: {
