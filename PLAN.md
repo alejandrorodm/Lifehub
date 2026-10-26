@@ -705,3 +705,33 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - Arrastrar y soltar: implementado después de la primera entrega. Tareas de las listas y bloques existentes se sueltan en la línea de tiempo (cuartos de hora, acotado a 07:00–22:00). Dependencia nueva `@dnd-kit/core`: el HTML5 DnD nativo no funciona en táctil y el seguimiento manual de puntero y táctil sería más código y riesgo.
 - APK: no se ha regenerado. La TWA carga el sitio en vivo (fase 14), así que estos cambios llegan con el despliegue al VPS; el despliegue de la fase 16 aún no se ha hecho.
 - Sin PR abierta todavía: la rama está publicada en origin.
+
+## Fase 9b — Google Calendar: tareas con fecha bidireccionales (rama `feat/google-task-sync`, 2026-10-26)
+
+**Nota sobre el alcance:** pedida por el usuario tras revisar el estado de Google Calendar: "la idea es poder iniciar con Google y vincular las cosas". Se aclaró que se refiere a **conectar Google Calendar** (no a iniciar sesión con Google) y que las **tareas** también se vinculen, en dos sentidos.
+
+**Implementado:**
+
+- Traducción pura de horarios (`src/shared/domain/googleTaskTiming.ts`): hueco planificado → hora límite (30 min por defecto) → día completo; los eventos remotos se leen en la zona horaria del usuario.
+- Tabla `google_task_links` (migración `0007`, aditiva) con el mismo modelo de marcas de tiempo que `google_event_links`. El borrado de perfil también la vacía.
+- `src/server/modules/googleCalendar/taskSync.ts`: push (crear, actualizar, quitar el evento al completar o borrar la tarea) y pull (actualizar la tarea, o borrarla si el evento se cancela en Google). Misma política "el cambio más reciente gana" que los eventos.
+- `client.ts`: cliente HTTP de Google extraído de `sync.ts` (sin cambio de comportamiento).
+- `getSettingsForUser(userId)`: el worker en segundo plano lee la zona horaria de cada perfil.
+
+**Decisiones:**
+
+- Solo tareas abiertas, no recurrentes, sin subtareas y con fecha. Las recurrentes quedan fuera de esta versión.
+- Una tarea completada **sale** de Google; si se reabre, vuelve a entrar.
+- Borrar el evento en Google **borra la tarea** en LifeHub (igual que con los eventos).
+- Un evento de Google sin enlace sigue creando un evento de LifeHub, como antes.
+
+**Probado (comandos ejecutados):**
+
+- `npx vitest run` — 247/247. Incluye 7 tests de traducción horaria y 6 nuevos de sincronización de tareas (crear, completar, sin fecha, edición remota, borrado remoto, conflicto con cambio local más reciente) con `fetch` simulado.
+- `npx tsc --noEmit` y `npx eslint` en los módulos tocados — sin errores.
+
+**Pendiente — no verificable sin credenciales reales de Google:**
+
+- Conectar una cuenta de Google real y comprobar la sincronización contra la API de verdad.
+- Producción (VPS): el `.env` no tiene `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` ni `GOOGLE_REDIRECT_URI`. Sin ellos "Conectar" no funciona allí. La URI de redirección debe ser `https://lifehub.alejandrorodm.com/api/integrations/google/callback`, autorizada en Google Cloud Console.
+- Tareas recurrentes y subtareas: no se sincronizan.
