@@ -646,7 +646,7 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 
 **Verificación final:** `npx tsc --noEmit`, `npx eslint .`, `npx vitest run` (205/205) y `npm run test:e2e` completo (52/52 en Desktop; Tablet/Mobile omitidos por diseño salvo en los specs de layout, que corren en los 3 viewports) en verde contra una base de datos de pruebas limpia.
 
-## Fase 16 — Planificación diaria, línea de tiempo y sistema visual (en curso desde el 2026-10-26)
+## Fase 16 — Planificación diaria, línea de tiempo y sistema visual (implementada el 2026-10-26)
 
 **Nota sobre el alcance:** fase propuesta tras el análisis de la competencia (Todoist, Sunsama, Akiflow, Structured) y aprobada por el usuario. Objetivo: que la app pase de "lista de tareas" a "planificar el día", y darle una identidad visual propia y pulida sin añadir secciones a la navegación (se mantiene la barra minimalista de la fase 15).
 
@@ -655,7 +655,7 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - El día planificado de una tarea es su `dueDate`. Una tarea planificada en un hueco tiene además `scheduledStart` (HH:mm) y `estimatedMinutes` (duración; por defecto 30 min en la UI).
 - Sin `scheduledStart` la tarea aparece en la lista "Sin planificar" de su día. `dueTime` se mantiene como hora límite, distinta de la hora planificada.
 - La línea de tiempo cubre 07:00–22:00. La capacidad del día es fija en 8 h (480 min) y se muestra como barra; superarla avisa, no bloquea.
-- Ruta `/plan`. No añade entrada a la barra de navegación: se llega desde el Hoy, desde Tareas y con `G P` / ⌘K.
+- Ruta `/plan`. No añade entrada a la barra de navegación: se llega desde el Hoy (enlace "Plan del día") y con `G D` (`G P` ya era de Proyectos).
 - Temporizador de foco: estado en memoria de la pantalla (sin persistencia), para no añadir tablas.
 - Tipografía de titulares: `@fontsource-variable/fraunces`, empaquetada localmente (sin CDN). Justificación: identidad visual propia y cálida, coherente con los neutros de piedra de los tokens; sin gradientes ni decoración (AGENTS.md).
 
@@ -663,13 +663,13 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 
 | ID  | Tarea | Ruta | Estado |
 | --- | ----- | ---- | ------ |
-| T1  | Dominio puro de planificación (`src/shared/domain/planning.ts`): cálculo de capacidad, solapes y colocación de bloques en la línea de tiempo. Tests primero (RED). | inline | pendiente |
-| T2  | Esquema y migración drizzle: `scheduled_start`, `estimated_minutes` en `tasks`; DTO, PATCH y servicio. | inline | pendiente |
-| T3  | API: `GET /tasks/plan?date=` (planificadas, sin planificar, atrasadas) y `POST /tasks/plan/carry-over` (mover pendientes de un día a otro). | inline | pendiente |
-| T4  | Página `/plan`: línea de tiempo, lista "Sin planificar", barra de capacidad, diálogo para programar un bloque, estados de carga/vacío/error. | inline | pendiente |
-| T5  | Cierre del día (mover pendientes a mañana) y temporizador de foco por bloque. | inline | pendiente |
-| T6  | Sistema visual: escala tipográfica con Fraunces en titulares, componentes `PageHeader` y `Card`, aplicación a Hoy, Tareas y Plan; revisión en claro/oscuro y móvil. | inline | pendiente |
-| T7  | Cierre: `typecheck`, `lint`, `test`, `test:e2e` reales; estado de la fase actualizado. | inline | pendiente |
+| T1  | Dominio puro de planificación (`src/shared/domain/planning.ts`): cálculo de capacidad, solapes y colocación de bloques en la línea de tiempo. Tests primero (RED). | inline | ✅ |
+| T2  | Esquema y migración drizzle: `scheduled_start`, `estimated_minutes` en `tasks`; DTO, PATCH y servicio. | inline | ✅ |
+| T3  | API: `GET /tasks/plan?date=` (planificadas, sin planificar, atrasadas, sin fecha) y `POST /tasks/plan/carry-over` (mover pendientes de un día a otro). | inline | ✅ |
+| T4  | Página `/plan`: línea de tiempo, listas laterales, barra de capacidad, diálogo para programar/editar un bloque, estados de carga/error. | inline | ✅ |
+| T5  | Cierre del día (mover pendientes a mañana) y temporizador de foco por bloque. | inline | ✅ (la lógica se escribió con T4 y se extrajo a `planSelectors.ts` con tests) |
+| T6  | Sistema visual: titulares con Fraunces (capa base), componentes `PageHeader` y `Card`, aplicación a Tareas y Plan, enlace desde Hoy; revisión en móvil con capturas. | inline | ✅ |
+| T7  | Cierre: `typecheck`, `lint`, `test`, `test:e2e` reales; estado de la fase actualizado. | inline | ✅ |
 
 **Criterios de aceptación (verificables):**
 
@@ -680,4 +680,27 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - Ninguna lista nueva carece de estado de carga, vacío y error (AGENTS.md).
 - Textos de UI en español; código y commits en inglés (Conventional Commits).
 
-**Commits:** un commit por tarea (T1–T6) en la rama `feat/fase-16-planificacion-diaria`.
+**Implementado:**
+
+- Dominio puro de planificación (`src/shared/domain/planning.ts`): colocación de bloques solapados en columnas, capacidad del día.
+- Esquema: `tasks.scheduled_start` y `tasks.estimated_minutes` (migración `0006`, aditiva).
+- API: `GET /tasks/plan?date=` (planificadas, sin planificar, atrasadas, sin fecha) y `POST /tasks/plan/carry-over`.
+- Página `/plan`: línea de tiempo 07–22, listas laterales, barra de capacidad, diálogo para programar/editar un bloque, temporizador de foco por bloque en memoria, cierre del día con confirmación. Acceso desde Hoy y con `G D`.
+- Sistema visual: titulares en Fraunces (`@fontsource-variable/fraunces`, empaquetada localmente), componentes `PageHeader` y `Card`, aplicados a Tareas y Plan.
+- Correcciones durante la verificación: bloques solapados legibles en móvil (scroll horizontal con ancho mínimo) y aislamiento del e2e (la base de pruebas se acumulaba entre ejecuciones y provocaba selectores ambiguos; ahora `test:e2e` la borra antes de arrancar).
+
+**Probado (comandos ejecutados):**
+
+- `npm run typecheck` — sin errores.
+- `npm run lint` — sin errores.
+- `npm test` — 232/232 tests (incluye 12 de planificación, 3+1 de planificación de tareas y de backlog, 4 de geometría y 5 de selectores).
+- `npm run test:e2e` sobre base limpia — 56 pasan, 0 fallan, 76 omitidos por diseño (flujos que mutan datos solo en Desktop, y el resto del spec de cada viewport). El spec `tests/e2e/plan.spec.ts` cubre programar y enfocar un bloque, y el layout sin desbordamiento en Desktop, Tablet y Mobile.
+- Capturas revisadas en modo oscuro (Desktop y Mobile); la captura móvil motivó la corrección de solapes.
+
+**Pendiente / no verificado:**
+
+- Revisión visual en modo claro: no se han hecho capturas.
+- Hoy, Calendario y el resto de pantallas solo reciben la fuente de titulares y el enlace al plan; no tienen un rediseño de composición.
+- Arrastrar y soltar para programar no está implementado: la planificación es por diálogo.
+- El temporizador de foco no sobrevive a una recarga, por diseño (sin tablas nuevas).
+- No hay push ni PR: esa decisión es del usuario.
