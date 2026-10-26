@@ -329,3 +329,41 @@ describe("google calendar sync — errores de Google", () => {
     });
   });
 });
+
+describe("google calendar sync — días completos", () => {
+  it("un evento de un día que llega de Google dura un solo día en LifeHub", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          {
+            id: "g-allday-1",
+            status: "confirmed",
+            summary: "Cumple de prueba",
+            start: { date: "2026-11-10" },
+            end: { date: "2026-11-11" },
+            updated: "2026-10-26T12:00:00Z",
+          },
+        ],
+      }),
+    );
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [] }));
+    await sync.syncNow(TEST_USER_ID);
+
+    const row = getDb().select().from(events).where(eq(events.title, "Cumple de prueba")).get();
+    expect(row).toMatchObject({ allDay: true, startDate: "2026-11-10", endDate: "2026-11-10" });
+  });
+
+  it("un evento de día completo creado en LifeHub se envía a Google con el fin exclusivo", async () => {
+    eventsService.createEvent({ kind: "event", title: "Día libre", allDay: true, startDate: "2026-11-10" });
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [] }));
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "g-allday-2", updated: "2026-10-26T13:00:00Z" }));
+    await sync.syncNow(TEST_USER_ID);
+
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === "POST");
+    expect(JSON.parse(post![1].body)).toMatchObject({
+      summary: "Día libre",
+      start: { date: "2026-11-10" },
+      end: { date: "2026-11-11" },
+    });
+  });
+});
