@@ -7,6 +7,7 @@ interface PlanSidebarProps {
   today: string;
   unscheduled: TaskDto[];
   overdue: TaskDto[];
+  backlog: TaskDto[];
   onSchedule: (task: TaskDto) => void;
 }
 
@@ -25,7 +26,10 @@ function TaskList({
 }) {
   return (
     <section aria-labelledby={`plan-${title}`} className="space-y-2">
-      <h2 id={`plan-${title}`} className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-text-subtle">
+      <h2
+        id={`plan-${title}`}
+        className="flex items-center justify-between font-sans text-xs font-semibold uppercase tracking-wide text-text-subtle"
+      >
         {title}
         <span className="tabular-nums">{tasks.length}</span>
       </h2>
@@ -55,7 +59,7 @@ function TaskList({
 }
 
 /** Tareas del día sin hueco y tareas atrasadas que se pueden programar en la línea de tiempo. */
-export function PlanSidebar({ today, unscheduled, overdue, onSchedule }: PlanSidebarProps) {
+export function PlanSidebar({ today, unscheduled, overdue, backlog, onSchedule }: PlanSidebarProps) {
   return (
     <div className="space-y-6">
       <TaskList
@@ -70,6 +74,13 @@ export function PlanSidebar({ today, unscheduled, overdue, onSchedule }: PlanSid
         tasks={overdue}
         today={today}
         emptyCopy="No tienes tareas atrasadas."
+        onSchedule={onSchedule}
+      />
+      <TaskList
+        title="Sin fecha"
+        tasks={backlog}
+        today={today}
+        emptyCopy="Ninguna tarea pendiente sin fecha."
         onSchedule={onSchedule}
       />
     </div>

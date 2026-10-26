@@ -75,9 +75,11 @@ export function PlanTimeline({ scheduled, onOpenBlock }: PlanTimelineProps) {
                 width: `calc(${widthPercent}% - 8px)`,
               }}
             >
-              <span className={cn("block truncate font-medium text-text", done && "line-through")}>{task.title}</span>
-              <span className="block truncate tabular-nums text-text-muted">
-                {task.scheduledStart} · {block.durationMinutes} min
+              <span className={cn("flex min-w-0 items-baseline gap-1.5", done && "line-through")}>
+                <span className="truncate font-medium text-text">{task.title}</span>
+                <span className="shrink-0 tabular-nums text-text-muted">
+                  {task.scheduledStart} · {block.durationMinutes} min
+                </span>
               </span>
             </button>
           );

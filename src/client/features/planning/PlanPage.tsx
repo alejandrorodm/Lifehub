@@ -128,13 +128,14 @@ export function PlanPage() {
       {data && (
         <div className="grid flex-1 gap-6 overflow-y-auto p-6 lg:grid-cols-[1fr_320px] lg:items-start">
           <Card className="min-w-0 p-4">
-            <PlanTimeline scheduled={data.scheduled} onOpenBlock={startFocus} />
+            <PlanTimeline scheduled={data.scheduled} onOpenBlock={(task) => setScheduling(task)} />
           </Card>
           <aside aria-label="Tareas sin planificar">
             <PlanSidebar
               today={today}
               unscheduled={data.unscheduled}
               overdue={data.overdue}
+              backlog={data.backlog}
               onSchedule={(task) => setScheduling(task)}
             />
           </aside>
@@ -148,6 +149,10 @@ export function PlanPage() {
           date={date}
           open
           onOpenChange={(open) => !open && setScheduling(null)}
+          onFocus={(task) => {
+            startFocus(task);
+            setScheduling(null);
+          }}
         />
       )}
 

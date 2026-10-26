@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Timer } from "lucide-react";
 import { Dialog } from "@client/components/ui/Dialog";
 import { Button } from "@client/components/ui/Button";
 import { Input, Label } from "@client/components/ui/Input";
@@ -17,13 +18,15 @@ interface ScheduleDialogProps {
   date: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Si se pasa y la tarea tiene hueco, ofrece iniciar el temporizador de foco. */
+  onFocus?: (task: TaskDto) => void;
 }
 
 /**
  * Programa una tarea en un hueco del día. Se monta con `key` por tarea desde
  * la página, así el estado del formulario nunca arrastra valores de otra tarea.
  */
-export function ScheduleDialog({ task, date, open, onOpenChange }: ScheduleDialogProps) {
+export function ScheduleDialog({ task, date, open, onOpenChange, onFocus }: ScheduleDialogProps) {
   const update = useUpdateTask();
   const [time, setTime] = useState(task.scheduledStart ?? formatMinutesToTime(9 * 60));
   const [duration, setDuration] = useState(String(task.estimatedMinutes ?? DEFAULT_ESTIMATED_MINUTES));
@@ -85,9 +88,17 @@ export function ScheduleDialog({ task, date, open, onOpenChange }: ScheduleDialo
 
         <div className="flex items-center justify-between gap-2 pt-2">
           {task.scheduledStart ? (
-            <Button type="button" variant="ghost" onClick={removeSlot} disabled={update.isPending}>
-              Quitar hueco
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={removeSlot} disabled={update.isPending}>
+                Quitar hueco
+              </Button>
+              {onFocus && (
+                <Button type="button" variant="secondary" onClick={() => onFocus(task)}>
+                  <Timer className="size-4" aria-hidden />
+                  Enfocar
+                </Button>
+              )}
+            </div>
           ) : (
             <span />
           )}
