@@ -77,8 +77,9 @@ beforeEach(async () => {
   await connectWithTasks();
 });
 
-/** Respuesta de la lista de Google Tasks (una sola página). */
+/** Respuesta de Google Tasks para un pull: primero las listas (una sola, la predeterminada) y luego sus tareas. */
 function queueRemoteList(items: unknown[]) {
+  fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "@default", title: "Mis tareas" }] }));
   fetchMock.mockResolvedValueOnce(jsonResponse({ items }));
 }
 
@@ -125,11 +126,26 @@ describe("google tasks — hacia Google", () => {
     expect(JSON.parse(patch![1].body)).toMatchObject({ status: "completed" });
   });
 
-  it("una tarea sin fecha no se sube a Google Tasks", async () => {
+  it("una tarea sin fecha también se sube a Google Tasks, sin fecha de vencimiento", async () => {
     tasksService.createTask({ title: "Idea sin fecha", priority: "normal" });
     queueRemoteList([]);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-nofecha", updated: "2026-10-26T10:00:00.000Z" }));
     await tasksSync.syncGoogleTasks(USER_ID);
-    expect(fetchMock.mock.calls.filter(([, init]) => init?.method && init.method !== "GET")).toHaveLength(0);
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === "POST");
+    expect(JSON.parse(post![1].body)).toMatchObject({ title: "Idea sin fecha" });
+    expect(JSON.parse(post![1].body)).not.toHaveProperty("due");
+  });
+
+  it("trae las tareas de todas las listas de Google y guarda a qué lista pertenece cada una", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "L1", title: "Compra" }, { id: "L2", title: "Trabajo" }] }));
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "t-pan", title: "Pan", status: "needsAction", updated: "2026-10-26T12:00:00.000Z" }] }));
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "t-informe", title: "Informe", status: "needsAction", updated: "2026-10-26T12:00:00.000Z" }] }));
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    const pan = getDb().select().from(schema.tasks).where(eq(schema.tasks.title, "Pan")).get();
+    const informe = getDb().select().from(schema.tasks).where(eq(schema.tasks.title, "Informe")).get();
+    expect(linkFor(pan!.id)).toMatchObject({ googleTaskListId: "L1" });
+    expect(linkFor(informe!.id)).toMatchObject({ googleTaskListId: "L2" });
   });
 });
 
@@ -195,7 +211,8 @@ describe("google tasks — syncNow()", () => {
     const sync = await import("./sync");
     fetchMock.mockReset();
     fetchMock.mockResolvedValueOnce(jsonResponse({ items: [] })); // calendario: pull de eventos
-    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "gt-9", title: "Desde syncNow", status: "needsAction", updated: "2026-10-26T12:00:00.000Z" }] })); // Google Tasks: pull
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "@default", title: "Mis tareas" }] })); // Google Tasks: listas
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "gt-9", title: "Desde syncNow", status: "needsAction", updated: "2026-10-26T12:00:00.000Z" }] })); // Google Tasks: tareas
     await sync.syncNow(USER_ID);
     expect(getDb().select().from(schema.tasks).where(eq(schema.tasks.title, "Desde syncNow")).get()).toBeDefined();
   });
