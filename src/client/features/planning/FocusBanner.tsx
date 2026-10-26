@@ -1,17 +1,11 @@
 import { useEffect, useState } from "react";
 import { Timer, X } from "lucide-react";
 import { Button } from "@client/components/ui/Button";
+import { formatRemaining } from "./planSelectors";
 
 export interface FocusSession {
   title: string;
   endsAt: number;
-}
-
-function formatRemaining(ms: number): string {
-  const totalSeconds = Math.ceil(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 /** Temporizador de foco de un bloque. Vive solo en memoria: no hace falta guardarlo entre recargas. */

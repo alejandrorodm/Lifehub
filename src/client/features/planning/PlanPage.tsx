@@ -16,15 +16,9 @@ import { PlanSidebar } from "./PlanSidebar";
 import { ScheduleDialog } from "./ScheduleDialog";
 import { CloseDayDialog } from "./CloseDayDialog";
 import { FocusBanner, type FocusSession } from "./FocusBanner";
+import { countOpenPlanTasks, formatMinutesAsHours } from "./planSelectors";
 
 const DATE_PARAM = /^\d{4}-\d{2}-\d{2}$/;
-
-function formatMinutesAsHours(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  if (hours === 0) return `${rest} min`;
-  return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
-}
 
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -51,7 +45,7 @@ export function PlanPage() {
   const capacity = summarizeCapacity(
     (data?.scheduled ?? []).map((task) => task.estimatedMinutes ?? DEFAULT_ESTIMATED_MINUTES),
   );
-  const openCount = data ? data.scheduled.filter((t) => t.status !== "done").length + data.unscheduled.length : 0;
+  const openCount = data ? countOpenPlanTasks(data) : 0;
   const capacityPercent = Math.min(capacity.ratio, 1) * 100;
 
   const startFocus = (task: TaskDto) => {
