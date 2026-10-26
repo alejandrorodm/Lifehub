@@ -29,6 +29,7 @@ export function PrivacyPage() {
           <li>Lo que introduces: tareas, eventos, notas, hábitos, proyectos, finanzas y ajustes.</li>
           <li>Si conectas Google Calendar: los tokens de acceso y actualización de Google, y los eventos y tareas que decides sincronizar.</li>
           <li>Una cookie de sesión, necesaria para mantenerte dentro de la app. No usamos cookies de seguimiento ni publicidad.</li>
+          <li>Si creas un token para un cliente de IA (por ejemplo Gemini CLI): ese cliente puede leer tus tareas, planes, eventos y notas mientras el token esté activo. Cada consulta queda registrada en tu instancia.</li>
         </ul>
       </section>
 
@@ -51,6 +52,15 @@ export function PrivacyPage() {
       </section>
 
       <section className="space-y-2">
+        <h2 className="text-lg">Uso de clientes de IA</h2>
+        <p className="text-sm text-text-muted">
+          Si usas un cliente de IA externo con un token de LifeHub, los datos que ese cliente consulta se envían al proveedor
+          de ese cliente (por ejemplo, Google, si usas Gemini). LifeHub no envía nada a ningún proveedor de IA por sí mismo.
+          Puedes revocar el token en Ajustes en cualquier momento.
+        </p>
+      </section>
+
+      <section className="space-y-2">
         <h2 className="text-lg">Sin telemetría</h2>
         <p className="text-sm text-text-muted">
           LifeHub no envía analíticas, métricas ni datos de uso a ningún servicio externo.
@@ -62,6 +72,7 @@ export function PrivacyPage() {
         <ul className="list-disc space-y-1 pl-5 text-sm text-text-muted">
           <li>Exportar todos tus datos en JSON desde Ajustes → Datos → Exportar JSON.</li>
           <li>Desconectar Google Calendar desde Ajustes → Google Calendar. Así se revoca el acceso y se borran los enlaces con Google.</li>
+          <li>Revocar los tokens de clientes de IA desde Ajustes → Gemini y otros clientes de IA.</li>
           <li>Borrar todo tu contenido desde Ajustes → Datos → Borrar todos los datos.</li>
         </ul>
       </section>
