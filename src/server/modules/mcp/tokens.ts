@@ -3,6 +3,7 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { mcpTokens } from "../../db/schema";
 import { AppError } from "../../lib/errors";
+import type { McpTokenCreatedDto, McpTokenSummaryDto } from "@shared/schemas/mcp";
 
 const TOKEN_PREFIX = "lhk_";
 
@@ -10,22 +11,21 @@ function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export interface CreatedMcpToken {
-  id: string;
-  name: string;
-  /** Secreto en claro. Solo se devuelve en el momento de crearlo. */
-  token: string;
-  createdAt: string;
-}
-
-export function createMcpToken(userId: string, name: string): CreatedMcpToken {
+export function createMcpToken(userId: string, name: string): McpTokenCreatedDto {
   const token = TOKEN_PREFIX + randomBytes(32).toString("base64url");
   const row = getDb()
     .insert(mcpTokens)
     .values({ userId, name, tokenHash: hashToken(token) })
     .returning()
     .get();
-  return { id: row.id, name: row.name, token, createdAt: row.createdAt.toISOString() };
+  return {
+    id: row.id,
+    name: row.name,
+    token,
+    createdAt: row.createdAt.toISOString(),
+    lastUsedAt: null,
+    revoked: false,
+  };
 }
 
 export interface McpTokenPrincipal {
@@ -56,15 +56,7 @@ export function revokeMcpToken(userId: string, tokenId: string): void {
   if (result.changes === 0) throw AppError.notFound("El token");
 }
 
-export interface McpTokenSummary {
-  id: string;
-  name: string;
-  createdAt: string;
-  lastUsedAt: string | null;
-  revoked: boolean;
-}
-
-export function listMcpTokens(userId: string): McpTokenSummary[] {
+export function listMcpTokens(userId: string): McpTokenSummaryDto[] {
   return getDb()
     .select()
     .from(mcpTokens)

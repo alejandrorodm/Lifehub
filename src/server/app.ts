@@ -26,6 +26,7 @@ import { githubRoutes } from "./modules/github/routes";
 import { reviewRoutes } from "./modules/review/routes";
 import { marketsRoutes } from "./modules/markets/routes";
 import { mcpRoutes } from "./modules/mcp/routes";
+import { mcpTokenRoutes } from "./modules/mcp/tokenRoutes";
 import { config } from "./config";
 
 export function createApp(): Hono {
@@ -71,7 +72,8 @@ export function createApp(): Hono {
     .route("/integrations/github", githubRoutes)
     .route("/finance", financeRoutes)
     .route("/review", reviewRoutes)
-    .route("/markets", marketsRoutes);
+    .route("/markets", marketsRoutes)
+    .route("/mcp/tokens", mcpTokenRoutes);
 
   app.route("/api", api);
 
