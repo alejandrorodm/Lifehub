@@ -468,6 +468,7 @@ function GoogleCalendarSection() {
         <p className="text-sm font-medium">Google Calendar</p>
         <p className="text-sm text-text-muted">
           Conectado
+          {!status.tasksEnabled && " · vuelve a conectar para activar Google Tasks"}
           {status.lastSyncedAt &&
             ` · última sincronización ${formatDistanceToNow(new Date(status.lastSyncedAt), { addSuffix: true, locale: es })}`}
         </p>

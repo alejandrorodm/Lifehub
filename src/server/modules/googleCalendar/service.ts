@@ -39,6 +39,8 @@ export interface GoogleConnectionStatus {
   calendarId?: string;
   connectedAt?: string;
   lastSyncedAt?: string | null;
+  /** El token tiene permiso para Google Tasks (las conexiones anteriores no lo tienen). */
+  tasksEnabled?: boolean;
 }
 
 export function getStatus(userId: string): GoogleConnectionStatus {
@@ -49,6 +51,7 @@ export function getStatus(userId: string): GoogleConnectionStatus {
     calendarId: row.calendarId,
     connectedAt: row.connectedAt.toISOString(),
     lastSyncedAt: row.lastSyncedAt ? row.lastSyncedAt.toISOString() : null,
+    tasksEnabled: (row.scope ?? "").includes(oauth.TASKS_SCOPE),
   };
 }
 

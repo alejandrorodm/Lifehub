@@ -5,6 +5,8 @@ const AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const REVOKE_ENDPOINT = "https://oauth2.googleapis.com/revoke";
 const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
+/** Permiso de Google Tasks (lista de tareas). Las conexiones anteriores no lo tienen: hay que volver a conectar. */
+export const TASKS_SCOPE = "https://www.googleapis.com/auth/tasks";
 
 /**
  * Llamadas REST directas a Google (OAuth2 + token endpoint), sin el paquete
@@ -28,7 +30,7 @@ export function buildAuthorizationUrl(state: string): string {
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: CALENDAR_SCOPE,
+    scope: `${CALENDAR_SCOPE} ${TASKS_SCOPE}`,
     access_type: "offline",
     prompt: "consent",
     state,

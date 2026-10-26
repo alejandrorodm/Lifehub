@@ -6,6 +6,7 @@ export interface GoogleConnectionStatus {
   calendarId?: string;
   connectedAt?: string;
   lastSyncedAt?: string | null;
+  tasksEnabled?: boolean;
 }
 
 export const googleStatusQueryKey = ["integrations", "google", "status"] as const;

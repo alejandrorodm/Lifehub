@@ -501,3 +501,17 @@ describe("google calendar sync — tareas con fecha (bidireccional)", () => {
     expect(JSON.parse(patchCall![1].body).summary).toBe("Versión local más reciente");
   });
 });
+
+describe("google calendar — permiso de Google Tasks", () => {
+  it("la URL de autorización pide también el permiso de Google Tasks", () => {
+    const url = new URL(google.startConnect(TEST_USER_ID));
+    const scopes = url.searchParams.get("scope")!.split(" ");
+    expect(scopes).toContain("https://www.googleapis.com/auth/calendar");
+    expect(scopes).toContain("https://www.googleapis.com/auth/tasks");
+  });
+
+  it("el estado indica si el token ya tiene permiso para Google Tasks", async () => {
+    // connect() concede un scope sin Tasks: la app debe pedir volver a conectar.
+    expect(google.getStatus(TEST_USER_ID)).toMatchObject({ connected: true, tasksEnabled: false });
+  });
+});

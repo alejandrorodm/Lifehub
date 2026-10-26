@@ -39,3 +39,10 @@ describe("describeGoogleFailure", () => {
     expect(describeGoogleFailure(418, {})).toBe("Google Calendar respondió con un error (código 418).");
   });
 });
+
+describe("permiso de Google Tasks", () => {
+  it("un permiso insuficiente pide volver a conectar para aceptar Google Tasks", () => {
+    const body = { error: { errors: [{ reason: "insufficientPermissions" }] } };
+    expect(describeGoogleFailure(403, body)).toMatch(/Google Tasks/);
+  });
+});

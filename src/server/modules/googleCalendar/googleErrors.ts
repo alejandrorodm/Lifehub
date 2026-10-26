@@ -10,6 +10,9 @@ export function describeGoogleFailure(status: number, body: unknown): string {
   if (text.includes("accessNotConfigured") || text.includes("SERVICE_DISABLED") || text.includes("has not been used")) {
     return "La Google Calendar API no está habilitada en el proyecto de Google Cloud de LifeHub. Habilítala en Google Cloud Console y vuelve a intentarlo.";
   }
+  if (reasons.includes("insufficientPermissions") || text.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")) {
+    return "Falta el permiso de Google Tasks. Desconecta Google Calendar y vuelve a conectarlo para aceptarlo.";
+  }
   if (status === 401 || text.includes("invalid_grant")) {
     return "Google ha revocado el acceso. Desconecta Google Calendar y vuelve a conectarlo.";
   }
