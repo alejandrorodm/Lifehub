@@ -645,3 +645,39 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 **T5 (calendario):** el usuario eligió "vista de un día" (navegación con flechas anterior/siguiente) frente a mantener semana/mes comprimida. La app ya tenía ese modo de vista; ahora se fuerza como vista por defecto y única en móvil (incluso con un enlace que pida semana/mes) y se oculta el selector Mes/Semana/Día, redundante en ese ancho. Nuevo hook `useIsMobile` (mismo breakpoint `md`=768px que el resto del shell).
 
 **Verificación final:** `npx tsc --noEmit`, `npx eslint .`, `npx vitest run` (205/205) y `npm run test:e2e` completo (52/52 en Desktop; Tablet/Mobile omitidos por diseño salvo en los specs de layout, que corren en los 3 viewports) en verde contra una base de datos de pruebas limpia.
+
+## Fase 16 — Planificación diaria, línea de tiempo y sistema visual (en curso desde el 2026-10-26)
+
+**Nota sobre el alcance:** fase propuesta tras el análisis de la competencia (Todoist, Sunsama, Akiflow, Structured) y aprobada por el usuario. Objetivo: que la app pase de "lista de tareas" a "planificar el día", y darle una identidad visual propia y pulida sin añadir secciones a la navegación (se mantiene la barra minimalista de la fase 15).
+
+**Decisiones de diseño (tomadas, corregibles):**
+
+- El día planificado de una tarea es su `dueDate`. Una tarea planificada en un hueco tiene además `scheduledStart` (HH:mm) y `estimatedMinutes` (duración; por defecto 30 min en la UI).
+- Sin `scheduledStart` la tarea aparece en la lista "Sin planificar" de su día. `dueTime` se mantiene como hora límite, distinta de la hora planificada.
+- La línea de tiempo cubre 07:00–22:00. La capacidad del día es fija en 8 h (480 min) y se muestra como barra; superarla avisa, no bloquea.
+- Ruta `/plan`. No añade entrada a la barra de navegación: se llega desde el Hoy, desde Tareas y con `G P` / ⌘K.
+- Temporizador de foco: estado en memoria de la pantalla (sin persistencia), para no añadir tablas.
+- Tipografía de titulares: `@fontsource-variable/fraunces`, empaquetada localmente (sin CDN). Justificación: identidad visual propia y cálida, coherente con los neutros de piedra de los tokens; sin gradientes ni decoración (AGENTS.md).
+
+**Tareas:**
+
+| ID  | Tarea | Ruta | Estado |
+| --- | ----- | ---- | ------ |
+| T1  | Dominio puro de planificación (`src/shared/domain/planning.ts`): cálculo de capacidad, solapes y colocación de bloques en la línea de tiempo. Tests primero (RED). | inline | pendiente |
+| T2  | Esquema y migración drizzle: `scheduled_start`, `estimated_minutes` en `tasks`; DTO, PATCH y servicio. | inline | pendiente |
+| T3  | API: `GET /tasks/plan?date=` (planificadas, sin planificar, atrasadas) y `POST /tasks/plan/carry-over` (mover pendientes de un día a otro). | inline | pendiente |
+| T4  | Página `/plan`: línea de tiempo, lista "Sin planificar", barra de capacidad, diálogo para programar un bloque, estados de carga/vacío/error. | inline | pendiente |
+| T5  | Cierre del día (mover pendientes a mañana) y temporizador de foco por bloque. | inline | pendiente |
+| T6  | Sistema visual: escala tipográfica con Fraunces en titulares, componentes `PageHeader` y `Card`, aplicación a Hoy, Tareas y Plan; revisión en claro/oscuro y móvil. | inline | pendiente |
+| T7  | Cierre: `typecheck`, `lint`, `test`, `test:e2e` reales; estado de la fase actualizado. | inline | pendiente |
+
+**Criterios de aceptación (verificables):**
+
+- Planificar una tarea en un hueco la hace aparecer en la línea de tiempo de ese día y desaparecer de "Sin planificar"; recargar la página la mantiene.
+- Dos bloques que se solapan se muestran lado a lado, sin ocultarse.
+- "Cerrar el día" mueve al día siguiente solo las tareas abiertas de ese día; las completadas no se tocan.
+- La capacidad refleja la suma de `estimatedMinutes` de las tareas planificadas ese día.
+- Ninguna lista nueva carece de estado de carga, vacío y error (AGENTS.md).
+- Textos de UI en español; código y commits en inglés (Conventional Commits).
+
+**Commits:** un commit por tarea (T1–T6) en la rama `feat/fase-16-planificacion-diaria`.
