@@ -13,7 +13,7 @@ LifeHub es un centro de organización personal, local-first: tareas, calendario,
 - **Proyectos**: hitos, progreso real calculado desde las tareas, pestañas de tareas/notas/calendario/GitHub del proyecto.
 - **Hábitos y rutinas**: racha, objetivo y progreso semanal calculados desde el histórico; rutinas con pasos marcables; dashboard "Hoy" configurable (mostrar/ocultar y reordenar widgets).
 - **Finanzas** (fase 10): registro manual de aportaciones/retiros por activo (fondo, cripto, acciones, efectivo…) en céntimos enteros — sin precios en vivo, eres tú quien decide cuánto ha entrado o salido; metas de dinero con barra de progreso y asignación opcional de cada aportación a una meta.
-- **GitHub por proyecto** (fase 10, opcional): enlaza un repo (`owner/repo`) a cada proyecto desde su pestaña "GitHub" y verás un resumen general (último commit, actividad de los últimos 30 días) — nunca un listado commit a commit. Requiere `GITHUB_TOKEN`; ver "Integraciones" más abajo.
+- **GitHub por proyecto** (fase 10, opcional): enlaza un repo (`owner/repo`) a cada proyecto desde su pestaña "GitHub" y verás un resumen general (último commit, actividad de los últimos 30 días) — nunca un listado commit a commit. Cada perfil conecta su cuenta de GitHub; el servidor necesita `GITHUB_CLIENT_ID` y `GITHUB_CLIENT_SECRET`.
 - **Revisión periódica** (fase 10): `/review` agrega, sin tabla nueva, tareas completadas/creadas, cumplimiento de hábitos, proyectos activos con su progreso e hitos, notas creadas y aportación neta de finanzas — con selector semana/mes.
 - **Mercados** (fase 11): `/markets` — resumen de noticias de crypto (CoinDesk, Cointelegraph) y acciones (MarketWatch) por pestañas, y una lista de seguimiento con cotización actual (CoinGecko para cripto, Yahoo Finance para acciones) y objetivo de precio opcional por activo, con el % de distancia al objetivo. Sin API keys; ver "Limitaciones conocidas".
 - **Búsqueda global** (`Ctrl/⌘ K`): encuentra tareas, notas, proyectos y eventos desde cualquier pantalla.
@@ -143,7 +143,8 @@ Resumen de solo lectura de la actividad de un repo por proyecto — no hay flujo
 1. Crea un [token de acceso personal](https://github.com/settings/tokens) en GitHub (basta con permiso de lectura sobre repos; `public_repo` si el repo es público, o acceso al repo concreto si es privado).
 2. Añade a tu `.env`:
    ```
-   GITHUB_TOKEN=<tu token>
+   GITHUB_CLIENT_ID=<id de la OAuth App>
+   GITHUB_CLIENT_SECRET=<secreto de la OAuth App>
    ```
 3. Reinicia el servidor. En **Ajustes → Integraciones** verás el badge "GitHub: configurado". Enlaza un repo (`owner/repo`) desde la pestaña "GitHub" de cada proyecto.
 

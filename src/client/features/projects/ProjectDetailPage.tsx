@@ -92,7 +92,7 @@ function ProjectGithubTab({ project }: { project: ProjectDto }) {
         <EmptyState
           icon={GitFork}
           title="GitHub no está configurado"
-          description="Falta la variable GITHUB_TOKEN en el servidor; el repositorio queda guardado pero sin resumen."
+          description="El servidor no tiene la OAuth App de GitHub; el repositorio queda guardado pero sin resumen."
           className="py-10"
         />
       ) : data.error ? (

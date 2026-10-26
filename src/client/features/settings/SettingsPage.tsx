@@ -528,7 +528,7 @@ function GoogleCalendarSection() {
 
 /**
  * Fase 10: badge de solo lectura — GitHub no tiene flujo de conexión propio
- * (es una variable de entorno del servidor, `GITHUB_TOKEN`), solo se enlaza
+ * (la OAuth App es del servidor y cada perfil conecta su cuenta), solo se enlaza
  * un repo por proyecto desde la pestaña "GitHub" de cada proyecto.
  */
 function GithubSection() {
