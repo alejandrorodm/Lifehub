@@ -13,11 +13,16 @@ const SETTINGS_KEY = "app";
 
 /** Ajustes del perfil actual (clave "app" en `settings`, por `userId` desde la fase 13). */
 export function getSettings(): Settings {
+  return getSettingsForUser(getCurrentUserId());
+}
+
+/** Ajustes de un perfil concreto: lo usan los procesos en segundo plano, que no tienen petición de usuario. */
+export function getSettingsForUser(userId: string): Settings {
   const db = getDb();
   const row = db
     .select()
     .from(settingsTable)
-    .where(and(eq(settingsTable.userId, getCurrentUserId()), eq(settingsTable.key, SETTINGS_KEY)))
+    .where(and(eq(settingsTable.userId, userId), eq(settingsTable.key, SETTINGS_KEY)))
     .get();
   if (!row) return DEFAULT_SETTINGS;
 
