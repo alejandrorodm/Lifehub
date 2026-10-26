@@ -8,7 +8,8 @@ export function describeGoogleFailure(status: number, body: unknown): string {
   const reasons = extractReasons(body);
 
   if (text.includes("accessNotConfigured") || text.includes("SERVICE_DISABLED") || text.includes("has not been used")) {
-    return "La Google Calendar API no está habilitada en el proyecto de Google Cloud de LifeHub. Habilítala en Google Cloud Console y vuelve a intentarlo.";
+    const api = text.includes("Tasks API") ? "Google Tasks API" : "Google Calendar API";
+    return `La ${api} no está habilitada en el proyecto de Google Cloud de LifeHub. Habilítala en Google Cloud Console y vuelve a intentarlo.`;
   }
   if (reasons.includes("insufficientPermissions") || text.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")) {
     return "Falta el permiso de Google Tasks. Desconecta Google Calendar y vuelve a conectarlo para aceptarlo.";

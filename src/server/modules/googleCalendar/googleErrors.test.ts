@@ -46,3 +46,12 @@ describe("permiso de Google Tasks", () => {
     expect(describeGoogleFailure(403, body)).toMatch(/Google Tasks/);
   });
 });
+
+describe("API de Google Tasks deshabilitada", () => {
+  it("nombra Google Tasks, no Calendar, cuando es la API de tareas la que está deshabilitada", () => {
+    const body = { error: { message: "Google Tasks API has not been used in project 1 before or it is disabled.", errors: [{ reason: "accessNotConfigured" }] } };
+    const message = describeGoogleFailure(403, body);
+    expect(message).toMatch(/Google Tasks API/);
+    expect(message).not.toMatch(/Calendar/);
+  });
+});

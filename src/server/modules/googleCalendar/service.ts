@@ -122,6 +122,11 @@ export async function getValidAccessToken(userId: string): Promise<string> {
   return tokens.accessToken;
 }
 
+/** Si el token del perfil incluye el permiso de Google Tasks (las conexiones anteriores no lo tienen). */
+export function hasTasksPermission(userId: string): boolean {
+  return (getRow(userId)?.scope ?? "").includes(oauth.TASKS_SCOPE);
+}
+
 export function getConnectedCalendarId(userId: string): string {
   const row = getRow(userId);
   if (!row) throw AppError.validation("Google Calendar no está conectado.");

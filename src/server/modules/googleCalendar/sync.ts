@@ -4,6 +4,7 @@ import { events, googleEventLinks } from "../../db/schema";
 import * as connection from "./service";
 import { googleFetch, type GoogleEvent, type GoogleEventListPage } from "./client";
 import { applyRemoteTask, getTaskLinksByGoogleId, pushTaskChanges } from "./taskSync";
+import { syncGoogleTasks } from "./googleTasksSync";
 import { googleEndToInclusive, inclusiveEndToGoogle } from "@shared/domain/allDayDates";
 
 type EventRow = typeof events.$inferSelect;
@@ -253,5 +254,7 @@ export async function syncNow(userId: string): Promise<{ pulled: number; pushed:
   const { pulled } = await pullFromGoogle(userId);
   const { pushed: eventsPushed } = await pushLocalChanges(userId);
   const { pushed: tasksPushed } = await pushTaskChanges(userId);
-  return { pulled, pushed: eventsPushed + tasksPushed };
+  // Google Tasks solo si el token tiene ese permiso; las conexiones anteriores deben volver a conectar.
+  const googleTasks = connection.hasTasksPermission(userId) ? await syncGoogleTasks(userId) : { pulled: 0, pushed: 0 };
+  return { pulled: pulled + googleTasks.pulled, pushed: eventsPushed + tasksPushed + googleTasks.pushed };
 }

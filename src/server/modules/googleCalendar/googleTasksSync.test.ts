@@ -1,0 +1,202 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { eq } from "drizzle-orm";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+const fetchMock = vi.fn();
+const TASKS_API = "https://tasks.googleapis.com/tasks/v1";
+const TASKS_SCOPE = "https://www.googleapis.com/auth/tasks";
+
+function jsonResponse(body: unknown, ok = true, status = 200): Response {
+  return { ok, status, json: () => Promise.resolve(body) } as Response;
+}
+
+let tmpDir: string;
+let google: typeof import("./service");
+let tasksSync: typeof import("./googleTasksSync");
+let tasksService: typeof import("../tasks/service");
+let getDb: typeof import("../../db/client").getDb;
+let closeDb: typeof import("../../db/client").closeDb;
+let schema: typeof import("../../db/schema");
+let enterWithUserId: typeof import("../../lib/requestContext").enterWithUserId;
+
+const USER_ID = "tasks-sync-user";
+
+/** Conecta la cuenta con el permiso de Google Tasks concedido. */
+async function connectWithTasks(): Promise<void> {
+  const state = new URL(google.startConnect(USER_ID)).searchParams.get("state")!;
+  fetchMock.mockResolvedValueOnce(
+    jsonResponse({
+      access_token: "access-1",
+      refresh_token: "refresh-1",
+      expires_in: 3600,
+      scope: `https://www.googleapis.com/auth/calendar ${TASKS_SCOPE}`,
+    }),
+  );
+  await google.handleCallback("code-1", state);
+  fetchMock.mockReset();
+}
+
+beforeAll(async () => {
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lifehub-google-tasks-test-"));
+  process.env.LIFEHUB_DATA_DIR = tmpDir;
+  process.env.GOOGLE_CLIENT_ID = "test-client-id";
+  process.env.GOOGLE_CLIENT_SECRET = "test-client-secret";
+  process.env.GOOGLE_REDIRECT_URI = "http://127.0.0.1:3131/api/integrations/google/callback";
+  const { runMigrations } = await import("../../db/migrate");
+  runMigrations();
+  vi.stubGlobal("fetch", fetchMock);
+  google = await import("./service");
+  tasksSync = await import("./googleTasksSync");
+  tasksService = await import("../tasks/service");
+  const client = await import("../../db/client");
+  getDb = client.getDb;
+  closeDb = client.closeDb;
+  schema = await import("../../db/schema");
+  enterWithUserId = (await import("../../lib/requestContext")).enterWithUserId;
+  getDb().insert(schema.users).values({ id: USER_ID, name: "Tasks", passwordHash: "x" }).run();
+});
+
+afterAll(() => {
+  closeDb();
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+  delete process.env.LIFEHUB_DATA_DIR;
+  delete process.env.GOOGLE_CLIENT_ID;
+  delete process.env.GOOGLE_CLIENT_SECRET;
+  delete process.env.GOOGLE_REDIRECT_URI;
+  vi.unstubAllGlobals();
+});
+
+beforeEach(async () => {
+  enterWithUserId(USER_ID);
+  getDb().run("delete from google_tasks_links");
+  getDb().run("delete from tasks");
+  getDb().run("delete from google_calendar_connection");
+  fetchMock.mockReset();
+  await connectWithTasks();
+});
+
+/** Respuesta de la lista de Google Tasks (una sola página). */
+function queueRemoteList(items: unknown[]) {
+  fetchMock.mockResolvedValueOnce(jsonResponse({ items }));
+}
+
+function linkFor(taskId: string) {
+  return getDb().select().from(schema.googleTasksLinks).where(eq(schema.googleTasksLinks.taskId, taskId)).get();
+}
+
+function taskRow(id: string) {
+  return getDb().select().from(schema.tasks).where(eq(schema.tasks.id, id)).get();
+}
+
+describe("google tasks — hacia Google", () => {
+  it("una tarea abierta con fecha se crea en Google Tasks con su fecha de vencimiento", async () => {
+    const task = tasksService.createTask({ title: "Entregar informe", priority: "normal", dueDate: "2026-11-10" });
+    queueRemoteList([]);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-1", updated: "2026-10-26T10:00:00.000Z" }));
+
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === "POST");
+    expect(post![0]).toBe(`${TASKS_API}/lists/@default/tasks`);
+    expect(JSON.parse(post![1].body)).toMatchObject({
+      title: "Entregar informe",
+      due: "2026-11-10T00:00:00.000Z",
+      status: "needsAction",
+    });
+    expect(linkFor(task.id)).toMatchObject({ googleTaskId: "gt-1", googleTaskListId: "@default" });
+  });
+
+  it("completar la tarea en LifeHub la marca como completada en Google Tasks", async () => {
+    const task = tasksService.createTask({ title: "Llamar", priority: "normal", dueDate: "2026-11-10" });
+    queueRemoteList([]);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-2", updated: "2026-10-26T10:00:00.000Z" }));
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    tasksService.updateTask(task.id, { status: "done" });
+    fetchMock.mockReset();
+    queueRemoteList([{ id: "gt-2", title: "Llamar", status: "needsAction", due: "2026-11-10T00:00:00.000Z", updated: "2026-10-26T10:00:00.000Z" }]);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-2", updated: "2026-10-26T11:00:00.000Z" }));
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    const patch = fetchMock.mock.calls.find(([, init]) => init?.method === "PATCH");
+    expect(patch![0]).toContain("/lists/@default/tasks/gt-2");
+    expect(JSON.parse(patch![1].body)).toMatchObject({ status: "completed" });
+  });
+
+  it("una tarea sin fecha no se sube a Google Tasks", async () => {
+    tasksService.createTask({ title: "Idea sin fecha", priority: "normal" });
+    queueRemoteList([]);
+    await tasksSync.syncGoogleTasks(USER_ID);
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method && init.method !== "GET")).toHaveLength(0);
+  });
+});
+
+describe("google tasks — desde Google", () => {
+  it("una tarea nueva creada en Google Tasks aparece en LifeHub", async () => {
+    queueRemoteList([{ id: "gt-3", title: "Comprar pan", notes: "integral", status: "needsAction", due: "2026-11-12T00:00:00.000Z", updated: "2026-10-26T12:00:00.000Z" }]);
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    const row = getDb().select().from(schema.tasks).where(eq(schema.tasks.title, "Comprar pan")).get();
+    expect(row).toMatchObject({ description: "integral", dueDate: "2026-11-12", status: "todo" });
+    expect(linkFor(row!.id)).toMatchObject({ googleTaskId: "gt-3" });
+  });
+
+  it("completar la tarea en Google Tasks la marca como hecha en LifeHub", async () => {
+    const task = tasksService.createTask({ title: "Revisar", priority: "normal", dueDate: "2026-11-10" });
+    queueRemoteList([]);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-4", updated: "2026-10-26T10:00:00.000Z" }));
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    fetchMock.mockReset();
+    queueRemoteList([{ id: "gt-4", title: "Revisar", status: "completed", due: "2026-11-10T00:00:00.000Z", updated: "2026-10-26T12:00:00.000Z" }]);
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    expect(taskRow(task.id)?.status).toBe("done");
+  });
+
+  it("borrar la tarea en Google Tasks la borra en LifeHub", async () => {
+    const task = tasksService.createTask({ title: "Se borra", priority: "normal", dueDate: "2026-11-10" });
+    queueRemoteList([]);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-5", updated: "2026-10-26T10:00:00.000Z" }));
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    fetchMock.mockReset();
+    queueRemoteList([{ id: "gt-5", deleted: true, updated: "2026-10-26T12:00:00.000Z" }]);
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    expect(taskRow(task.id)?.deletedAt).not.toBeNull();
+    expect(linkFor(task.id)).toBeUndefined();
+  });
+
+  it("si la tarea cambió en LifeHub después del último estado remoto, gana lo local", async () => {
+    const task = tasksService.createTask({ title: "Versión original", priority: "normal", dueDate: "2026-11-10" });
+    queueRemoteList([]);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-6", updated: "2026-10-26T10:00:00.000Z" }));
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    tasksService.updateTask(task.id, { title: "Versión local" });
+
+    fetchMock.mockReset();
+    queueRemoteList([{ id: "gt-6", title: "Versión remota", status: "needsAction", due: "2026-11-10T00:00:00.000Z", updated: "2026-10-26T12:00:00.000Z" }]);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-6", updated: "2026-10-26T13:00:00.000Z" }));
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    expect(taskRow(task.id)?.title).toBe("Versión local");
+    const patch = fetchMock.mock.calls.find(([, init]) => init?.method === "PATCH");
+    expect(JSON.parse(patch![1].body).title).toBe("Versión local");
+  });
+});
+
+describe("google tasks — syncNow()", () => {
+  it("sincroniza Google Tasks al hacer syncNow cuando el token tiene el permiso", async () => {
+    const sync = await import("./sync");
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [] })); // calendario: pull de eventos
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "gt-9", title: "Desde syncNow", status: "needsAction", updated: "2026-10-26T12:00:00.000Z" }] })); // Google Tasks: pull
+    await sync.syncNow(USER_ID);
+    expect(getDb().select().from(schema.tasks).where(eq(schema.tasks.title, "Desde syncNow")).get()).toBeDefined();
+  });
+});
