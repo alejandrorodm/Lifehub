@@ -4,6 +4,7 @@ import { RouteErrorBoundary } from "./RouteErrorBoundary";
 import { TodayPage } from "@client/features/dashboard/TodayPage";
 import { InboxPage } from "@client/features/inbox/InboxPage";
 import { TasksPage } from "@client/features/tasks/TasksPage";
+import { PlanPage } from "@client/features/planning/PlanPage";
 import { CalendarPage } from "@client/features/calendar/CalendarPage";
 import { NotesPage } from "@client/features/notes/NotesPage";
 import { NoteEditorPage } from "@client/features/notes/NoteEditorPage";
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
       { index: true, element: <TodayPage /> },
       { path: "inbox", element: <InboxPage /> },
       { path: "tasks", element: <TasksPage /> },
+      { path: "plan", element: <PlanPage /> },
       { path: "calendar", element: <CalendarPage /> },
       { path: "notes", element: <NotesPage /> },
       { path: "notes/:id", element: <NoteEditorPage /> },

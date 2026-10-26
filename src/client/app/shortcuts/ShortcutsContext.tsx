@@ -41,6 +41,7 @@ const GO_TO_ROUTES: Record<string, string> = {
   h: "/",
   i: "/inbox",
   t: "/tasks",
+  d: "/plan",
   c: "/calendar",
   n: "/notes",
   p: "/projects",
