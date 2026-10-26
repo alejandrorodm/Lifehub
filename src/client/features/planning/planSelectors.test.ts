@@ -29,13 +29,14 @@ describe("countOpenPlanTasks", () => {
       scheduled: [task("a"), task("b", { status: "done" })],
       unscheduled: [task("c")],
       overdue: [task("d")],
+      backlog: [],
     } as PlanDayDto;
 
     expect(countOpenPlanTasks(plan)).toBe(2);
   });
 
   it("un día sin tareas abiertas cuenta 0", () => {
-    const plan = { date: "2031-01-01", scheduled: [], unscheduled: [], overdue: [] } as PlanDayDto;
+    const plan = { date: "2031-01-01", scheduled: [], unscheduled: [], overdue: [], backlog: [] } as PlanDayDto;
     expect(countOpenPlanTasks(plan)).toBe(0);
   });
 });
