@@ -2,6 +2,7 @@ import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core
 import { v7 as uuidv7 } from "uuid";
 import { timestamps } from "./common";
 import { events } from "./events";
+import { tasks } from "./tasks";
 import { users } from "./users";
 
 /** Una suscripción de Web Push por navegador/dispositivo y perfil (fase 9/13). */
@@ -76,4 +77,30 @@ export const googleEventLinks = sqliteTable(
   (t) => [
     uniqueIndex("google_event_links_google_event_unique").on(t.googleCalendarId, t.googleEventId),
   ],
+);
+
+/**
+ * Enlace entre una tarea de LifeHub y su evento en Google Calendar (fase 9 +
+ * sincronización de tareas). Mismo modelo que `google_event_links`: las
+ * marcas de tiempo de ambos lados permiten decidir qué cambió en cada sync.
+ */
+export const googleTaskLinks = sqliteTable(
+  "google_task_links",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    taskId: text("task_id")
+      .notNull()
+      .unique()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    googleEventId: text("google_event_id").notNull(),
+    googleCalendarId: text("google_calendar_id").notNull(),
+    localUpdatedAtSynced: integer("local_updated_at_synced", { mode: "timestamp_ms" }).notNull(),
+    remoteUpdatedAtSynced: integer("remote_updated_at_synced", { mode: "timestamp_ms" }).notNull(),
+    lastSyncedAt: integer("last_synced_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [uniqueIndex("google_task_links_google_event_unique").on(t.googleCalendarId, t.googleEventId)],
 );

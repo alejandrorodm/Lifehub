@@ -24,6 +24,7 @@ import {
   pushSubscriptions,
   googleCalendarConnection,
   googleEventLinks,
+  googleTaskLinks,
   financeAssets,
   financeGoals,
   financeEntries,
@@ -89,6 +90,9 @@ function wipeContentTables(tx: ReturnType<typeof getDb>, userId: string): void {
     // que el ON DELETE CASCADE de `google_event_links` no dispara solo: hay
     // que borrarlos explícitamente para no dejar referencias huérfanas.
     tx.delete(googleEventLinks).where(inArray(googleEventLinks.eventId, myEventIds)).run();
+  }
+  if (myTaskIds.length) {
+    tx.delete(googleTaskLinks).where(inArray(googleTaskLinks.taskId, myTaskIds)).run();
   }
   if (myHabitIds.length) tx.delete(habitLogs).where(inArray(habitLogs.habitId, myHabitIds)).run();
   if (myRoutineStepIds.length) tx.delete(routineStepLogs).where(inArray(routineStepLogs.stepId, myRoutineStepIds)).run();

@@ -50,6 +50,13 @@
       "when": 1793035704574,
       "tag": "0006_milky_omega_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793041353244,
+      "tag": "0007_complete_justin_hammer",
+      "breakpoints": true
     }
   ]
 }
