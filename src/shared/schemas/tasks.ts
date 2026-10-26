@@ -45,6 +45,14 @@ export const TaskPatchSchema = z
   .partial();
 export type TaskPatchInput = z.infer<typeof TaskPatchSchema>;
 
+export const PlanDayQuerySchema = z.object({ date: ISO_DATE });
+export type PlanDayQuery = z.infer<typeof PlanDayQuerySchema>;
+
+export const PlanCarryOverSchema = z
+  .object({ from: ISO_DATE, to: ISO_DATE })
+  .refine((value) => value.from !== value.to, { message: "El día de destino debe ser distinto del de origen." });
+export type PlanCarryOverInput = z.infer<typeof PlanCarryOverSchema>;
+
 export const ChecklistItemCreateSchema = z.object({
   text: z.string().trim().min(1, "El texto es obligatorio.").max(300),
 });
@@ -76,6 +84,16 @@ export interface ChecklistItemDto {
   text: string;
   done: boolean;
   position: number;
+}
+
+export interface PlanDayDto {
+  date: string;
+  /** Tareas con hueco en la línea de tiempo de ese día, ordenadas por hora. */
+  scheduled: TaskDto[];
+  /** Tareas de ese día todavía sin hueco. */
+  unscheduled: TaskDto[];
+  /** Tareas abiertas con fecha anterior a hoy (zona del usuario). */
+  overdue: TaskDto[];
 }
 
 export interface TaskDto {

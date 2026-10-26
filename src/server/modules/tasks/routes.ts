@@ -7,6 +7,8 @@ import {
   TaskListQuerySchema,
   ChecklistItemCreateSchema,
   ChecklistItemPatchSchema,
+  PlanDayQuerySchema,
+  PlanCarryOverSchema,
 } from "@shared/schemas/tasks";
 import * as service from "./service";
 import { listNotesForTask } from "../notes/service";
@@ -33,6 +35,14 @@ export const tasksRoutes = new Hono()
     const end = c.req.query("end");
     if (!start || !end) throw new AppError("BAD_REQUEST", "Faltan los parámetros start/end.");
     return c.json(service.listScheduledTasks(start, end));
+  })
+  .get("/plan", (c) => {
+    const { date } = parseOrThrow(PlanDayQuerySchema, { date: c.req.query("date") });
+    return c.json(service.getPlanDay(date));
+  })
+  .post("/plan/carry-over", async (c) => {
+    const input = parseOrThrow(PlanCarryOverSchema, await c.req.json().catch(() => null));
+    return c.json(service.carryOverOpenTasks(input.from, input.to));
   })
   .get("/trash", (c) => c.json(service.listTrash()))
   .post("/", async (c) => {

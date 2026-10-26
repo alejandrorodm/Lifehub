@@ -266,3 +266,40 @@ describe("planificación: hora programada y duración estimada", () => {
     expect(created).toMatchObject({ scheduledStart: null, estimatedMinutes: null });
   });
 });
+
+describe("plan del día", () => {
+  it("separa las tareas planificadas, las sin planificar y las atrasadas", () => {
+    const planned = tasks.createTask({ title: "Planificada", priority: "normal", dueDate: tomorrow });
+    tasks.updateTask(planned.id, { scheduledStart: "09:00", estimatedMinutes: 60 });
+    const loose = tasks.createTask({ title: "Suelta", priority: "normal", dueDate: tomorrow });
+    const late = tasks.createTask({ title: "Atrasada", priority: "normal", dueDate: yesterday });
+
+    const plan = tasks.getPlanDay(tomorrow);
+
+    expect(plan.date).toBe(tomorrow);
+    expect(plan.scheduled.map((t) => t.id)).toContain(planned.id);
+    expect(plan.scheduled.map((t) => t.id)).not.toContain(loose.id);
+    expect(plan.unscheduled.map((t) => t.id)).toContain(loose.id);
+    expect(plan.unscheduled.map((t) => t.id)).not.toContain(planned.id);
+    expect(plan.overdue.map((t) => t.id)).toContain(late.id);
+  });
+
+  it("traslada solo las tareas abiertas del día origen y limpia su hueco", () => {
+    const from = shiftDate(today, 20);
+    const to = shiftDate(today, 21);
+    const open = tasks.createTask({ title: "Abierta", priority: "normal", dueDate: from });
+    tasks.updateTask(open.id, { scheduledStart: "10:00" });
+    const done = tasks.createTask({ title: "Hecha", priority: "normal", dueDate: from });
+    tasks.updateTask(done.id, { status: "done" });
+
+    const result = tasks.carryOverOpenTasks(from, to);
+
+    expect(result).toEqual({ moved: 1 });
+    expect(tasks.getTask(open.id)).toMatchObject({ dueDate: to, scheduledStart: null });
+    expect(tasks.getTask(done.id)).toMatchObject({ dueDate: from, status: "done" });
+  });
+
+  it("no hace nada si no hay tareas abiertas que trasladar", () => {
+    expect(tasks.carryOverOpenTasks(shiftDate(today, 40), shiftDate(today, 41))).toEqual({ moved: 0 });
+  });
+});

@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, isNotNull, lt, gt, gte, lte, like, or, desc, asc } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, like, lt, lte, or } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { tasks, checklistItems, tags, taskTags } from "../../db/schema";
 import { AppError } from "../../lib/errors";
@@ -8,14 +8,7 @@ import { nextDueDate } from "../../domain/recurrence";
 import { getSettings } from "../settings/service";
 import { ensureTagIds } from "../../lib/tags";
 import { getCurrentUserId } from "../../lib/requestContext";
-import type {
-  TaskCreateInput,
-  TaskPatchInput,
-  TaskListQuery,
-  TaskDto,
-  ChecklistItemDto,
-  TagDto,
-} from "@shared/schemas/tasks";
+import type { TaskCreateInput, TaskPatchInput, TaskListQuery, TaskDto, ChecklistItemDto, TagDto, PlanDayDto } from "@shared/schemas/tasks";
 
 type TaskRow = typeof tasks.$inferSelect;
 
@@ -280,6 +273,81 @@ export function listPriorityAndOverdue(limit = 8): TaskDto[] {
     .all();
 
   return hydrate(rows);
+}
+
+/** Vista de planificación de un día: bloques, pendientes sin hueco y atrasadas. */
+export function getPlanDay(date: string): PlanDayDto {
+  const db = getDb();
+  const userId = getCurrentUserId();
+  const today = todayISODate(getSettings().timeZone);
+  const openStatus = or(eq(tasks.status, "todo"), eq(tasks.status, "in_progress"))!;
+
+  const dayRows = db
+    .select()
+    .from(tasks)
+    .where(
+      and(eq(tasks.userId, userId), isNull(tasks.deletedAt), isNull(tasks.parentTaskId), eq(tasks.dueDate, date)),
+    )
+    .orderBy(asc(tasks.scheduledStart), asc(tasks.position))
+    .all();
+
+  const overdueRows = db
+    .select()
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.userId, userId),
+        isNull(tasks.deletedAt),
+        isNull(tasks.parentTaskId),
+        lt(tasks.dueDate, today),
+        openStatus,
+      ),
+    )
+    .orderBy(asc(tasks.dueDate), asc(tasks.position))
+    .limit(20)
+    .all();
+
+  const scheduledRows = dayRows.filter((row) => row.scheduledStart !== null);
+  const unscheduledRows = dayRows.filter((row) => row.scheduledStart === null && row.status !== "done");
+
+  return {
+    date,
+    scheduled: hydrate(scheduledRows),
+    unscheduled: hydrate(unscheduledRows),
+    overdue: hydrate(overdueRows),
+  };
+}
+
+/**
+ * Mueve las tareas abiertas de `from` a `to` y libera su hueco (una hora de
+ * otro día no tiene sentido). Las completadas y las subtareas no se tocan:
+ * las subtareas conservan su propia fecha.
+ */
+export function carryOverOpenTasks(from: string, to: string): { moved: number } {
+  const db = getDb();
+  const userId = getCurrentUserId();
+  const rows = db
+    .select({ id: tasks.id })
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.userId, userId),
+        isNull(tasks.deletedAt),
+        isNull(tasks.parentTaskId),
+        eq(tasks.dueDate, from),
+        or(eq(tasks.status, "todo"), eq(tasks.status, "in_progress")),
+      ),
+    )
+    .all();
+
+  if (rows.length === 0) return { moved: 0 };
+
+  db.update(tasks)
+    .set({ dueDate: to, scheduledStart: null, updatedAt: new Date() })
+    .where(and(eq(tasks.userId, userId), inArray(tasks.id, rows.map((row) => row.id))))
+    .run();
+
+  return { moved: rows.length };
 }
 
 export function countTasksByStatus(): { pending: number; completedToday: number } {
