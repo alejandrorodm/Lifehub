@@ -130,3 +130,19 @@ export const googleTasksLinks = sqliteTable(
   },
   (t) => [uniqueIndex("google_tasks_links_remote_unique").on(t.googleTaskListId, t.googleTaskId)],
 );
+
+/**
+ * Cuenta de GitHub conectada por perfil (OAuth). El token se usa solo en el
+ * servidor para leer la actividad de los repos enlazados.
+ */
+export const githubConnection = sqliteTable("github_connection", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  accessToken: text("access_token").notNull(),
+  login: text("login").notNull(),
+  scope: text("scope").notNull(),
+  connectedAt: integer("connected_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});

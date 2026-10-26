@@ -71,6 +71,13 @@
       "when": 1793046434882,
       "tag": "0009_lush_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1793048299362,
+      "tag": "0010_purple_sleeper",
+      "breakpoints": true
     }
   ]
 }

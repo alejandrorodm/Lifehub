@@ -29,7 +29,8 @@ export const config = {
   },
   // Fase 10: resumen de actividad de GitHub por proyecto, solo lectura.
   github: {
-    token: process.env.GITHUB_TOKEN,
+    clientId: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
   },
 };
 
@@ -41,6 +42,7 @@ export function isWebPushConfigured(): boolean {
   return Boolean(config.webPush.vapidPublicKey && config.webPush.vapidPrivateKey);
 }
 
+/** GitHub está disponible si el servidor tiene la OAuth App configurada; cada perfil conecta su cuenta. */
 export function isGithubConfigured(): boolean {
-  return Boolean(config.github.token);
+  return Boolean(config.github.clientId && config.github.clientSecret);
 }

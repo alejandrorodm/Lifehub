@@ -793,3 +793,29 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - Habilitar la **Google Tasks API** en el mismo proyecto de Google Cloud (si no, la sincronización falla con un aviso que lo indica).
 - Volver a conectar Google Calendar en Ajustes para aceptar el permiso de Tasks.
 - No probado contra Google real; no desplegado.
+
+## Fase 10b — GitHub con inicio de sesión por perfil (rama `feat/github-oauth`, 2026-10-26)
+
+**Nota sobre el alcance:** pedida por el usuario: cada perfil conecta su propia cuenta de GitHub, en vez de un token global del servidor. Sustituye al `GITHUB_TOKEN` de la fase 10.
+
+**Implementado:**
+
+- OAuth de GitHub: `GET /api/integrations/github/connect` → autorización → `callback`. Se guarda el token y el usuario de GitHub por perfil (tabla `github_connection`, migración `0010`).
+- Desconectar borra la cuenta del perfil.
+- Actividad de los repos enlazados con el token de quien la pide. Sin cuenta conectada, el aviso dice dónde conectarla.
+- `GET /api/integrations/github/repos`: repos de la cuenta, sugeridos al enlazar un proyecto.
+- Ajustes: conectar, desconectar y sincronizar proyectos. Pestaña GitHub del proyecto: botón de sincronizar y hora de la última actualización.
+
+**Decisiones:**
+
+- Permiso `repo`: una OAuth App no tiene permiso solo de lectura para repos privados. La app solo lee, pero el token podría escribir. Hay que decirlo en la política de privacidad.
+- Igual que con Google, el token se guarda en la base de datos del servidor, sin cifrar.
+
+**Configuración necesaria en el servidor:**
+
+- Crear una OAuth App en GitHub (Settings → Developer settings → OAuth Apps). URL de la página: `https://lifehub.alejandrorodm.com`. URL de callback: `https://lifehub.alejandrorodm.com/api/integrations/github/callback`.
+- Añadir `GITHUB_CLIENT_ID` y `GITHUB_CLIENT_SECRET` al `.env` del VPS y reiniciar. Ya no hace falta `GITHUB_TOKEN`.
+
+**Probado:** 10 tests del módulo de GitHub (inicio de sesión, estado inválido, desconexión, token del perfil, repos, casos límite de repo vacío, 404 y 401). Suite completa: 302/302. Tipos y lint sin errores.
+
+**Pendiente:** no probado contra GitHub real; sin desplegar.

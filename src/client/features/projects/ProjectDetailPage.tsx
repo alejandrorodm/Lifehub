@@ -20,6 +20,7 @@ import { useToast } from "@client/components/ui/Toast";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { useProjectGithubActivity } from "./useProjectGithub";
+import { useGithubRepos, useGithubStatus } from "@client/features/settings/useGithub";
 import { TaskRow } from "@client/features/tasks/TaskRow";
 import { TaskDetailSheet } from "@client/features/tasks/TaskDetailSheet";
 import { useProjectTasks, useCreateTask, useUpdateTask } from "@client/features/tasks/useTasks";
@@ -56,6 +57,8 @@ function ProjectGithubTab({ project }: { project: ProjectDto }) {
     project.id,
     project.githubRepo,
   );
+  const { data: githubStatus } = useGithubStatus();
+  const { data: repos } = useGithubRepos(githubStatus?.connected === true);
 
   return (
     <div className="space-y-4 px-6 py-4">
@@ -70,8 +73,14 @@ function ProjectGithubTab({ project }: { project: ProjectDto }) {
             updateProject.mutate({ id: project.id, patch: { githubRepo: value || null } });
           }}
           placeholder="owner/repo"
+          list="project-github-repo-options"
           aria-describedby="project-github-repo-hint"
         />
+        <datalist id="project-github-repo-options">
+          {(repos ?? []).map((repo) => (
+            <option key={repo} value={repo} />
+          ))}
+        </datalist>
         <p id="project-github-repo-hint" className="mt-1.5 text-xs text-text-muted">
           Resumen general de actividad (último commit, actividad reciente), no un listado commit a commit.
         </p>

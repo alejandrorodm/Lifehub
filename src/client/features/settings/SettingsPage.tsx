@@ -11,7 +11,7 @@ import { useSettings, useUpdateSettings } from "./useSettings";
 import { useExportData, useImportPreview, useRestoreImport, useWipeAll } from "./useData";
 import { usePushStatus, useEnablePush, useDisablePush } from "./usePush";
 import { useGoogleStatus, useDisconnectGoogle, useSyncGoogleNow } from "./useGoogleCalendar";
-import { useGithubStatus } from "./useGithub";
+import { useGithubStatus, useDisconnectGithub } from "./useGithub";
 import { McpSection } from "./McpSection";
 import { api } from "@client/lib/api";
 import { DASHBOARD_WIDGETS, NAV_SECTIONS } from "@shared/schemas/settings";
@@ -533,6 +533,7 @@ function GoogleCalendarSection() {
  */
 function GithubSection() {
   const { data: status, isLoading } = useGithubStatus();
+  const disconnect = useDisconnectGithub();
   const queryClient = useQueryClient();
   const { show } = useToast();
 
@@ -549,33 +550,52 @@ function GithubSection() {
         <div>
           <p className="text-sm font-medium">GitHub</p>
           <p className="text-sm text-text-muted">
-            Actividad de los repositorios enlazados a tus proyectos (último commit y commits de los últimos 30
-            días).
+            {status.connected
+              ? `Conectado como @${status.login}. Enlaza repos a tus proyectos desde su pestaña "GitHub".`
+              : "Conecta tu cuenta para ver la actividad de tus repos en los proyectos."}
           </p>
         </div>
         <span
           className={
-            status.configured
+            status.connected
               ? "inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent"
               : "inline-flex items-center gap-1.5 rounded-full bg-bg-subtle px-2.5 py-1 text-xs font-medium text-text-muted"
           }
         >
           <GitFork className="size-3.5" aria-hidden />
-          {status.configured ? "Configurado" : "No configurado"}
+          {status.connected ? "Conectado" : "Sin conectar"}
         </span>
       </div>
-      {status.configured ? (
-        <div className="flex justify-end">
+      {!status.configured ? (
+        <p className="text-xs text-text-muted">
+          El servidor no tiene la OAuth App de GitHub. Añade GITHUB_CLIENT_ID y GITHUB_CLIENT_SECRET al .env y
+          reinicia LifeHub.
+        </p>
+      ) : status.connected ? (
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => disconnect.mutate()}
+            disabled={disconnect.isPending}
+          >
+            Desconectar
+          </Button>
           <Button variant="secondary" size="sm" onClick={syncAll}>
             <RefreshCw className="size-4" aria-hidden />
             Sincronizar proyectos
           </Button>
         </div>
       ) : (
-        <p className="text-xs text-text-muted">
-          Para activarlo, añade GITHUB_TOKEN (un token de GitHub de solo lectura) al .env del servidor y
-          reinicia LifeHub. Enlaza un repo desde la pestaña &quot;GitHub&quot; de cada proyecto.
-        </p>
+        <div className="flex justify-end">
+          <a
+            href="/api/integrations/github/connect"
+            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-bg-subtle px-3 text-sm font-medium text-text hover:border-border-strong"
+          >
+            <GitFork className="size-4" aria-hidden />
+            Conectar GitHub
+          </a>
+        </div>
       )}
     </div>
   );

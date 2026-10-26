@@ -16,5 +16,9 @@ export interface GithubActivityResult {
 }
 
 export interface GithubStatusDto {
+  /** El servidor tiene la OAuth App de GitHub configurada. */
   configured: boolean;
+  /** Este perfil ha conectado su cuenta de GitHub. */
+  connected: boolean;
+  login: string | null;
 }
