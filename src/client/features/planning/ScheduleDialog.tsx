@@ -6,11 +6,22 @@ import { Input, Label } from "@client/components/ui/Input";
 import { Select } from "@client/components/ui/Select";
 import { useUpdateTask } from "@client/features/tasks/useTasks";
 import type { TaskDto } from "@shared/schemas/tasks";
-import { DAY_END_MINUTES, DAY_START_MINUTES, DEFAULT_ESTIMATED_MINUTES, parseTimeToMinutes, formatMinutesToTime } from "@shared/domain/planning";
+import {
+  DAY_END_MINUTES,
+  DAY_START_MINUTES,
+  DEFAULT_ESTIMATED_MINUTES,
+  parseTimeToMinutes,
+  formatMinutesToTime,
+} from "@shared/domain/planning";
 
 const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120, 180].map((minutes) => ({
   value: String(minutes),
-  label: minutes < 60 ? `${minutes} min` : minutes % 60 === 0 ? `${minutes / 60} h` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`,
+  label:
+    minutes < 60
+      ? `${minutes} min`
+      : minutes % 60 === 0
+        ? `${minutes / 60} h`
+        : `${Math.floor(minutes / 60)} h ${minutes % 60} min`,
 }));
 
 interface ScheduleDialogProps {
@@ -34,7 +45,9 @@ export function ScheduleDialog({ task, date, open, onOpenChange, onFocus }: Sche
   const startMinutes = parseTimeToMinutes(time);
   const durationMinutes = Number(duration);
   const fits =
-    startMinutes !== null && startMinutes >= DAY_START_MINUTES && startMinutes + durationMinutes <= DAY_END_MINUTES;
+    startMinutes !== null &&
+    startMinutes >= DAY_START_MINUTES &&
+    startMinutes + durationMinutes <= DAY_END_MINUTES;
 
   const save = (event: FormEvent) => {
     event.preventDefault();

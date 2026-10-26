@@ -40,6 +40,8 @@ function DraggableTaskRow({
       )}
       {...listeners}
       {...attributes}
+      // dnd-kit marca el elemento como botón; la fila sigue siendo un elemento de lista.
+      role="listitem"
     >
       <span className={cn("size-2 shrink-0 rounded-full", PRIORITY_DOT_CLASS[task.priority])} aria-hidden />
       <div className="min-w-0 flex-1">

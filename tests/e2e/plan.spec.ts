@@ -30,6 +30,34 @@ test.describe("plan del día: flujo de datos", () => {
     await page.getByRole("dialog", { name: "Programar tarea" }).getByRole("button", { name: "Enfocar" }).click();
     await expect(page.getByRole("timer")).toHaveText(/^(29|30):\d{2}$/);
   });
+
+  test("arrastrar una tarea a la línea de tiempo la programa a esa hora", async ({ page }) => {
+    const title = `Arrastrada e2e ${Date.now()}`;
+    await page.goto("/tasks");
+    const quickAdd = page.getByLabel("Añadir tarea");
+    await quickAdd.fill(title);
+    await quickAdd.press("Enter");
+    await expect(page.getByText(title).first()).toBeVisible();
+
+    await page.goto("/plan");
+    const item = page.getByRole("listitem").filter({ hasText: title });
+    await expect(item).toBeVisible();
+    const itemBox = (await item.boundingBox())!;
+    const timeline = (await page.getByTestId("plan-timeline").boundingBox())!;
+
+    // 10:00 está a 3 h de la 07:00 (64 px por hora). Se arrastra la tarjeta para que su borde superior caiga ahí.
+    const tenOClockTop = timeline.y + 3 * 64;
+    const startX = itemBox.x + itemBox.width / 2;
+    const startY = itemBox.y + itemBox.height / 2;
+    const endY = startY + (tenOClockTop - itemBox.y);
+
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(timeline.x + 120, endY, { steps: 12 });
+    await page.mouse.up();
+
+    await expect(page.getByRole("button", { name: `${title}, de 10:00 durante 30 minutos` })).toBeVisible();
+  });
 });
 
 test("el plan del día se ve completo y sin desbordar la página en cualquier viewport", async ({ page }, testInfo) => {

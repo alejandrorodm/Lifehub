@@ -103,6 +103,7 @@ export function PlanTimeline({ scheduled, onOpenBlock }: PlanTimelineProps) {
 
         <div
           ref={setDropRef}
+          data-testid="plan-timeline"
           className={cn(
             "relative flex-1 border-l border-border transition-colors",
             isOver && "bg-accent-soft/40",
