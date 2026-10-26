@@ -104,3 +104,29 @@ export const googleTaskLinks = sqliteTable(
   },
   (t) => [uniqueIndex("google_task_links_google_event_unique").on(t.googleCalendarId, t.googleEventId)],
 );
+
+/**
+ * Enlace entre una tarea de LifeHub y una tarea de Google Tasks (lista de
+ * tareas de Google, distinta del calendario). Mismas marcas de tiempo que los
+ * demás enlaces para resolver conflictos con la política "el más reciente gana".
+ */
+export const googleTasksLinks = sqliteTable(
+  "google_tasks_links",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    taskId: text("task_id")
+      .notNull()
+      .unique()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    googleTaskId: text("google_task_id").notNull(),
+    googleTaskListId: text("google_task_list_id").notNull(),
+    localUpdatedAtSynced: integer("local_updated_at_synced", { mode: "timestamp_ms" }).notNull(),
+    remoteUpdatedAtSynced: integer("remote_updated_at_synced", { mode: "timestamp_ms" }).notNull(),
+    lastSyncedAt: integer("last_synced_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [uniqueIndex("google_tasks_links_remote_unique").on(t.googleTaskListId, t.googleTaskId)],
+);
