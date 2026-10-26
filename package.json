@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
+    "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource-variable/inter": "^5.3.0",
     "@hono/node-server": "^2.1.5",
     "@hookform/resolvers": "^5.9.1",

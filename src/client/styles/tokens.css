@@ -51,6 +51,7 @@
   --radius-lg: 14px;
 
   --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Fraunces Variable", "Fraunces", Georgia, serif;
 }
 
 :root {

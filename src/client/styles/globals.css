@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
+@import "@fontsource-variable/fraunces";
 @import "./tokens.css";
 @plugin "@tailwindcss/typography";
 
@@ -38,6 +39,15 @@
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
     border-radius: var(--radius-sm);
+  }
+
+  /* Titulares con serif de carácter (agenda de papel); el texto sigue en Inter. */
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
   }
 
   ::selection {

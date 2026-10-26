@@ -325,10 +325,19 @@ export function TodayPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
-      <header>
-        <h1 className="text-2xl font-semibold capitalize">{greeting}</h1>
-        <p className="mt-1 text-sm capitalize text-text-muted">{today}</p>
-        <div className="mt-3">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold capitalize">{greeting}</h1>
+          <p className="mt-1 text-sm capitalize text-text-muted">{today}</p>
+        </div>
+        <Link
+          to="/plan"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-bg-subtle px-3 text-sm text-text hover:border-border-strong"
+        >
+          <CalendarClock className="size-4" aria-hidden />
+          Plan del día
+        </Link>
+        <div className="w-full">
           <SummaryBar />
         </div>
       </header>

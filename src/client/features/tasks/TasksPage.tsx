@@ -10,6 +10,7 @@ import { TaskRow } from "./TaskRow";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { useTaskList, useCreateTask, useUpdateTask } from "./useTasks";
 import type { TaskDto, TaskView } from "@shared/schemas/tasks";
+import { PageHeader } from "@client/components/ui/PageHeader";
 
 const VIEWS: { value: TaskView; label: string }[] = [
   { value: "today", label: "Hoy" },
@@ -130,8 +131,7 @@ export function TasksPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-border px-6 py-4">
-        <h1 className="text-lg font-semibold">Tareas</h1>
+      <PageHeader title="Tareas">
         <div role="tablist" aria-label="Vista de tareas" className="mt-3 flex gap-1 overflow-x-auto">
           {VIEWS.map((v) => (
             <button
@@ -150,7 +150,7 @@ export function TasksPage() {
             </button>
           ))}
         </div>
-      </header>
+      </PageHeader>
 
       {view !== "completed" && (
         <div className="border-b border-border px-6 py-3">

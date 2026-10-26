@@ -4,8 +4,10 @@ import { es } from "date-fns/locale";
 import { useSearchParams } from "react-router-dom";
 import { CalendarCheck, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { Button } from "@client/components/ui/Button";
+import { PageHeader } from "@client/components/ui/PageHeader";
 import { EmptyState } from "@client/components/ui/EmptyState";
 import { Skeleton } from "@client/components/ui/Skeleton";
+import { Card } from "@client/components/ui/Card";
 import { useToday } from "@client/lib/useToday";
 import { DEFAULT_ESTIMATED_MINUTES, summarizeCapacity } from "@shared/domain/planning";
 import type { TaskDto } from "@shared/schemas/tasks";
@@ -54,12 +56,10 @@ export function PlanPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="space-y-4 border-b border-border px-6 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-lg font-semibold">Plan del día</h1>
-            <p className="text-sm text-text-muted">{dayLabel}</p>
-          </div>
+      <PageHeader
+        title="Plan del día"
+        description={dayLabel}
+        actions={
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" onClick={() => shiftDays(-1)} aria-label="Día anterior">
               <ChevronLeft className="size-4" aria-hidden />
@@ -75,8 +75,8 @@ export function PlanPage() {
               Cerrar el día
             </Button>
           </div>
-        </div>
-
+        }
+      >
         {data && (
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs text-text-muted">
@@ -103,7 +103,7 @@ export function PlanPage() {
         )}
 
         {focus && <FocusBanner session={focus} onStop={() => setFocus(null)} />}
-      </header>
+      </PageHeader>
 
       {plan.isPending && (
         <div className="grid flex-1 gap-6 p-6 lg:grid-cols-[1fr_320px]" aria-busy="true" aria-label="Cargando el plan">
@@ -127,9 +127,9 @@ export function PlanPage() {
 
       {data && (
         <div className="grid flex-1 gap-6 overflow-y-auto p-6 lg:grid-cols-[1fr_320px] lg:items-start">
-          <div className="min-w-0">
+          <Card className="min-w-0 p-4">
             <PlanTimeline scheduled={data.scheduled} onOpenBlock={startFocus} />
-          </div>
+          </Card>
           <aside aria-label="Tareas sin planificar">
             <PlanSidebar
               today={today}
