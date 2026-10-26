@@ -293,8 +293,8 @@ function ImportSection() {
       {preview && (
         <div className="rounded-md border border-border bg-bg-elevated p-4 text-sm">
           <p className="mb-2 font-medium text-text">
-            Esto va a <strong>reemplazar todos los datos actuales</strong> por los del archivo (se crea
-            una copia de seguridad automática antes de restaurar):
+            Esto va a <strong>reemplazar todos los datos actuales</strong> por los del archivo (se crea una
+            copia de seguridad automática antes de restaurar):
           </p>
           <ul className="mb-3 grid grid-cols-1 gap-x-4 gap-y-1 text-text-muted sm:grid-cols-2">
             {Object.entries(preview.info.counts).map(([key, count]) => (
@@ -327,8 +327,8 @@ function WipeAllSection() {
     <div className="space-y-2 rounded-md border border-danger/40 p-4">
       <p className="text-sm font-medium text-danger">Borrar todos los datos</p>
       <p className="text-sm text-text-muted">
-        Borra permanentemente todos los datos de LifeHub (se crea una copia de seguridad automática
-        antes). Escribe <strong className="text-text">{WIPE_CONFIRM_PHRASE}</strong> para confirmar.
+        Borra permanentemente todos los datos de LifeHub (se crea una copia de seguridad automática antes).
+        Escribe <strong className="text-text">{WIPE_CONFIRM_PHRASE}</strong> para confirmar.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <Input
@@ -368,9 +368,7 @@ function PushNotificationsSection() {
   if (isLoading || !status) return <Skeleton className="h-16" />;
 
   if (!status.supported) {
-    return (
-      <p className="text-sm text-text-muted">Tu navegador no soporta notificaciones push.</p>
-    );
+    return <p className="text-sm text-text-muted">Tu navegador no soporta notificaciones push.</p>;
   }
 
   if (!status.configured) {
@@ -448,7 +446,8 @@ function GoogleCalendarSection() {
         <div>
           <p className="text-sm font-medium">Google Calendar</p>
           <p className="text-sm text-text-muted">
-            Sincroniza tus eventos y tus tareas con fecha con Google Calendar en ambos sentidos.
+            Sincroniza tus eventos con Google Calendar en ambos sentidos, y tus tareas con fecha con Google
+            Calendar y Google Tasks.
           </p>
         </div>
         <a
@@ -463,42 +462,65 @@ function GoogleCalendarSection() {
   }
 
   return (
-    <div className="flex items-center justify-between rounded-md border border-border bg-bg-elevated px-4 py-3">
-      <div>
-        <p className="text-sm font-medium">Google Calendar</p>
-        <p className="text-sm text-text-muted">
-          Conectado
-          {!status.tasksEnabled && " · vuelve a conectar para activar Google Tasks"}
-          {status.lastSyncedAt &&
-            ` · última sincronización ${formatDistanceToNow(new Date(status.lastSyncedAt), { addSuffix: true, locale: es })}`}
-        </p>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between rounded-md border border-border bg-bg-elevated px-4 py-3">
+        <div>
+          <p className="text-sm font-medium">Google Calendar</p>
+          <p className="text-sm text-text-muted">
+            Conectado
+            {status.lastSyncedAt &&
+              ` · última sincronización ${formatDistanceToNow(new Date(status.lastSyncedAt), { addSuffix: true, locale: es })}`}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              sync.mutate(undefined, {
+                onSuccess: ({ pulled, pushed }) =>
+                  show({ tone: "success", title: `Sincronizado (${pulled} recibidos, ${pushed} enviados)` }),
+                onError: (error) =>
+                  show({
+                    tone: "error",
+                    title: "No se pudo sincronizar",
+                    description: (error as Error).message,
+                  }),
+              })
+            }
+            disabled={sync.isPending}
+          >
+            <RefreshCw className="size-4" aria-hidden />
+            Sincronizar ahora
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => disconnect.mutate()}
+            disabled={disconnect.isPending}
+            aria-label="Desconectar Google Calendar"
+          >
+            <Unlink className="size-4" aria-hidden />
+          </Button>
+        </div>
       </div>
-      <div className="flex gap-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() =>
-            sync.mutate(undefined, {
-              onSuccess: ({ pulled, pushed }) =>
-                show({ tone: "success", title: `Sincronizado (${pulled} recibidos, ${pushed} enviados)` }),
-              onError: (error) =>
-                show({ tone: "error", title: "No se pudo sincronizar", description: (error as Error).message }),
-            })
-          }
-          disabled={sync.isPending}
-        >
-          <RefreshCw className="size-4" aria-hidden />
-          Sincronizar ahora
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => disconnect.mutate()}
-          disabled={disconnect.isPending}
-          aria-label="Desconectar Google Calendar"
-        >
-          <Unlink className="size-4" aria-hidden />
-        </Button>
+      <div className="flex items-center justify-between rounded-md border border-border bg-bg-elevated px-4 py-3">
+        <div>
+          <p className="text-sm font-medium">Google Tasks</p>
+          <p className="text-sm text-text-muted">
+            {status.tasksEnabled
+              ? "Activo: tus tareas con fecha se sincronizan con Google Tasks."
+              : "Pendiente: vuelve a conectar para dar permiso a Google Tasks."}
+          </p>
+        </div>
+        {!status.tasksEnabled && (
+          <a
+            href="/api/integrations/google/connect"
+            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-bg-subtle px-3 text-sm font-medium text-text hover:border-border-strong"
+          >
+            Activar
+          </a>
+        )}
       </div>
     </div>
   );
@@ -519,7 +541,8 @@ function GithubSection() {
       <div>
         <p className="text-sm font-medium">GitHub</p>
         <p className="text-sm text-text-muted">
-          Resumen de actividad por proyecto. Enlaza un repo desde la pestaña &quot;GitHub&quot; de cada proyecto.
+          Resumen de actividad por proyecto. Enlaza un repo desde la pestaña &quot;GitHub&quot; de cada
+          proyecto.
         </p>
       </div>
       <span
@@ -614,8 +637,8 @@ export function SettingsPage() {
         <section className="space-y-4">
           <h2 className="text-sm font-semibold text-text-muted">Navegación</h2>
           <p className="text-sm text-text-muted">
-            Elige qué secciones aparecen en el menú (barra inferior en móvil, barra lateral en
-            escritorio) y en qué orden. Las que ocultes siguen accesibles desde el buscador (⌘K).
+            Elige qué secciones aparecen en el menú (barra inferior en móvil, barra lateral en escritorio) y
+            en qué orden. Las que ocultes siguen accesibles desde el buscador (⌘K).
           </p>
           {isPending || !settings ? (
             <Skeleton className="h-48" />
