@@ -447,7 +447,7 @@ function GoogleCalendarSection() {
         <div>
           <p className="text-sm font-medium">Google Calendar</p>
           <p className="text-sm text-text-muted">
-            Sincroniza tus eventos con tu Google Calendar en ambos sentidos.
+            Sincroniza tus eventos y tus tareas con fecha con Google Calendar en ambos sentidos.
           </p>
         </div>
         <a
