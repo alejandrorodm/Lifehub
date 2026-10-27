@@ -35,13 +35,16 @@ export function TaskRow({ task, today, selected, depth = 0, onToggleComplete, on
       </span>
 
       <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
-        <div className="flex items-center gap-2">
+        <div className="flex items-start gap-2">
+          {/* Línea de 20px (leading-5): el punto de 6px con 7px de margen queda centrado en la primera línea. */}
           <span
-            className={cn("size-1.5 shrink-0 rounded-full", PRIORITY_DOT_CLASS[task.priority])}
+            className={cn("mt-[7px] size-1.5 shrink-0 rounded-full", PRIORITY_DOT_CLASS[task.priority])}
             title={`Prioridad: ${PRIORITY_LABELS[task.priority]}`}
             aria-hidden
           />
-          <span className={cn("min-w-0 break-words text-sm", isDone ? "text-text-subtle line-through" : "text-text")}>
+          <span
+            className={cn("min-w-0 break-words text-sm leading-5", isDone ? "text-text-subtle line-through" : "text-text")}
+          >
             {task.title}
           </span>
         </div>
