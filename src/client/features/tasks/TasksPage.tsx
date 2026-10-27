@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ListChecks } from "lucide-react";
 import { EmptyState } from "@client/components/ui/EmptyState";
@@ -11,6 +11,7 @@ import { TaskDetailSheet } from "./TaskDetailSheet";
 import { useTaskList, useCreateTask, useUpdateTask } from "./useTasks";
 import type { TaskDto, TaskView } from "@shared/schemas/tasks";
 import { PageHeader } from "@client/components/ui/PageHeader";
+import { useGoogleTaskLists, type GoogleTaskListDto } from "../settings/useGoogleCalendar";
 
 const VIEWS: { value: TaskView; label: string }[] = [
   { value: "today", label: "Hoy" },
@@ -18,7 +19,27 @@ const VIEWS: { value: TaskView; label: string }[] = [
   { value: "overdue", label: "Atrasadas" },
   { value: "completed", label: "Completadas" },
   { value: "all", label: "Todas" },
+  { value: "lists", label: "Por lista" },
 ];
+
+const UNSYNCED_GROUP = "Sin lista de Google";
+const UNKNOWN_LIST_GROUP = "Lista de Google";
+
+/** Ordena las tareas como las listas de Google (sin lista al final) y devuelve el título de cada grupo. */
+function groupTasksByList(tasks: TaskDto[], googleLists: GoogleTaskListDto[]) {
+  const titleById = new Map(googleLists.map((list) => [list.id, list.title]));
+  const orderById = new Map(googleLists.map((list, index) => [list.id, index]));
+  const rankOf = (task: TaskDto) => {
+    if (task.googleTaskListId === null) return Number.MAX_SAFE_INTEGER;
+    return orderById.get(task.googleTaskListId) ?? Number.MAX_SAFE_INTEGER - 1;
+  };
+  const sorted = [...tasks].sort((a, b) => rankOf(a) - rankOf(b));
+  const titleOf = (task: TaskDto) =>
+    task.googleTaskListId === null
+      ? UNSYNCED_GROUP
+      : (titleById.get(task.googleTaskListId) ?? UNKNOWN_LIST_GROUP);
+  return { sorted, titleOf };
+}
 
 const EMPTY_COPY: Record<TaskView, { title: string; description: string }> = {
   today: { title: "Nada pendiente para hoy", description: "Añade una tarea o disfruta del momento." },
@@ -29,6 +50,7 @@ const EMPTY_COPY: Record<TaskView, { title: string; description: string }> = {
     description: "Las tareas completadas quedarán aquí.",
   },
   all: { title: "Todavía no hay tareas", description: "Crea tu primera tarea con el campo de arriba." },
+  lists: { title: "Todavía no hay tareas", description: "Las tareas aparecerán aquí agrupadas por lista de Google." },
 };
 
 /** Lista + selección por teclado de una vista. Se remonta al cambiar de vista
@@ -38,10 +60,13 @@ function TaskListPanel({
   view,
   tasks,
   initialOpenTaskId,
+  groupTitleOf,
 }: {
   view: TaskView;
   tasks: TaskDto[];
   initialOpenTaskId: string | null;
+  /** Solo en la vista por lista: título del grupo de cada tarea (se muestra al cambiar de grupo). */
+  groupTitleOf?: (task: TaskDto) => string;
 }) {
   const today = useToday();
   const updateTask = useUpdateTask();
@@ -84,18 +109,28 @@ function TaskListPanel({
   return (
     <>
       <ul className="flex-1 overflow-y-auto">
-        {tasks.map((task, index) => (
-          <TaskRow
-            key={task.id}
-            task={task}
-            today={today}
-            selected={index === clampedIndex}
-            onOpen={() => setOpenTaskId(task.id)}
-            onToggleComplete={(done) =>
-              updateTask.mutate({ id: task.id, patch: { status: done ? "done" : "todo" } })
-            }
-          />
-        ))}
+        {tasks.map((task, index) => {
+          const group = groupTitleOf?.(task);
+          const showHeader = group !== undefined && (index === 0 || groupTitleOf?.(tasks[index - 1]!) !== group);
+          return (
+            <Fragment key={task.id}>
+              {showHeader && (
+                <li className="border-b border-border bg-bg-subtle px-4 py-2 text-xs font-medium uppercase tracking-wide text-text-muted">
+                  {group}
+                </li>
+              )}
+              <TaskRow
+                task={task}
+                today={today}
+                selected={index === clampedIndex}
+                onOpen={() => setOpenTaskId(task.id)}
+                onToggleComplete={(done) =>
+                  updateTask.mutate({ id: task.id, patch: { status: done ? "done" : "todo" } })
+                }
+              />
+            </Fragment>
+          );
+        })}
       </ul>
       <TaskDetailSheet taskId={openTaskId} onClose={() => setOpenTaskId(null)} />
     </>
@@ -109,7 +144,9 @@ export function TasksPage() {
   const openTaskIdFromUrl = searchParams.get("open");
 
   const { data: taskList, isLoading } = useTaskList(view);
-  const tasks = taskList ?? [];
+  const { data: googleLists = [] } = useGoogleTaskLists(view === "lists");
+  const groups = view === "lists" ? groupTasksByList(taskList ?? [], googleLists) : null;
+  const tasks = groups ? groups.sorted : (taskList ?? []);
   const today = useToday();
   const createTask = useCreateTask();
   const { show } = useToast();
@@ -173,7 +210,13 @@ export function TasksPage() {
       {isLoading ? (
         <div className="flex-1" />
       ) : (
-        <TaskListPanel key={view} view={view} tasks={tasks} initialOpenTaskId={openTaskIdFromUrl} />
+        <TaskListPanel
+          key={view}
+          view={view}
+          tasks={tasks}
+          initialOpenTaskId={openTaskIdFromUrl}
+          groupTitleOf={groups?.titleOf}
+        />
       )}
     </div>
   );

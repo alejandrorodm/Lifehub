@@ -6,7 +6,7 @@ export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 export const TaskPrioritySchema = z.enum(["low", "normal", "high", "urgent"]);
 export type TaskPriority = z.infer<typeof TaskPrioritySchema>;
 
-export const TASK_VIEWS = ["today", "upcoming", "overdue", "completed", "all"] as const;
+export const TASK_VIEWS = ["today", "upcoming", "overdue", "completed", "all", "lists"] as const;
 export const TaskViewSchema = z.enum(TASK_VIEWS);
 export type TaskView = z.infer<typeof TaskViewSchema>;
 
@@ -119,4 +119,6 @@ export interface TaskDto {
   checklist: ChecklistItemDto[];
   subtaskCount: number;
   subtaskDoneCount: number;
+  /** Lista de Google Tasks a la que pertenece (null si la tarea aún no está sincronizada). */
+  googleTaskListId: string | null;
 }

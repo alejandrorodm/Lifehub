@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { config } from "../../config";
 import * as service from "./service";
 import { syncNow } from "./sync";
+import { getCachedGoogleTaskLists } from "./googleTasksSync";
 import { getCurrentUserId } from "../../lib/requestContext";
 
 // En producción cliente y servidor comparten origen (`npm start`); en
@@ -35,4 +36,10 @@ export const googleCalendarRoutes = new Hono()
     await service.disconnect(getCurrentUserId());
     return c.body(null, 204);
   })
-  .post("/sync", async (c) => c.json(await syncNow(getCurrentUserId())));
+  .post("/sync", async (c) => c.json(await syncNow(getCurrentUserId())))
+  // Listas de Google Tasks (con caché corta). Sin permiso de Tasks no hay listas que mostrar.
+  .get("/tasks/lists", async (c) => {
+    const userId = getCurrentUserId();
+    if (!service.hasTasksPermission(userId)) return c.json([]);
+    return c.json(await getCachedGoogleTaskLists(userId));
+  });

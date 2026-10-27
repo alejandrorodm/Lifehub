@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, like, lt, lte, or } from "drizzle-orm";
 import { getDb } from "../../db/client";
-import { tasks, checklistItems, tags, taskTags } from "../../db/schema";
+import { tasks, checklistItems, tags, taskTags, googleTasksLinks } from "../../db/schema";
 import { AppError } from "../../lib/errors";
 import { todayISODate } from "@shared/domain/dates";
 import { presetToRRule, rruleToPreset } from "@shared/domain/recurrence";
@@ -21,6 +21,7 @@ function toTaskDto(
   taskTagsByTask: Map<string, TagDto[]>,
   checklistByTask: Map<string, ChecklistItemDto[]>,
   subtaskCounts: Map<string, { total: number; done: number }>,
+  googleListByTask: Map<string, string>,
 ): TaskDto {
   const counts = subtaskCounts.get(row.id) ?? { total: 0, done: 0 };
   return {
@@ -44,6 +45,7 @@ function toTaskDto(
     checklist: checklistByTask.get(row.id) ?? [],
     subtaskCount: counts.total,
     subtaskDoneCount: counts.done,
+    googleTaskListId: googleListByTask.get(row.id) ?? null,
   };
 }
 
@@ -93,7 +95,16 @@ function hydrate(rows: TaskRow[]): TaskDto[] {
     subtaskCounts.set(s.parentTaskId, counts);
   }
 
-  return rows.map((row) => toTaskDto(row, taskTagsByTask, checklistByTask, subtaskCounts));
+  const googleListByTask = new Map(
+    db
+      .select({ taskId: googleTasksLinks.taskId, listId: googleTasksLinks.googleTaskListId })
+      .from(googleTasksLinks)
+      .where(inArray(googleTasksLinks.taskId, ids))
+      .all()
+      .map((r) => [r.taskId, r.listId]),
+  );
+
+  return rows.map((row) => toTaskDto(row, taskTagsByTask, checklistByTask, subtaskCounts, googleListByTask));
 }
 
 function getTaskRow(id: string): TaskRow {
@@ -192,6 +203,7 @@ export function listTasks(query: TaskListQuery): TaskDto[] {
       conditions.push(eq(tasks.status, "done"));
       break;
     case "all":
+    case "lists": // misma selección que "Todas"; el cliente agrupa por lista de Google (incluidas las tareas sin fecha)
       break;
   }
 

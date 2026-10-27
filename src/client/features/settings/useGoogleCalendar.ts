@@ -18,6 +18,21 @@ export function useGoogleStatus() {
   });
 }
 
+export interface GoogleTaskListDto {
+  id: string;
+  title: string;
+}
+
+/** Listas de Google Tasks de la cuenta (caché corta en el servidor). */
+export function useGoogleTaskLists(enabled = true) {
+  return useQuery({
+    queryKey: ["integrations", "google", "task-lists"] as const,
+    queryFn: () => api.get<GoogleTaskListDto[]>("/integrations/google/tasks/lists"),
+    staleTime: 5 * 60 * 1000,
+    enabled,
+  });
+}
+
 export function useDisconnectGoogle() {
   const queryClient = useQueryClient();
   return useMutation({

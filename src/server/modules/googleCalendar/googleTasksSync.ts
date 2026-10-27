@@ -77,6 +77,19 @@ export async function listGoogleTaskLists(userId: string): Promise<GoogleTaskLis
   return (page.items ?? []).map((list) => ({ id: list.id, title: list.title ?? "(sin título)" }));
 }
 
+/** Los nombres de las listas cambian poco: se reutilizan unos minutos para no pedirlos en cada consulta. */
+const LIST_CACHE_TTL_MS = 5 * 60 * 1000;
+const listCache = new Map<string, { lists: GoogleTaskList[]; expiresAt: number }>();
+
+/** Listas de Google con caché por usuario (para la vista de tareas agrupadas por lista). */
+export async function getCachedGoogleTaskLists(userId: string): Promise<GoogleTaskList[]> {
+  const cached = listCache.get(userId);
+  if (cached && cached.expiresAt > Date.now()) return cached.lists;
+  const lists = await listGoogleTaskLists(userId);
+  listCache.set(userId, { lists, expiresAt: Date.now() + LIST_CACHE_TTL_MS });
+  return lists;
+}
+
 async function fetchListTasks(userId: string, listId: string): Promise<RemoteTask[]> {
   const all: RemoteTask[] = [];
   let pageToken: string | undefined;

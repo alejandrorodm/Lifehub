@@ -217,3 +217,24 @@ describe("google tasks — syncNow()", () => {
     expect(getDb().select().from(schema.tasks).where(eq(schema.tasks.title, "Desde syncNow")).get()).toBeDefined();
   });
 });
+
+describe("google tasks — listas para la vista por lista", () => {
+  it("reutiliza las listas de Google durante unos minutos en lugar de pedirlas en cada consulta", async () => {
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "@default", title: "Mis tareas" }] }));
+    await tasksSync.getCachedGoogleTaskLists(USER_ID);
+    await tasksSync.getCachedGoogleTaskLists(USER_ID);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("la vista por lista incluye tareas sin fecha con el id de su lista de Google", async () => {
+    const undated = tasksService.createTask({ title: "Sin fecha", priority: "normal" });
+    queueRemoteList([]);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-undated", updated: "2026-10-26T10:00:00.000Z" }));
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    const listed = tasksService.listTasks({ view: "lists" }).find((task) => task.id === undated.id);
+    expect(listed?.dueDate).toBeNull();
+    expect(listed?.googleTaskListId).toBe("@default");
+  });
+});
