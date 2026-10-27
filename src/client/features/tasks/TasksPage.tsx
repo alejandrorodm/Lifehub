@@ -142,7 +142,7 @@ function TaskListPanel({
     return (
       <>
         {/* Altura acotada por la ventana: la barra horizontal queda visible al pie y cada columna se desplaza por dentro. */}
-        <div className="flex h-[calc(100dvh-11rem)] min-h-[16rem] items-stretch gap-4 overflow-x-auto p-4">
+        <div className="flex h-[calc(100dvh-15rem)] min-h-[16rem] snap-x snap-mandatory items-stretch gap-4 overflow-x-auto p-4 md:h-[calc(100dvh-11rem)]">
           {board.columns.map((column) => {
             const completedId = `completed-${column.key}`;
             const expanded = board.expandedCompleted.has(column.key);
@@ -151,8 +151,8 @@ function TaskListPanel({
                 key={column.key}
                 aria-label={column.title}
                 className={cn(
-                  "flex shrink-0 flex-col rounded-lg border border-border bg-bg-subtle",
-                  board.width === "wide" ? "w-96" : "w-72",
+                  "flex shrink-0 snap-start flex-col rounded-lg border border-border bg-bg-subtle",
+                  board.width === "wide" ? "w-[90vw] sm:w-96" : "w-[85vw] sm:w-72",
                 )}
               >
                 <h2 className="truncate px-4 py-3 text-sm font-medium text-text">{column.title}</h2>
