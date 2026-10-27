@@ -120,7 +120,8 @@ function TaskListPanel({
     }
     return (
       <>
-        <div className="flex flex-1 items-start gap-4 overflow-x-auto p-4">
+        {/* Altura acotada por la ventana: la barra horizontal queda visible al pie y cada columna se desplaza por dentro. */}
+        <div className="flex h-[calc(100dvh-11rem)] min-h-[16rem] items-stretch gap-4 overflow-x-auto p-4">
           {board.columns.map((column) => {
             const completedId = `completed-${column.key}`;
             const expanded = board.expandedCompleted.has(column.key);
@@ -131,26 +132,28 @@ function TaskListPanel({
                 className="flex w-72 shrink-0 flex-col rounded-lg border border-border bg-bg-subtle"
               >
                 <h2 className="truncate px-4 py-3 text-sm font-medium text-text">{column.title}</h2>
-                <ul className="flex flex-col">{column.open.map(renderRow)}</ul>
-                {column.completed.length > 0 && (
-                  <div className="border-t border-border">
-                    <button
-                      type="button"
-                      aria-expanded={expanded}
-                      aria-controls={completedId}
-                      onClick={() => board.onToggleCompleted(column.key)}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-text-muted hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                    >
-                      {expanded ? (
-                        <ChevronDown className="size-3.5" aria-hidden />
-                      ) : (
-                        <ChevronRight className="size-3.5" aria-hidden />
-                      )}
-                      Completadas ({column.completed.length})
-                    </button>
-                    {expanded && <ul id={completedId} className="flex flex-col">{column.completed.map(renderRow)}</ul>}
-                  </div>
-                )}
+                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                  <ul className="flex flex-col">{column.open.map(renderRow)}</ul>
+                  {column.completed.length > 0 && (
+                    <div className="border-t border-border">
+                      <button
+                        type="button"
+                        aria-expanded={expanded}
+                        aria-controls={completedId}
+                        onClick={() => board.onToggleCompleted(column.key)}
+                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-text-muted hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      >
+                        {expanded ? (
+                          <ChevronDown className="size-3.5" aria-hidden />
+                        ) : (
+                          <ChevronRight className="size-3.5" aria-hidden />
+                        )}
+                        Completadas ({column.completed.length})
+                      </button>
+                      {expanded && <ul id={completedId} className="flex flex-col">{column.completed.map(renderRow)}</ul>}
+                    </div>
+                  )}
+                </div>
               </section>
             );
           })}
