@@ -273,6 +273,34 @@ export function TasksPage() {
 
   useRegisterNewHandler(() => quickAddRef.current?.focus());
 
+  // Llegadas desde accesos directos (?new=1) o desde compartir otra app (title/text/url): se procesan una vez.
+  const handledEntry = useRef(false);
+  useEffect(() => {
+    if (handledEntry.current) return;
+    handledEntry.current = true;
+    const shared = [searchParams.get("title"), searchParams.get("text"), searchParams.get("url")]
+      .filter((value): value is string => Boolean(value?.trim()))
+      .join(" ")
+      .trim();
+    if (shared) {
+      createTask.mutate(
+        { title: shared.slice(0, 200), priority: "normal", dueDate: view === "today" ? today : undefined },
+        { onSuccess: () => show({ tone: "success", title: "Tarea creada desde otra app" }) },
+      );
+    }
+    if (searchParams.has("new")) quickAddRef.current?.focus();
+    if (shared || searchParams.has("new")) {
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          for (const key of ["title", "text", "url", "new"]) next.delete(key);
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [searchParams, setSearchParams, createTask, show, view, today]);
+
   const submitQuickAdd = () => {
     const title = quickTitle.trim();
     if (!title) return;
