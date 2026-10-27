@@ -29,8 +29,8 @@ describe("loadListViewPrefs", () => {
   beforeEach(() => window.localStorage.clear());
 
   it("guarda y vuelve a leer la preferencia", () => {
-    saveListViewPrefs({ hiddenKeys: ["b"], order: ["c"], width: "wide" });
-    expect(loadListViewPrefs()).toEqual({ hiddenKeys: ["b"], order: ["c"], width: "wide" });
+    saveListViewPrefs({ hiddenKeys: ["b"], order: ["c"], width: "wide", completedOpen: ["a"] });
+    expect(loadListViewPrefs()).toEqual({ hiddenKeys: ["b"], order: ["c"], width: "wide", completedOpen: ["a"] });
   });
 
   it("si el dato guardado está corrupto, usa los valores por defecto", () => {

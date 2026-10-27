@@ -9,9 +9,16 @@ export interface ListViewPrefs {
   /** Orden elegido por el usuario; las listas que no aparecen aquí conservan el orden de Google. */
   order: string[];
   width: ColumnWidth;
+  /** Columnas cuya sección "Completadas" está desplegada. */
+  completedOpen: string[];
 }
 
-export const DEFAULT_LIST_VIEW_PREFS: ListViewPrefs = { hiddenKeys: [], order: [], width: "compact" };
+export const DEFAULT_LIST_VIEW_PREFS: ListViewPrefs = {
+  hiddenKeys: [],
+  order: [],
+  width: "compact",
+  completedOpen: [],
+};
 
 const STORAGE_KEY = "lifehub.tasks.listView";
 
@@ -29,6 +36,7 @@ export function loadListViewPrefs(): ListViewPrefs {
       hiddenKeys: stringsOf(parsed.hiddenKeys),
       order: stringsOf(parsed.order),
       width: parsed.width === "wide" ? "wide" : "compact",
+      completedOpen: stringsOf(parsed.completedOpen),
     };
   } catch {
     return DEFAULT_LIST_VIEW_PREFS;
@@ -50,9 +58,7 @@ export function orderedKeys(columns: ListColumn[], order: string[]): string[] {
     const index = order.indexOf(key);
     return index === -1 ? Number.MAX_SAFE_INTEGER : index;
   };
-  return columns
-    .map((column) => column.key)
-    .sort((a, b) => position(a) - position(b));
+  return columns.map((column) => column.key).sort((a, b) => position(a) - position(b));
 }
 
 /** Columnas visibles, en el orden elegido por el usuario. */

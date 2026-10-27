@@ -233,21 +233,22 @@ export function TasksPage() {
 
   const { data: taskList, isLoading } = useTaskList(view);
   const { data: googleLists = [] } = useGoogleTaskLists(view === "lists");
-  const [expandedCompleted, setExpandedCompleted] = useState<ReadonlySet<string>>(() => new Set());
-  const toggleCompleted = (key: string) =>
-    setExpandedCompleted((current) => {
-      const next = new Set(current);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-
   const [listPrefs, setListPrefs] = useState<ListViewPrefs>(() => loadListViewPrefs());
   const [customizing, setCustomizing] = useState(false);
   const updateListPrefs = (next: ListViewPrefs) => {
     setListPrefs(next);
     saveListViewPrefs(next);
   };
+  const toggleCompleted = (key: string) => {
+    const open = listPrefs.completedOpen.includes(key);
+    updateListPrefs({
+      ...listPrefs,
+      completedOpen: open
+        ? listPrefs.completedOpen.filter((k) => k !== key)
+        : [...listPrefs.completedOpen, key],
+    });
+  };
+  const expandedCompleted = new Set(listPrefs.completedOpen);
   const { data: projectList } = useProjectList();
   const allColumns = view === "lists" ? buildListColumns(taskList ?? [], googleLists) : [];
   const projectIdByTitle = new Map((projectList ?? []).map((project) => [project.name, project.id]));
