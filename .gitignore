@@ -47,3 +47,8 @@ deploy/android/settings.gradle
 deploy/android/gradle.properties
 deploy/android/manifest-checksum.txt
 deploy/android/store_icon.png
+
+# Capturas y fotos sueltas (no son parte del código)
+Captura de pantalla*.png
+WhatsApp Image*.jpeg
+lifehub-duplicated.png
