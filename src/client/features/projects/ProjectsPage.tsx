@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { FolderKanban, Milestone } from "lucide-react";
+import { FolderKanban, Milestone, Plus } from "lucide-react";
+import { Button } from "@client/components/ui/Button";
 import { EmptyState } from "@client/components/ui/EmptyState";
 import { Input } from "@client/components/ui/Input";
 import { ProgressBar } from "@client/components/ui/ProgressBar";
@@ -8,6 +9,7 @@ import { useToast } from "@client/components/ui/Toast";
 import { useRegisterNewHandler } from "@client/app/shortcuts/ShortcutsContext";
 import { useProjectList, useCreateProject } from "./useProjects";
 import { PROJECT_STATUS_CLASS, PROJECT_STATUS_LABELS } from "./projectDisplay";
+import { GithubImportDialog } from "./GithubImportDialog";
 import type { ProjectStatus } from "@shared/schemas/projects";
 
 const STATUS_FILTERS: { value: ProjectStatus | "all"; label: string }[] = [
@@ -30,6 +32,8 @@ export function ProjectsPage() {
   const { show } = useToast();
 
   const [draft, setDraft] = useState("");
+  const [importing, setImporting] = useState(false);
+  const linkedRepos = new Set(projects.flatMap((p) => (p.githubRepo ? [p.githubRepo] : [])));
   const inputRef = useRef<HTMLInputElement>(null);
   useRegisterNewHandler(() => inputRef.current?.focus());
 
@@ -67,20 +71,31 @@ export function ProjectsPage() {
         </div>
       </header>
 
-      <div className="border-b border-border px-6 py-3">
-        <Input
-          ref={inputRef}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              submit();
-            }
-          }}
-          placeholder="Nombre del nuevo proyecto y pulsar Enter… (N)"
-          aria-label="Nuevo proyecto"
-        />
+      <div className="flex items-center gap-2 border-b border-border px-6 py-3">
+        <div className="min-w-0 flex-1">
+          <Input
+            ref={inputRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            placeholder="Nombre del nuevo proyecto y pulsar Enter… (N)"
+            aria-label="Nuevo proyecto"
+          />
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setImporting(true)}
+          aria-label="Integrar repos de GitHub"
+        >
+          <Plus className="size-4" aria-hidden />
+        </Button>
+        <GithubImportDialog open={importing} onOpenChange={setImporting} linkedRepos={linkedRepos} />
       </div>
 
       {isLoading ? (

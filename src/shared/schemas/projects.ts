@@ -18,6 +18,7 @@ export const ProjectCreateSchema = z.object({
   startDate: ISO_DATE.optional(),
   targetDate: ISO_DATE.optional(),
   color: z.string().max(32).optional(),
+  githubRepo: GITHUB_REPO.optional(),
 });
 export type ProjectCreateInput = z.infer<typeof ProjectCreateSchema>;
 

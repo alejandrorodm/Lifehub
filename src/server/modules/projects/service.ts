@@ -104,6 +104,7 @@ export function createProject(input: ProjectCreateInput): ProjectDto {
       startDate: input.startDate ?? null,
       targetDate: input.targetDate ?? null,
       color: input.color ?? null,
+      githubRepo: input.githubRepo ?? null,
     })
     .returning()
     .get();
