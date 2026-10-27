@@ -58,7 +58,7 @@ function ProjectGithubTab({ project }: { project: ProjectDto }) {
     project.githubRepo,
   );
   const { data: githubStatus } = useGithubStatus();
-  const { data: repos } = useGithubRepos(githubStatus?.connected === true);
+  const { data: repos, error: reposError } = useGithubRepos(githubStatus?.connected === true);
 
   return (
     <div className="space-y-4 px-6 py-4">
@@ -76,6 +76,12 @@ function ProjectGithubTab({ project }: { project: ProjectDto }) {
           list="project-github-repo-options"
           aria-describedby="project-github-repo-hint"
         />
+        {reposError && (
+          <p role="alert" className="mt-1.5 text-xs text-danger">
+            No se pudieron cargar tus repos de GitHub:{" "}
+            {reposError instanceof Error ? reposError.message : "error desconocido"}.
+          </p>
+        )}
         <datalist id="project-github-repo-options">
           {(repos ?? []).map((repo) => (
             <option key={repo} value={repo} />
