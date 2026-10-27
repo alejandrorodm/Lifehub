@@ -275,3 +275,36 @@ describe("google tasks — padre e hija", () => {
     expect(String(childPost![0])).toContain("/lists/@default/tasks?parent=gt-padre-local");
   });
 });
+
+describe("google tasks — lista con el nombre de un proyecto", () => {
+  it("las tareas de una lista de Google con el mismo nombre que un proyecto pasan a ese proyecto", async () => {
+    const projectsService = await import("../projects/service");
+    const project = projectsService.createProject({ name: "Compras", status: "planned", priority: "normal" });
+    const otherProject = projectsService.createProject({ name: "Otro", status: "planned", priority: "normal" });
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "l-compras", title: "Compras" }] }));
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ items: [{ id: "gt-compra", title: "Leche", status: "needsAction", updated: "2026-10-26T10:00:00.000Z" }] }),
+    );
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    const created = getDb().select().from(schema.tasks).where(eq(schema.tasks.title, "Leche")).get()!;
+    expect(created.projectId).toBe(project.id);
+    expect(created.projectId).not.toBe(otherProject.id);
+  });
+
+  it("no cambia el proyecto de una tarea que ya tiene uno", async () => {
+    const projectsService = await import("../projects/service");
+    const chosen = projectsService.createProject({ name: "Compras", status: "planned", priority: "normal" });
+    const elsewhere = projectsService.createProject({ name: "Casa", status: "planned", priority: "normal" });
+    const task = tasksService.createTask({ title: "Pan", priority: "normal", projectId: elsewhere.id });
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "l-compras", title: "Compras" }] }));
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [] }));
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-pan", updated: "2026-10-26T10:00:00.000Z" }));
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    expect(taskRow(task.id)?.projectId).toBe(elsewhere.id);
+    expect(chosen.id).toBeDefined();
+  });
+});

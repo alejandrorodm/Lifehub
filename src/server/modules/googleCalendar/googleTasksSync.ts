@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../db/client";
-import { tasks, googleTasksLinks } from "../../db/schema";
+import { tasks, googleTasksLinks, projects } from "../../db/schema";
 import { googleApiFetch } from "./client";
 
 /**
@@ -97,7 +97,12 @@ async function fetchListTasks(userId: string, listId: string): Promise<RemoteTas
   const all: RemoteTask[] = [];
   let pageToken: string | undefined;
   do {
-    const query = new URLSearchParams({ showCompleted: "true", showDeleted: "true", showHidden: "true", maxResults: "100" });
+    const query = new URLSearchParams({
+      showCompleted: "true",
+      showDeleted: "true",
+      showHidden: "true",
+      maxResults: "100",
+    });
     if (pageToken) query.set("pageToken", pageToken);
     const page = await googleApiFetch<RemoteTaskPage>(
       userId,
@@ -121,20 +126,42 @@ function linksOf(userId: string): TaskLink[] {
     .map((r) => r.link);
 }
 
-function applyRemote(userId: string, remote: RemoteTask, link: TaskLink, listId: string): boolean {
+function applyRemote(
+  userId: string,
+  remote: RemoteTask,
+  link: TaskLink,
+  listId: string,
+  projectId: string | null,
+): boolean {
   const db = getDb();
-  const row = db.select().from(tasks).where(and(eq(tasks.id, link.taskId), eq(tasks.userId, userId))).get();
+  const row = db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.id, link.taskId), eq(tasks.userId, userId)))
+    .get();
   if (!row) return false;
 
   if (remote.deleted) {
-    db.update(tasks).set({ deletedAt: new Date(), updatedAt: new Date() }).where(eq(tasks.id, link.taskId)).run();
+    db.update(tasks)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(eq(tasks.id, link.taskId))
+      .run();
     db.delete(googleTasksLinks).where(eq(googleTasksLinks.taskId, link.taskId)).run();
     return true;
   }
 
   // Mover una tarea de lista en Google no cambia su contenido: solo actualiza el enlace.
   if (link.googleTaskListId !== listId) {
-    db.update(googleTasksLinks).set({ googleTaskListId: listId }).where(eq(googleTasksLinks.taskId, link.taskId)).run();
+    db.update(googleTasksLinks)
+      .set({ googleTaskListId: listId })
+      .where(eq(googleTasksLinks.taskId, link.taskId))
+      .run();
+  }
+
+  // La lista de Google con el mismo nombre que un proyecto asigna sus tareas a ese proyecto. Solo si la tarea aún no tiene
+  // proyecto: lo que el usuario elija en LifeHub manda, y no se toca updatedAt porque Google no guarda el proyecto.
+  if (projectId && row.projectId === null) {
+    db.update(tasks).set({ projectId }).where(eq(tasks.id, link.taskId)).run();
   }
 
   const remoteUpdatedAt = new Date(remote.updated ?? 0);
@@ -159,7 +186,7 @@ function applyRemote(userId: string, remote: RemoteTask, link: TaskLink, listId:
   return true;
 }
 
-function createLocal(userId: string, remote: RemoteTask, listId: string): boolean {
+function createLocal(userId: string, remote: RemoteTask, listId: string, projectId: string | null): boolean {
   if (remote.deleted) return false;
   const db = getDb();
   const row = db
@@ -170,6 +197,7 @@ function createLocal(userId: string, remote: RemoteTask, listId: string): boolea
       description: remote.notes?.trim() ? remote.notes : null,
       status: remote.status === "completed" ? "done" : "todo",
       dueDate: remoteDate(remote.due),
+      projectId,
     })
     .returning()
     .get();
@@ -210,7 +238,10 @@ function applyRemoteParents(userId: string, remoteTasks: RemoteTask[]): void {
     const parentTaskId = remote.parent ? (taskIdByRemote.get(remote.parent) ?? null) : null;
     if (currentParent.get(taskId) === parentTaskId) continue;
     // No se toca updatedAt: el cambio de padre viene de Google, no es una edición local que haya que subir.
-    db.update(tasks).set({ parentTaskId }).where(and(eq(tasks.id, taskId), eq(tasks.userId, userId))).run();
+    db.update(tasks)
+      .set({ parentTaskId })
+      .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
+      .run();
   }
 }
 
@@ -221,13 +252,29 @@ export async function syncGoogleTasks(userId: string): Promise<{ pulled: number;
 
   // Pull: lo que cambió en cualquiera de las listas de Google Tasks.
   const lists = await listGoogleTaskLists(userId);
+  const projectIdByName = new Map<string, string>(
+    db
+      .select({ id: projects.id, name: projects.name })
+      .from(projects)
+      .where(eq(projects.userId, userId))
+      .all()
+      .map((project) => [project.name, project.id]),
+  );
+  const projectIdByListId = new Map<string, string>();
+  for (const list of lists) {
+    const projectId = projectIdByName.get(list.title);
+    if (projectId) projectIdByListId.set(list.id, projectId);
+  }
   const linkByRemoteId = new Map(linksOf(userId).map((link) => [link.googleTaskId, link]));
   const remoteTasks: RemoteTask[] = [];
   for (const list of lists) {
+    const projectId = projectIdByListId.get(list.id) ?? null;
     for (const remote of await fetchListTasks(userId, list.id)) {
       remoteTasks.push(remote);
       const link = linkByRemoteId.get(remote.id);
-      const changed = link ? applyRemote(userId, remote, link, list.id) : createLocal(userId, remote, list.id);
+      const changed = link
+        ? applyRemote(userId, remote, link, list.id, projectId)
+        : createLocal(userId, remote, list.id, projectId);
       if (changed) pulled++;
     }
   }
@@ -246,7 +293,8 @@ export async function syncGoogleTasks(userId: string): Promise<{ pulled: number;
     const parentLink = parent ? linkByTaskId.get(parent.id) : undefined;
     // Una subtarea solo se sube si su padre está sincronizado: en Google vive dentro de la lista del padre.
     const syncable =
-      isSyncable(row) && (row.parentTaskId === null || (parent !== undefined && isSyncable(parent) && parentLink !== undefined));
+      isSyncable(row) &&
+      (row.parentTaskId === null || (parent !== undefined && isSyncable(parent) && parentLink !== undefined));
 
     if (syncable && !link) {
       const listId = parentLink?.googleTaskListId ?? DEFAULT_LIST;
@@ -266,7 +314,10 @@ export async function syncGoogleTasks(userId: string): Promise<{ pulled: number;
           remoteUpdatedAtSynced: new Date(created.updated ?? 0),
         })
         .run();
-      linkByTaskId.set(row.id, db.select().from(googleTasksLinks).where(eq(googleTasksLinks.taskId, row.id)).get()!);
+      linkByTaskId.set(
+        row.id,
+        db.select().from(googleTasksLinks).where(eq(googleTasksLinks.taskId, row.id)).get()!,
+      );
       pushed++;
     } else if (syncable && link && row.updatedAt.getTime() > link.localUpdatedAtSynced.getTime()) {
       const updated = await googleApiFetch<RemoteTask>(
