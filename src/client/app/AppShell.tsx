@@ -187,8 +187,8 @@ function AppShellContent() {
         </div>
       </nav>
 
-      <div className="flex min-h-screen flex-1 flex-col pb-16 md:pb-0">
-        <main id="main-content" className="flex flex-1 flex-col" tabIndex={-1}>
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col pb-16 md:pb-0">
+        <main id="main-content" className="flex min-w-0 flex-1 flex-col" tabIndex={-1}>
           <Outlet />
         </main>
       </div>
