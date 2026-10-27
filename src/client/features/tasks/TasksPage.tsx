@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { ChevronDown, ChevronRight, ListChecks, Settings2 } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ChevronDown, ChevronRight, FolderKanban, ListChecks, Settings2 } from "lucide-react";
 import { Button } from "@client/components/ui/Button";
 import { cn } from "@client/lib/utils";
 import { EmptyState } from "@client/components/ui/EmptyState";
@@ -23,6 +23,7 @@ import { ListViewSettingsDialog } from "./ListViewSettingsDialog";
 import type { TaskDto, TaskView } from "@shared/schemas/tasks";
 import { PageHeader } from "@client/components/ui/PageHeader";
 import { useGoogleTaskLists } from "../settings/useGoogleCalendar";
+import { useProjectList } from "../projects/useProjects";
 
 const VIEWS: { value: TaskView; label: string }[] = [
   { value: "today", label: "Hoy" },
@@ -42,7 +43,10 @@ const EMPTY_COPY: Record<TaskView, { title: string; description: string }> = {
     description: "Las tareas completadas quedarán aquí.",
   },
   all: { title: "Todavía no hay tareas", description: "Crea tu primera tarea con el campo de arriba." },
-  lists: { title: "Todavía no hay tareas", description: "Las tareas aparecerán aquí agrupadas por lista de Google." },
+  lists: {
+    title: "Todavía no hay tareas",
+    description: "Las tareas aparecerán aquí agrupadas por lista de Google.",
+  },
 };
 
 /** Columnas de "Por lista" y, en el resto de vistas, una única lista de tareas sin columnas. */
@@ -50,6 +54,8 @@ interface Board {
   columns: ListColumn[];
   /** Columnas totales, ocultas o no: distingue "no hay tareas" de "todas las listas están ocultas". */
   totalColumns: number;
+  /** Proyectos cuyo nombre coincide exactamente con el de una columna: esa columna enlaza al proyecto. */
+  projectIdByTitle: ReadonlyMap<string, string>;
   width: ColumnWidth;
   /** Columnas cuya sección "Completadas" está desplegada. */
   expandedCompleted: ReadonlySet<string>;
@@ -59,10 +65,12 @@ interface Board {
 /** Tareas visibles en orden de pantalla: la selección por teclado sigue ese orden. */
 function visibleTasksOf(board: Board | null, plain: TaskDto[]): TaskDto[] {
   if (!board) return plain;
-  return board.columns.flatMap((column) => [
-    ...column.open,
-    ...(board.expandedCompleted.has(column.key) ? column.completed : []),
-  ]).map((row) => row.task);
+  return board.columns
+    .flatMap((column) => [
+      ...column.open,
+      ...(board.expandedCompleted.has(column.key) ? column.completed : []),
+    ])
+    .map((row) => row.task);
 }
 
 /** Lista + selección por teclado de una vista. Se remonta al cambiar de vista
@@ -121,7 +129,9 @@ function TaskListPanel({
       today={today}
       selected={indexById.get(task.id) === clampedIndex}
       onOpen={() => setOpenTaskId(task.id)}
-      onToggleComplete={(done) => updateTask.mutate({ id: task.id, patch: { status: done ? "done" : "todo" } })}
+      onToggleComplete={(done) =>
+        updateTask.mutate({ id: task.id, patch: { status: done ? "done" : "todo" } })
+      }
     />
   );
 
@@ -155,7 +165,19 @@ function TaskListPanel({
                   board.width === "wide" ? "w-[90vw] sm:w-96" : "w-[85vw] sm:w-72",
                 )}
               >
-                <h2 className="truncate px-4 py-3 text-sm font-medium text-text">{column.title}</h2>
+                {board.projectIdByTitle.has(column.title) ? (
+                  <h2 className="px-4 py-3 text-sm font-medium text-text">
+                    <Link
+                      to={`/projects/${board.projectIdByTitle.get(column.title)}`}
+                      className="inline-flex max-w-full items-center gap-1.5 rounded hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
+                      <FolderKanban className="size-3.5 shrink-0" aria-hidden />
+                      <span className="truncate">{column.title}</span>
+                    </Link>
+                  </h2>
+                ) : (
+                  <h2 className="truncate px-4 py-3 text-sm font-medium text-text">{column.title}</h2>
+                )}
                 <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
                   <ul className="flex flex-col">{column.open.map(renderRow)}</ul>
                   {column.completed.length > 0 && (
@@ -174,7 +196,11 @@ function TaskListPanel({
                         )}
                         Completadas ({column.completed.length})
                       </button>
-                      {expanded && <ul id={completedId} className="flex flex-col">{column.completed.map(renderRow)}</ul>}
+                      {expanded && (
+                        <ul id={completedId} className="flex flex-col">
+                          {column.completed.map(renderRow)}
+                        </ul>
+                      )}
                     </div>
                   )}
                 </div>
@@ -193,9 +219,7 @@ function TaskListPanel({
 
   return (
     <>
-      <ul className="flex-1 overflow-y-auto">
-        {tasks.map((task) => renderRow({ task, depth: 0 }))}
-      </ul>
+      <ul className="flex-1 overflow-y-auto">{tasks.map((task) => renderRow({ task, depth: 0 }))}</ul>
       <TaskDetailSheet taskId={openTaskId} onClose={() => setOpenTaskId(null)} />
     </>
   );
@@ -224,12 +248,15 @@ export function TasksPage() {
     setListPrefs(next);
     saveListViewPrefs(next);
   };
+  const { data: projectList } = useProjectList();
   const allColumns = view === "lists" ? buildListColumns(taskList ?? [], googleLists) : [];
+  const projectIdByTitle = new Map((projectList ?? []).map((project) => [project.name, project.id]));
   const board: Board | null =
     view === "lists"
       ? {
           columns: arrangeColumns(allColumns, listPrefs),
           totalColumns: allColumns.length,
+          projectIdByTitle,
           width: listPrefs.width,
           expandedCompleted,
           onToggleCompleted: toggleCompleted,
