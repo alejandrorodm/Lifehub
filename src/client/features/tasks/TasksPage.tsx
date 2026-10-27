@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ChevronDown, ChevronRight, ListChecks } from "lucide-react";
+import { ChevronDown, ChevronRight, ListChecks, Settings2 } from "lucide-react";
+import { Button } from "@client/components/ui/Button";
+import { cn } from "@client/lib/utils";
 import { EmptyState } from "@client/components/ui/EmptyState";
 import { Input } from "@client/components/ui/Input";
 import { useToast } from "@client/components/ui/Toast";
@@ -10,6 +12,14 @@ import { TaskRow } from "./TaskRow";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { useTaskList, useCreateTask, useUpdateTask } from "./useTasks";
 import { buildListColumns, type ListColumn, type ListRow } from "./taskListItems";
+import {
+  arrangeColumns,
+  loadListViewPrefs,
+  saveListViewPrefs,
+  type ColumnWidth,
+  type ListViewPrefs,
+} from "./listViewPrefs";
+import { ListViewSettingsDialog } from "./ListViewSettingsDialog";
 import type { TaskDto, TaskView } from "@shared/schemas/tasks";
 import { PageHeader } from "@client/components/ui/PageHeader";
 import { useGoogleTaskLists } from "../settings/useGoogleCalendar";
@@ -38,6 +48,9 @@ const EMPTY_COPY: Record<TaskView, { title: string; description: string }> = {
 /** Columnas de "Por lista" y, en el resto de vistas, una única lista de tareas sin columnas. */
 interface Board {
   columns: ListColumn[];
+  /** Columnas totales, ocultas o no: distingue "no hay tareas" de "todas las listas están ocultas". */
+  totalColumns: number;
+  width: ColumnWidth;
   /** Columnas cuya sección "Completadas" está desplegada. */
   expandedCompleted: ReadonlySet<string>;
   onToggleCompleted: (key: string) => void;
@@ -116,7 +129,15 @@ function TaskListPanel({
 
   if (board) {
     if (board.columns.length === 0) {
-      return <EmptyState icon={ListChecks} title={emptyCopy.title} description={emptyCopy.description} />;
+      return board.totalColumns > 0 ? (
+        <EmptyState
+          icon={ListChecks}
+          title="Todas las listas están ocultas"
+          description="Usa Personalizar vista para volver a mostrarlas."
+        />
+      ) : (
+        <EmptyState icon={ListChecks} title={emptyCopy.title} description={emptyCopy.description} />
+      );
     }
     return (
       <>
@@ -129,7 +150,10 @@ function TaskListPanel({
               <section
                 key={column.key}
                 aria-label={column.title}
-                className="flex w-72 shrink-0 flex-col rounded-lg border border-border bg-bg-subtle"
+                className={cn(
+                  "flex shrink-0 flex-col rounded-lg border border-border bg-bg-subtle",
+                  board.width === "wide" ? "w-96" : "w-72",
+                )}
               >
                 <h2 className="truncate px-4 py-3 text-sm font-medium text-text">{column.title}</h2>
                 <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -194,10 +218,19 @@ export function TasksPage() {
       return next;
     });
 
+  const [listPrefs, setListPrefs] = useState<ListViewPrefs>(() => loadListViewPrefs());
+  const [customizing, setCustomizing] = useState(false);
+  const updateListPrefs = (next: ListViewPrefs) => {
+    setListPrefs(next);
+    saveListViewPrefs(next);
+  };
+  const allColumns = view === "lists" ? buildListColumns(taskList ?? [], googleLists) : [];
   const board: Board | null =
     view === "lists"
       ? {
-          columns: buildListColumns(taskList ?? [], googleLists),
+          columns: arrangeColumns(allColumns, listPrefs),
+          totalColumns: allColumns.length,
+          width: listPrefs.width,
           expandedCompleted,
           onToggleCompleted: toggleCompleted,
         }
@@ -263,6 +296,15 @@ export function TasksPage() {
         </div>
       )}
 
+      {view === "lists" && (
+        <div className="flex justify-end border-b border-border px-6 py-2">
+          <Button variant="ghost" size="sm" onClick={() => setCustomizing(true)}>
+            <Settings2 className="size-4" aria-hidden />
+            Personalizar vista
+          </Button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex-1" />
       ) : (
@@ -272,6 +314,16 @@ export function TasksPage() {
           tasks={visibleTasks}
           board={board}
           initialOpenTaskId={openTaskIdFromUrl}
+        />
+      )}
+
+      {view === "lists" && (
+        <ListViewSettingsDialog
+          open={customizing}
+          onOpenChange={setCustomizing}
+          columns={allColumns}
+          prefs={listPrefs}
+          onChange={updateListPrefs}
         />
       )}
     </div>
