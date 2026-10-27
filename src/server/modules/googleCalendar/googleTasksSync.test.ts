@@ -248,3 +248,30 @@ describe("tareas — subtareas en la vista por lista", () => {
     expect(tasksService.listTasks({ view: "all" }).map((t) => t.id)).not.toContain(child.id);
   });
 });
+
+describe("google tasks — padre e hija", () => {
+  it("una subtarea remota queda bajo su tarea padre en LifeHub", async () => {
+    queueRemoteList([
+      { id: "gt-padre", title: "Arreglar moto", status: "needsAction", updated: "2026-10-26T10:00:00.000Z" },
+      { id: "gt-hija", title: "Grasa de litio", parent: "gt-padre", status: "needsAction", updated: "2026-10-26T10:00:00.000Z" },
+    ]);
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    const parent = getDb().select().from(schema.tasks).where(eq(schema.tasks.title, "Arreglar moto")).get()!;
+    const child = getDb().select().from(schema.tasks).where(eq(schema.tasks.title, "Grasa de litio")).get()!;
+    expect(child.parentTaskId).toBe(parent.id);
+    expect(parent.parentTaskId).toBeNull();
+  });
+
+  it("una subtarea local se crea en Google dentro de la lista de su padre", async () => {
+    const parent = tasksService.createTask({ title: "Padre local", priority: "normal" });
+    tasksService.createTask({ title: "Hija local", priority: "normal", parentTaskId: parent.id });
+    queueRemoteList([]);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-padre-local", updated: "2026-10-26T10:00:00.000Z" }));
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-hija-local", updated: "2026-10-26T10:00:00.000Z" }));
+    await tasksSync.syncGoogleTasks(USER_ID);
+
+    const childPost = fetchMock.mock.calls.find(([url]) => String(url).includes("parent="));
+    expect(String(childPost![0])).toContain("/lists/@default/tasks?parent=gt-padre-local");
+  });
+});

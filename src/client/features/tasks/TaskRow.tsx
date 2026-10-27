@@ -34,14 +34,14 @@ export function TaskRow({ task, today, selected, depth = 0, onToggleComplete, on
         />
       </span>
 
-      <button type="button" onClick={onOpen} className="flex-1 text-left">
+      <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
         <div className="flex items-center gap-2">
           <span
             className={cn("size-1.5 shrink-0 rounded-full", PRIORITY_DOT_CLASS[task.priority])}
             title={`Prioridad: ${PRIORITY_LABELS[task.priority]}`}
             aria-hidden
           />
-          <span className={cn("truncate text-sm", isDone ? "text-text-subtle line-through" : "text-text")}>
+          <span className={cn("min-w-0 break-words text-sm", isDone ? "text-text-subtle line-through" : "text-text")}>
             {task.title}
           </span>
         </div>
