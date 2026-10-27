@@ -238,3 +238,13 @@ describe("google tasks — listas para la vista por lista", () => {
     expect(listed?.googleTaskListId).toBe("@default");
   });
 });
+
+describe("tareas — subtareas en la vista por lista", () => {
+  it("la vista por lista devuelve las subtareas y el resto de vistas solo las tareas de primer nivel", () => {
+    const parent = tasksService.createTask({ title: "Padre", priority: "normal" });
+    const child = tasksService.createTask({ title: "Hija", priority: "normal", parentTaskId: parent.id });
+
+    expect(tasksService.listTasks({ view: "lists" }).map((t) => t.id)).toContain(child.id);
+    expect(tasksService.listTasks({ view: "all" }).map((t) => t.id)).not.toContain(child.id);
+  });
+});

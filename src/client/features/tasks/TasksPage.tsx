@@ -1,6 +1,6 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ListChecks } from "lucide-react";
+import { ChevronDown, ChevronRight, ListChecks } from "lucide-react";
 import { EmptyState } from "@client/components/ui/EmptyState";
 import { Input } from "@client/components/ui/Input";
 import { useToast } from "@client/components/ui/Toast";
@@ -9,9 +9,10 @@ import { useRegisterNewHandler } from "@client/app/shortcuts/ShortcutsContext";
 import { TaskRow } from "./TaskRow";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { useTaskList, useCreateTask, useUpdateTask } from "./useTasks";
+import { buildListColumns, type ListColumn, type ListRow } from "./taskListItems";
 import type { TaskDto, TaskView } from "@shared/schemas/tasks";
 import { PageHeader } from "@client/components/ui/PageHeader";
-import { useGoogleTaskLists, type GoogleTaskListDto } from "../settings/useGoogleCalendar";
+import { useGoogleTaskLists } from "../settings/useGoogleCalendar";
 
 const VIEWS: { value: TaskView; label: string }[] = [
   { value: "today", label: "Hoy" },
@@ -21,25 +22,6 @@ const VIEWS: { value: TaskView; label: string }[] = [
   { value: "all", label: "Todas" },
   { value: "lists", label: "Por lista" },
 ];
-
-const UNSYNCED_GROUP = "Sin lista de Google";
-const UNKNOWN_LIST_GROUP = "Lista de Google";
-
-/** Ordena las tareas como las listas de Google (sin lista al final) y devuelve el título de cada grupo. */
-function groupTasksByList(tasks: TaskDto[], googleLists: GoogleTaskListDto[]) {
-  const titleById = new Map(googleLists.map((list) => [list.id, list.title]));
-  const orderById = new Map(googleLists.map((list, index) => [list.id, index]));
-  const rankOf = (task: TaskDto) => {
-    if (task.googleTaskListId === null) return Number.MAX_SAFE_INTEGER;
-    return orderById.get(task.googleTaskListId) ?? Number.MAX_SAFE_INTEGER - 1;
-  };
-  const sorted = [...tasks].sort((a, b) => rankOf(a) - rankOf(b));
-  const titleOf = (task: TaskDto) =>
-    task.googleTaskListId === null
-      ? UNSYNCED_GROUP
-      : (titleById.get(task.googleTaskListId) ?? UNKNOWN_LIST_GROUP);
-  return { sorted, titleOf };
-}
 
 const EMPTY_COPY: Record<TaskView, { title: string; description: string }> = {
   today: { title: "Nada pendiente para hoy", description: "Añade una tarea o disfruta del momento." },
@@ -53,25 +35,43 @@ const EMPTY_COPY: Record<TaskView, { title: string; description: string }> = {
   lists: { title: "Todavía no hay tareas", description: "Las tareas aparecerán aquí agrupadas por lista de Google." },
 };
 
+/** Columnas de "Por lista" y, en el resto de vistas, una única lista de tareas sin columnas. */
+interface Board {
+  columns: ListColumn[];
+  /** Columnas cuya sección "Completadas" está desplegada. */
+  expandedCompleted: ReadonlySet<string>;
+  onToggleCompleted: (key: string) => void;
+}
+
+/** Tareas visibles en orden de pantalla: la selección por teclado sigue ese orden. */
+function visibleTasksOf(board: Board | null, plain: TaskDto[]): TaskDto[] {
+  if (!board) return plain;
+  return board.columns.flatMap((column) => [
+    ...column.open,
+    ...(board.expandedCompleted.has(column.key) ? column.completed : []),
+  ]).map((row) => row.task);
+}
+
 /** Lista + selección por teclado de una vista. Se remonta al cambiar de vista
  *  (vía `key`), así la selección siempre empieza en el primer elemento sin
  *  necesitar un efecto que la reinicie desde fuera. */
 function TaskListPanel({
   view,
   tasks,
+  board,
   initialOpenTaskId,
-  groupTitleOf,
 }: {
   view: TaskView;
+  /** Tareas visibles en orden de pantalla. */
   tasks: TaskDto[];
+  board: Board | null;
   initialOpenTaskId: string | null;
-  /** Solo en la vista por lista: título del grupo de cada tarea (se muestra al cambiar de grupo). */
-  groupTitleOf?: (task: TaskDto) => string;
 }) {
   const today = useToday();
   const updateTask = useUpdateTask();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [openTaskId, setOpenTaskId] = useState<string | null>(initialOpenTaskId);
+  const indexById = new Map(tasks.map((task, index) => [task.id, index]));
   const clampedIndex = Math.min(selectedIndex, Math.max(tasks.length - 1, 0));
 
   useEffect(() => {
@@ -100,7 +100,65 @@ function TaskListPanel({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [tasks, clampedIndex, openTaskId, updateTask]);
 
+  const renderRow = ({ task, depth }: ListRow) => (
+    <TaskRow
+      key={task.id}
+      task={task}
+      depth={depth}
+      today={today}
+      selected={indexById.get(task.id) === clampedIndex}
+      onOpen={() => setOpenTaskId(task.id)}
+      onToggleComplete={(done) => updateTask.mutate({ id: task.id, patch: { status: done ? "done" : "todo" } })}
+    />
+  );
+
   const emptyCopy = EMPTY_COPY[view];
+
+  if (board) {
+    if (board.columns.length === 0) {
+      return <EmptyState icon={ListChecks} title={emptyCopy.title} description={emptyCopy.description} />;
+    }
+    return (
+      <>
+        <div className="flex flex-1 items-start gap-4 overflow-x-auto p-4">
+          {board.columns.map((column) => {
+            const completedId = `completed-${column.key}`;
+            const expanded = board.expandedCompleted.has(column.key);
+            return (
+              <section
+                key={column.key}
+                aria-label={column.title}
+                className="flex w-72 shrink-0 flex-col rounded-lg border border-border bg-bg-subtle"
+              >
+                <h2 className="truncate px-4 py-3 text-sm font-medium text-text">{column.title}</h2>
+                <ul className="flex flex-col">{column.open.map(renderRow)}</ul>
+                {column.completed.length > 0 && (
+                  <div className="border-t border-border">
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      aria-controls={completedId}
+                      onClick={() => board.onToggleCompleted(column.key)}
+                      className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-text-muted hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
+                      {expanded ? (
+                        <ChevronDown className="size-3.5" aria-hidden />
+                      ) : (
+                        <ChevronRight className="size-3.5" aria-hidden />
+                      )}
+                      Completadas ({column.completed.length})
+                    </button>
+                    {expanded && <ul id={completedId} className="flex flex-col">{column.completed.map(renderRow)}</ul>}
+                  </div>
+                )}
+              </section>
+            );
+          })}
+        </div>
+        <TaskDetailSheet taskId={openTaskId} onClose={() => setOpenTaskId(null)} />
+      </>
+    );
+  }
 
   if (tasks.length === 0) {
     return <EmptyState icon={ListChecks} title={emptyCopy.title} description={emptyCopy.description} />;
@@ -109,28 +167,7 @@ function TaskListPanel({
   return (
     <>
       <ul className="flex-1 overflow-y-auto">
-        {tasks.map((task, index) => {
-          const group = groupTitleOf?.(task);
-          const showHeader = group !== undefined && (index === 0 || groupTitleOf?.(tasks[index - 1]!) !== group);
-          return (
-            <Fragment key={task.id}>
-              {showHeader && (
-                <li className="border-b border-border bg-bg-subtle px-4 py-2 text-xs font-medium uppercase tracking-wide text-text-muted">
-                  {group}
-                </li>
-              )}
-              <TaskRow
-                task={task}
-                today={today}
-                selected={index === clampedIndex}
-                onOpen={() => setOpenTaskId(task.id)}
-                onToggleComplete={(done) =>
-                  updateTask.mutate({ id: task.id, patch: { status: done ? "done" : "todo" } })
-                }
-              />
-            </Fragment>
-          );
-        })}
+        {tasks.map((task) => renderRow({ task, depth: 0 }))}
       </ul>
       <TaskDetailSheet taskId={openTaskId} onClose={() => setOpenTaskId(null)} />
     </>
@@ -145,8 +182,24 @@ export function TasksPage() {
 
   const { data: taskList, isLoading } = useTaskList(view);
   const { data: googleLists = [] } = useGoogleTaskLists(view === "lists");
-  const groups = view === "lists" ? groupTasksByList(taskList ?? [], googleLists) : null;
-  const tasks = groups ? groups.sorted : (taskList ?? []);
+  const [expandedCompleted, setExpandedCompleted] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleCompleted = (key: string) =>
+    setExpandedCompleted((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const board: Board | null =
+    view === "lists"
+      ? {
+          columns: buildListColumns(taskList ?? [], googleLists),
+          expandedCompleted,
+          onToggleCompleted: toggleCompleted,
+        }
+      : null;
+  const visibleTasks = visibleTasksOf(board, taskList ?? []);
   const today = useToday();
   const createTask = useCreateTask();
   const { show } = useToast();
@@ -213,9 +266,9 @@ export function TasksPage() {
         <TaskListPanel
           key={view}
           view={view}
-          tasks={tasks}
+          tasks={visibleTasks}
+          board={board}
           initialOpenTaskId={openTaskIdFromUrl}
-          groupTitleOf={groups?.titleOf}
         />
       )}
     </div>

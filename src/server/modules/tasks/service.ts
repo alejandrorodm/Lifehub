@@ -185,7 +185,9 @@ export function listTasks(query: TaskListQuery): TaskDto[] {
   // la hora o la zona horaria del servidor.
   const today = todayISODate(getSettings().timeZone);
 
-  const conditions = [eq(tasks.userId, getCurrentUserId()), isNull(tasks.deletedAt), isNull(tasks.parentTaskId)];
+  const conditions = [eq(tasks.userId, getCurrentUserId()), isNull(tasks.deletedAt)];
+  // La vista por lista necesita las subtareas para mostrarlas bajo su tarea; el resto solo ve tareas de primer nivel.
+  if (query.view !== "lists") conditions.push(isNull(tasks.parentTaskId));
 
   switch (query.view) {
     case "today":

@@ -8,16 +8,19 @@ interface TaskRowProps {
   task: TaskDto;
   today: string;
   selected: boolean;
+  /** Nivel de anidación: 0 para tareas, 1 o más para subtareas bajo su tarea. */
+  depth?: number;
   onToggleComplete: (done: boolean) => void;
   onOpen: () => void;
 }
 
-export function TaskRow({ task, today, selected, onToggleComplete, onOpen }: TaskRowProps) {
+export function TaskRow({ task, today, selected, depth = 0, onToggleComplete, onOpen }: TaskRowProps) {
   const isDone = task.status === "done";
   const isOverdue = !isDone && task.dueDate !== null && task.dueDate < today;
 
   return (
     <li
+      style={depth > 0 ? { paddingLeft: `${1 + depth * 1.75}rem` } : undefined}
       className={cn(
         "flex items-start gap-3 border-b border-border px-4 py-3 last:border-b-0",
         selected && "bg-accent-soft/60",
