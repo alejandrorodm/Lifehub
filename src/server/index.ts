@@ -5,9 +5,13 @@ import { createSnapshot } from "./backup/snapshot";
 import { startReminderPushWorker } from "./modules/push/reminderPushWorker";
 import { startGoogleCalendarSyncWorker } from "./modules/googleCalendar/syncWorker";
 import { config } from "./config";
+import { githubClientIdWarning } from "./modules/github/configCheck";
 
 async function main(): Promise<void> {
   runMigrations();
+
+  const githubWarning = githubClientIdWarning(config.github.clientId);
+  if (githubWarning) console.warn(`Aviso de configuración: ${githubWarning}`);
 
   try {
     await createSnapshot("startup");
