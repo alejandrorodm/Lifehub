@@ -12,6 +12,7 @@
 // iconos dentro del proyecto) — esos se dejan apuntando al servidor local
 // durante `createTwaProject` y solo se cambian al dominio real al guardar
 // `twa-manifest.json`, ya con el proyecto generado.
+const fs = require("fs");
 const path = require("path");
 const { TwaManifest, TwaGenerator, ConsoleLog } = require("@bubblewrap/core");
 const { generateManifestChecksumFile } = require("@bubblewrap/cli/dist/lib/cmds/shared.js");
@@ -30,8 +31,16 @@ async function main() {
   twaManifest.startUrl = "/";
   twaManifest.fullScopeUrl = `${PROD_ORIGIN}/`;
   twaManifest.packageId = "com.alejandrorodm.lifehub";
-  twaManifest.appVersionName = "1.0.0";
-  twaManifest.appVersionCode = 1;
+  // La versión de la APK la decide twa-manifest.json (se sube a mano antes de cada build de Play/instalación):
+  // este script no la reinicia.
+  if (fs.existsSync(manifestFile)) {
+    const previous = JSON.parse(fs.readFileSync(manifestFile, "utf-8"));
+    twaManifest.appVersionName = previous.appVersionName ?? "1.0.0";
+    twaManifest.appVersionCode = previous.appVersionCode ?? 1;
+  } else {
+    twaManifest.appVersionName = "1.0.0";
+    twaManifest.appVersionCode = 1;
+  }
   twaManifest.signingKey = { path: "./android.keystore", alias: "lifehub" };
   twaManifest.generatorApp = "bubblewrap-cli";
   // El default (21) es menor que el mínimo que exige androidbrowserhelper (24).
