@@ -16,11 +16,11 @@ import { useGoogleTaskLists } from "../settings/useGoogleCalendar";
 
 const VIEWS: { value: TaskView; label: string }[] = [
   { value: "today", label: "Hoy" },
+  { value: "lists", label: "Por lista" },
   { value: "upcoming", label: "Próximas" },
   { value: "overdue", label: "Atrasadas" },
   { value: "completed", label: "Completadas" },
   { value: "all", label: "Todas" },
-  { value: "lists", label: "Por lista" },
 ];
 
 const EMPTY_COPY: Record<TaskView, { title: string; description: string }> = {
