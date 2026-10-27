@@ -84,7 +84,11 @@ function queueRemoteList(items: unknown[]) {
 }
 
 function linkFor(taskId: string) {
-  return getDb().select().from(schema.googleTasksLinks).where(eq(schema.googleTasksLinks.taskId, taskId)).get();
+  return getDb()
+    .select()
+    .from(schema.googleTasksLinks)
+    .where(eq(schema.googleTasksLinks.taskId, taskId))
+    .get();
 }
 
 function taskRow(id: string) {
@@ -93,7 +97,11 @@ function taskRow(id: string) {
 
 describe("google tasks — hacia Google", () => {
   it("una tarea abierta con fecha se crea en Google Tasks con su fecha de vencimiento", async () => {
-    const task = tasksService.createTask({ title: "Entregar informe", priority: "normal", dueDate: "2026-11-10" });
+    const task = tasksService.createTask({
+      title: "Entregar informe",
+      priority: "normal",
+      dueDate: "2026-11-10",
+    });
     queueRemoteList([]);
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-1", updated: "2026-10-26T10:00:00.000Z" }));
 
@@ -117,7 +125,15 @@ describe("google tasks — hacia Google", () => {
 
     tasksService.updateTask(task.id, { status: "done" });
     fetchMock.mockReset();
-    queueRemoteList([{ id: "gt-2", title: "Llamar", status: "needsAction", due: "2026-11-10T00:00:00.000Z", updated: "2026-10-26T10:00:00.000Z" }]);
+    queueRemoteList([
+      {
+        id: "gt-2",
+        title: "Llamar",
+        status: "needsAction",
+        due: "2026-11-10T00:00:00.000Z",
+        updated: "2026-10-26T10:00:00.000Z",
+      },
+    ]);
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-2", updated: "2026-10-26T11:00:00.000Z" }));
     await tasksSync.syncGoogleTasks(USER_ID);
 
@@ -137,9 +153,26 @@ describe("google tasks — hacia Google", () => {
   });
 
   it("trae las tareas de todas las listas de Google y guarda a qué lista pertenece cada una", async () => {
-    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "L1", title: "Compra" }, { id: "L2", title: "Trabajo" }] }));
-    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "t-pan", title: "Pan", status: "needsAction", updated: "2026-10-26T12:00:00.000Z" }] }));
-    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "t-informe", title: "Informe", status: "needsAction", updated: "2026-10-26T12:00:00.000Z" }] }));
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          { id: "L1", title: "Compra" },
+          { id: "L2", title: "Trabajo" },
+        ],
+      }),
+    );
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [{ id: "t-pan", title: "Pan", status: "needsAction", updated: "2026-10-26T12:00:00.000Z" }],
+      }),
+    );
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          { id: "t-informe", title: "Informe", status: "needsAction", updated: "2026-10-26T12:00:00.000Z" },
+        ],
+      }),
+    );
     await tasksSync.syncGoogleTasks(USER_ID);
 
     const pan = getDb().select().from(schema.tasks).where(eq(schema.tasks.title, "Pan")).get();
@@ -151,7 +184,16 @@ describe("google tasks — hacia Google", () => {
 
 describe("google tasks — desde Google", () => {
   it("una tarea nueva creada en Google Tasks aparece en LifeHub", async () => {
-    queueRemoteList([{ id: "gt-3", title: "Comprar pan", notes: "integral", status: "needsAction", due: "2026-11-12T00:00:00.000Z", updated: "2026-10-26T12:00:00.000Z" }]);
+    queueRemoteList([
+      {
+        id: "gt-3",
+        title: "Comprar pan",
+        notes: "integral",
+        status: "needsAction",
+        due: "2026-11-12T00:00:00.000Z",
+        updated: "2026-10-26T12:00:00.000Z",
+      },
+    ]);
     await tasksSync.syncGoogleTasks(USER_ID);
 
     const row = getDb().select().from(schema.tasks).where(eq(schema.tasks.title, "Comprar pan")).get();
@@ -166,7 +208,15 @@ describe("google tasks — desde Google", () => {
     await tasksSync.syncGoogleTasks(USER_ID);
 
     fetchMock.mockReset();
-    queueRemoteList([{ id: "gt-4", title: "Revisar", status: "completed", due: "2026-11-10T00:00:00.000Z", updated: "2026-10-26T12:00:00.000Z" }]);
+    queueRemoteList([
+      {
+        id: "gt-4",
+        title: "Revisar",
+        status: "completed",
+        due: "2026-11-10T00:00:00.000Z",
+        updated: "2026-10-26T12:00:00.000Z",
+      },
+    ]);
     await tasksSync.syncGoogleTasks(USER_ID);
 
     expect(taskRow(task.id)?.status).toBe("done");
@@ -187,7 +237,11 @@ describe("google tasks — desde Google", () => {
   });
 
   it("si la tarea cambió en LifeHub después del último estado remoto, gana lo local", async () => {
-    const task = tasksService.createTask({ title: "Versión original", priority: "normal", dueDate: "2026-11-10" });
+    const task = tasksService.createTask({
+      title: "Versión original",
+      priority: "normal",
+      dueDate: "2026-11-10",
+    });
     queueRemoteList([]);
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-6", updated: "2026-10-26T10:00:00.000Z" }));
     await tasksSync.syncGoogleTasks(USER_ID);
@@ -196,7 +250,15 @@ describe("google tasks — desde Google", () => {
     tasksService.updateTask(task.id, { title: "Versión local" });
 
     fetchMock.mockReset();
-    queueRemoteList([{ id: "gt-6", title: "Versión remota", status: "needsAction", due: "2026-11-10T00:00:00.000Z", updated: "2026-10-26T12:00:00.000Z" }]);
+    queueRemoteList([
+      {
+        id: "gt-6",
+        title: "Versión remota",
+        status: "needsAction",
+        due: "2026-11-10T00:00:00.000Z",
+        updated: "2026-10-26T12:00:00.000Z",
+      },
+    ]);
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-6", updated: "2026-10-26T13:00:00.000Z" }));
     await tasksSync.syncGoogleTasks(USER_ID);
 
@@ -212,9 +274,17 @@ describe("google tasks — syncNow()", () => {
     fetchMock.mockReset();
     fetchMock.mockResolvedValueOnce(jsonResponse({ items: [] })); // calendario: pull de eventos
     fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "@default", title: "Mis tareas" }] })); // Google Tasks: listas
-    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "gt-9", title: "Desde syncNow", status: "needsAction", updated: "2026-10-26T12:00:00.000Z" }] })); // Google Tasks: tareas
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          { id: "gt-9", title: "Desde syncNow", status: "needsAction", updated: "2026-10-26T12:00:00.000Z" },
+        ],
+      }),
+    ); // Google Tasks: tareas
     await sync.syncNow(USER_ID);
-    expect(getDb().select().from(schema.tasks).where(eq(schema.tasks.title, "Desde syncNow")).get()).toBeDefined();
+    expect(
+      getDb().select().from(schema.tasks).where(eq(schema.tasks.title, "Desde syncNow")).get(),
+    ).toBeDefined();
   });
 });
 
@@ -253,7 +323,13 @@ describe("google tasks — padre e hija", () => {
   it("una subtarea remota queda bajo su tarea padre en LifeHub", async () => {
     queueRemoteList([
       { id: "gt-padre", title: "Arreglar moto", status: "needsAction", updated: "2026-10-26T10:00:00.000Z" },
-      { id: "gt-hija", title: "Grasa de litio", parent: "gt-padre", status: "needsAction", updated: "2026-10-26T10:00:00.000Z" },
+      {
+        id: "gt-hija",
+        title: "Grasa de litio",
+        parent: "gt-padre",
+        status: "needsAction",
+        updated: "2026-10-26T10:00:00.000Z",
+      },
     ]);
     await tasksSync.syncGoogleTasks(USER_ID);
 
@@ -267,8 +343,12 @@ describe("google tasks — padre e hija", () => {
     const parent = tasksService.createTask({ title: "Padre local", priority: "normal" });
     tasksService.createTask({ title: "Hija local", priority: "normal", parentTaskId: parent.id });
     queueRemoteList([]);
-    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-padre-local", updated: "2026-10-26T10:00:00.000Z" }));
-    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "gt-hija-local", updated: "2026-10-26T10:00:00.000Z" }));
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ id: "gt-padre-local", updated: "2026-10-26T10:00:00.000Z" }),
+    );
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ id: "gt-hija-local", updated: "2026-10-26T10:00:00.000Z" }),
+    );
     await tasksSync.syncGoogleTasks(USER_ID);
 
     const childPost = fetchMock.mock.calls.find(([url]) => String(url).includes("parent="));
@@ -280,11 +360,19 @@ describe("google tasks — lista con el nombre de un proyecto", () => {
   it("las tareas de una lista de Google con el mismo nombre que un proyecto pasan a ese proyecto", async () => {
     const projectsService = await import("../projects/service");
     const project = projectsService.createProject({ name: "Compras", status: "planned", priority: "normal" });
-    const otherProject = projectsService.createProject({ name: "Otro", status: "planned", priority: "normal" });
+    const otherProject = projectsService.createProject({
+      name: "Otro",
+      status: "planned",
+      priority: "normal",
+    });
     fetchMock.mockReset();
     fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: "l-compras", title: "Compras" }] }));
     fetchMock.mockResolvedValueOnce(
-      jsonResponse({ items: [{ id: "gt-compra", title: "Leche", status: "needsAction", updated: "2026-10-26T10:00:00.000Z" }] }),
+      jsonResponse({
+        items: [
+          { id: "gt-compra", title: "Leche", status: "needsAction", updated: "2026-10-26T10:00:00.000Z" },
+        ],
+      }),
     );
     await tasksSync.syncGoogleTasks(USER_ID);
 
@@ -306,5 +394,43 @@ describe("google tasks — lista con el nombre de un proyecto", () => {
 
     expect(taskRow(task.id)?.projectId).toBe(elsewhere.id);
     expect(chosen.id).toBeDefined();
+  });
+});
+
+describe("google tasks — mover de lista desde LifeHub", () => {
+  it("mueve la tarea en Google y actualiza su enlace", async () => {
+    queueRemoteList([
+      { id: "gt-leche", title: "Leche", status: "needsAction", updated: "2026-10-26T10:00:00.000Z" },
+    ]);
+    await tasksSync.syncGoogleTasks(USER_ID);
+    const task = getDb().select().from(schema.tasks).where(eq(schema.tasks.title, "Leche")).get()!;
+
+    tasksSync.clearGoogleTaskListCache(USER_ID);
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          { id: "@default", title: "Mis tareas" },
+          { id: "l-compras", title: "Compras" },
+        ],
+      }),
+    );
+    fetchMock.mockResolvedValueOnce(jsonResponse({}));
+    await tasksSync.moveTaskToGoogleList(USER_ID, task.id, "l-compras");
+
+    const move = fetchMock.mock.calls.find(([url]) => String(url).includes("/move"));
+    expect(decodeURIComponent(String(move![0]))).toContain(
+      "/lists/@default/tasks/gt-leche/move?destinationTasklist=l-compras",
+    );
+    expect(move![1].method).toBe("POST");
+    expect(linkFor(task.id)?.googleTaskListId).toBe("l-compras");
+  });
+
+  it("rechaza mover una tarea con subtareas", async () => {
+    const parent = tasksService.createTask({ title: "Con hijas", priority: "normal" });
+    tasksService.createTask({ title: "Hija", priority: "normal", parentTaskId: parent.id });
+    await expect(tasksSync.moveTaskToGoogleList(USER_ID, parent.id, "l-compras")).rejects.toThrow(
+      /subtareas/,
+    );
   });
 });

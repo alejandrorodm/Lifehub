@@ -2,7 +2,9 @@ import { Hono } from "hono";
 import { config } from "../../config";
 import * as service from "./service";
 import { syncNow } from "./sync";
-import { getCachedGoogleTaskLists } from "./googleTasksSync";
+import { getCachedGoogleTaskLists, moveTaskToGoogleList } from "./googleTasksSync";
+import { parseOrThrow } from "../../lib/validate";
+import { TaskGoogleMoveSchema } from "@shared/schemas/tasks";
 import { getCurrentUserId } from "../../lib/requestContext";
 
 // En producción cliente y servidor comparten origen (`npm start`); en
@@ -37,6 +39,11 @@ export const googleCalendarRoutes = new Hono()
     return c.body(null, 204);
   })
   .post("/sync", async (c) => c.json(await syncNow(getCurrentUserId())))
+  .post("/tasks/:taskId/move", async (c) => {
+    const body = parseOrThrow(TaskGoogleMoveSchema, await c.req.json().catch(() => ({})));
+    await moveTaskToGoogleList(getCurrentUserId(), c.req.param("taskId"), body.listId);
+    return c.body(null, 204);
+  })
   // Listas de Google Tasks (con caché corta). Sin permiso de Tasks no hay listas que mostrar.
   .get("/tasks/lists", async (c) => {
     const userId = getCurrentUserId();

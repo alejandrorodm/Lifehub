@@ -97,6 +97,16 @@ export function useUpdateTask() {
   });
 }
 
+/** Mueve una tarea sincronizada a otra lista de Google (la mueve también en Google). */
+export function useMoveTaskToGoogleList() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, listId }: { taskId: string; listId: string }) =>
+      api.post<void>(`/integrations/google/tasks/${taskId}/move`, { listId }),
+    onSuccess: () => invalidateTaskLists(queryClient),
+  });
+}
+
 export function useDeleteTask() {
   const queryClient = useQueryClient();
   return useMutation({

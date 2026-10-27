@@ -45,12 +45,17 @@ export const TaskPatchSchema = z
   .partial();
 export type TaskPatchInput = z.infer<typeof TaskPatchSchema>;
 
+export const TaskGoogleMoveSchema = z.object({ listId: z.string().trim().min(1).max(200) });
+export type TaskGoogleMoveInput = z.infer<typeof TaskGoogleMoveSchema>;
+
 export const PlanDayQuerySchema = z.object({ date: ISO_DATE });
 export type PlanDayQuery = z.infer<typeof PlanDayQuerySchema>;
 
 export const PlanCarryOverSchema = z
   .object({ from: ISO_DATE, to: ISO_DATE })
-  .refine((value) => value.from !== value.to, { message: "El día de destino debe ser distinto del de origen." });
+  .refine((value) => value.from !== value.to, {
+    message: "El día de destino debe ser distinto del de origen.",
+  });
 export type PlanCarryOverInput = z.infer<typeof PlanCarryOverSchema>;
 
 export const ChecklistItemCreateSchema = z.object({

@@ -1,7 +1,8 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { tasks, googleTasksLinks, projects } from "../../db/schema";
 import { googleApiFetch } from "./client";
+import { AppError } from "../../lib/errors";
 
 /**
  * Sincronización con Google Tasks. Usa las listas reales de Google (no crea
@@ -83,6 +84,11 @@ export async function listGoogleTaskLists(userId: string): Promise<GoogleTaskLis
 /** Los nombres de las listas cambian poco: se reutilizan unos minutos para no pedirlos en cada consulta. */
 const LIST_CACHE_TTL_MS = 5 * 60 * 1000;
 const listCache = new Map<string, { lists: GoogleTaskList[]; expiresAt: number }>();
+
+/** Olvida las listas guardadas de un usuario (tras cambios en Google o en los tests). */
+export function clearGoogleTaskListCache(userId: string): void {
+  listCache.delete(userId);
+}
 
 /** Listas de Google con caché por usuario (para la vista de tareas agrupadas por lista). */
 export async function getCachedGoogleTaskLists(userId: string): Promise<GoogleTaskList[]> {
@@ -345,4 +351,51 @@ export async function syncGoogleTasks(userId: string): Promise<{ pulled: number;
   }
 
   return { pulled, pushed };
+}
+
+/**
+ * Mueve una tarea a otra lista de Google (tasks.move) y actualiza su enlace. Solo tareas de primer nivel sin
+ * subtareas: Google no mueve las subtareas con su padre, así que se rechaza en vez de dejarlas desalineadas.
+ */
+export async function moveTaskToGoogleList(
+  userId: string,
+  taskId: string,
+  destinationListId: string,
+): Promise<void> {
+  const db = getDb();
+  const row = db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
+    .get();
+  if (!row) throw AppError.validation("La tarea no existe.");
+  const children = db
+    .select({ id: tasks.id })
+    .from(tasks)
+    .where(and(eq(tasks.parentTaskId, taskId), eq(tasks.userId, userId), isNull(tasks.deletedAt)))
+    .all();
+  if (children.length > 0) {
+    throw AppError.validation(
+      "Esta tarea tiene subtareas: Google no las mueve con ella. Quítalas o muévelas antes.",
+    );
+  }
+  const link = linksOf(userId).find((candidate) => candidate.taskId === taskId);
+  if (!link) throw AppError.validation("Esta tarea todavía no está sincronizada con Google.");
+  if (row.parentTaskId) throw AppError.validation("Una subtarea se mueve con su tarea padre.");
+  const lists = await getCachedGoogleTaskLists(userId);
+  if (!lists.some((list) => list.id === destinationListId)) {
+    throw AppError.validation("Esa lista no existe en tu cuenta de Google.");
+  }
+  if (link.googleTaskListId === destinationListId) return;
+
+  await googleApiFetch<RemoteTask>(
+    userId,
+    TASKS_API,
+    `/lists/${encodeURIComponent(link.googleTaskListId)}/tasks/${encodeURIComponent(link.googleTaskId)}/move?destinationTasklist=${encodeURIComponent(destinationListId)}`,
+    { method: "POST" },
+  );
+  db.update(googleTasksLinks)
+    .set({ googleTaskListId: destinationListId })
+    .where(eq(googleTasksLinks.taskId, taskId))
+    .run();
 }

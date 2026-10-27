@@ -10,7 +10,15 @@ import { ChecklistEditor } from "./ChecklistEditor";
 import { TaskReminderSection } from "./TaskReminderSection";
 import { TaskLinkedNotes } from "./TaskLinkedNotes";
 import { PRIORITY_LABELS } from "./taskDisplay";
-import { useTask, useSubtasks, useUpdateTask, useDeleteTask, useCreateTask } from "./useTasks";
+import {
+  useTask,
+  useSubtasks,
+  useUpdateTask,
+  useDeleteTask,
+  useCreateTask,
+  useMoveTaskToGoogleList,
+} from "./useTasks";
+import { useGoogleTaskLists } from "../settings/useGoogleCalendar";
 import { ProjectSelectField } from "@client/features/projects/ProjectSelectField";
 import type { TaskDto, TaskPriority } from "@shared/schemas/tasks";
 
@@ -54,6 +62,8 @@ export function TaskDetailSheet({ taskId, onClose }: TaskDetailSheetProps) {
 function TaskDetailForm({ task, onClose }: { task: TaskDto; onClose: () => void }) {
   const { data: subtasks } = useSubtasks(task.id);
   const updateTask = useUpdateTask();
+  const moveToList = useMoveTaskToGoogleList();
+  const { data: googleLists = [] } = useGoogleTaskLists();
   const deleteTask = useDeleteTask();
   const createTask = useCreateTask();
   const { show } = useToast();
@@ -156,6 +166,26 @@ function TaskDetailForm({ task, onClose }: { task: TaskDto; onClose: () => void 
             onChange={(projectId) => patch({ id: task.id, patch: { projectId } })}
           />
         </div>
+
+        {task.googleTaskListId && googleLists.length > 0 && (
+          <div>
+            <Label htmlFor="task-google-list">Lista de Google</Label>
+            <Select
+              aria-label="Lista de Google"
+              value={task.googleTaskListId}
+              onValueChange={(listId) =>
+                moveToList.mutate(
+                  { taskId: task.id, listId },
+                  {
+                    onError: (error) =>
+                      show({ tone: "error", title: "No se pudo mover la tarea", description: error.message }),
+                  },
+                )
+              }
+              options={googleLists.map((list) => ({ value: list.id, label: list.title }))}
+            />
+          </div>
+        )}
 
         <div>
           <Label>Etiquetas</Label>
