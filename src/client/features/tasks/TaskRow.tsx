@@ -1,4 +1,5 @@
-import { CalendarDays, ListChecks } from "lucide-react";
+import { useState } from "react";
+import { CalendarDays, Check, ListChecks, Trash2, X } from "lucide-react";
 import type { TaskDto } from "@shared/schemas/tasks";
 import { Checkbox } from "@client/components/ui/Checkbox";
 import { cn } from "@client/lib/utils";
@@ -12,11 +13,22 @@ interface TaskRowProps {
   depth?: number;
   onToggleComplete: (done: boolean) => void;
   onOpen: () => void;
+  /** Si se indica, muestra un icono de borrado (con confirmación) sin necesidad de abrir el detalle. */
+  onDelete?: () => void;
 }
 
-export function TaskRow({ task, today, selected, depth = 0, onToggleComplete, onOpen }: TaskRowProps) {
+export function TaskRow({
+  task,
+  today,
+  selected,
+  depth = 0,
+  onToggleComplete,
+  onOpen,
+  onDelete,
+}: TaskRowProps) {
   const isDone = task.status === "done";
   const isOverdue = !isDone && task.dueDate !== null && task.dueDate < today;
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   return (
     <li
@@ -69,6 +81,37 @@ export function TaskRow({ task, today, selected, depth = 0, onToggleComplete, on
           ))}
         </div>
       </button>
+
+      {onDelete &&
+        (confirmingDelete ? (
+          <span className="flex shrink-0 items-center gap-1 pt-0.5">
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(false)}
+              aria-label="Cancelar borrado"
+              className="text-text-subtle hover:text-text"
+            >
+              <X className="size-3.5" aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              aria-label={`Confirmar eliminar "${task.title}"`}
+              className="text-danger hover:text-danger/80"
+            >
+              <Check className="size-3.5" aria-hidden />
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmingDelete(true)}
+            aria-label={`Eliminar "${task.title}"`}
+            className="shrink-0 pt-0.5 text-text-subtle hover:text-danger"
+          >
+            <Trash2 className="size-3.5" aria-hidden />
+          </button>
+        ))}
     </li>
   );
 }

@@ -10,7 +10,7 @@ import { useToday } from "@client/lib/useToday";
 import { useRegisterNewHandler } from "@client/app/shortcuts/ShortcutsContext";
 import { TaskRow } from "./TaskRow";
 import { TaskDetailSheet } from "./TaskDetailSheet";
-import { useTaskList, useCreateTask, useUpdateTask } from "./useTasks";
+import { useTaskList, useCreateTask, useUpdateTask, useDeleteTask } from "./useTasks";
 import { buildListColumns, type ListColumn, type ListRow } from "./taskListItems";
 import {
   arrangeColumns,
@@ -73,6 +73,37 @@ function visibleTasksOf(board: Board | null, plain: TaskDto[]): TaskDto[] {
     .map((row) => row.task);
 }
 
+/** Alta rápida dentro de una columna de "Por lista". La tarea se crea sin lista de Google asignada
+ *  (igual que el alta rápida general) y queda en "Sin lista de Google" hasta la próxima sincronización. */
+function ColumnQuickAdd({ columnTitle, onCreate }: { columnTitle: string; onCreate: (title: string) => void }) {
+  const [title, setTitle] = useState("");
+
+  const submit = () => {
+    const value = title.trim();
+    if (!value) return;
+    onCreate(value);
+    setTitle("");
+  };
+
+  return (
+    <div className="border-b border-border px-3 py-2">
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            submit();
+          }
+        }}
+        placeholder="Añadir una tarea…"
+        aria-label={`Añadir tarea en la lista ${columnTitle}`}
+        className="h-8 text-sm"
+      />
+    </div>
+  );
+}
+
 /** Lista + selección por teclado de una vista. Se remonta al cambiar de vista
  *  (vía `key`), así la selección siempre empieza en el primer elemento sin
  *  necesitar un efecto que la reinicie desde fuera. */
@@ -90,6 +121,9 @@ function TaskListPanel({
 }) {
   const today = useToday();
   const updateTask = useUpdateTask();
+  const createTask = useCreateTask();
+  const deleteTask = useDeleteTask();
+  const { show } = useToast();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [openTaskId, setOpenTaskId] = useState<string | null>(initialOpenTaskId);
   const indexById = new Map(tasks.map((task, index) => [task.id, index]));
@@ -131,6 +165,12 @@ function TaskListPanel({
       onOpen={() => setOpenTaskId(task.id)}
       onToggleComplete={(done) =>
         updateTask.mutate({ id: task.id, patch: { status: done ? "done" : "todo" } })
+      }
+      onDelete={() =>
+        deleteTask.mutate(task.id, {
+          onSuccess: () =>
+            show({ tone: "success", title: "Tarea eliminada", description: "Se movió a la papelera." }),
+        })
       }
     />
   );
@@ -178,6 +218,15 @@ function TaskListPanel({
                 ) : (
                   <h2 className="truncate px-4 py-3 text-sm font-medium text-text">{column.title}</h2>
                 )}
+                <ColumnQuickAdd
+                  columnTitle={column.title}
+                  onCreate={(title) =>
+                    createTask.mutate(
+                      { title, priority: "normal" },
+                      { onSuccess: () => show({ tone: "success", title: "Tarea creada" }) },
+                    )
+                  }
+                />
                 <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
                   <ul className="flex flex-col">{column.open.map(renderRow)}</ul>
                   {column.completed.length > 0 && (
