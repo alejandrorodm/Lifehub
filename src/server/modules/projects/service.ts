@@ -1,4 +1,4 @@
-import { and, eq, isNull, isNotNull, asc, desc } from "drizzle-orm";
+import { and, eq, isNull, isNotNull, ne, asc, desc } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { projects, milestones, tasks } from "../../db/schema";
 import { AppError } from "../../lib/errors";
@@ -11,9 +11,14 @@ import type {
   MilestoneDto,
   MilestoneCreateInput,
   MilestonePatchInput,
+  ProjectTaskPreviewDto,
 } from "@shared/schemas/projects";
+import type { TaskPriority } from "@shared/schemas/tasks";
 
 type ProjectRow = typeof projects.$inferSelect;
+
+const UPCOMING_TASKS_LIMIT = 4;
+const PRIORITY_RANK: Record<TaskPriority, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
 
 function serializeMilestone(row: typeof milestones.$inferSelect): MilestoneDto {
   return {
@@ -30,6 +35,7 @@ function toProjectDto(
   taskCount: number,
   taskDoneCount: number,
   milestoneRows: MilestoneDto[],
+  upcomingTasks: ProjectTaskPreviewDto[],
 ): ProjectDto {
   return {
     id: row.id,
@@ -47,6 +53,7 @@ function toProjectDto(
     taskDoneCount,
     progress: taskCount === 0 ? null : Math.round((taskDoneCount / taskCount) * 100),
     milestones: milestoneRows,
+    upcomingTasks,
   };
 }
 
@@ -87,9 +94,38 @@ function getMilestones(projectId: string): MilestoneDto[] {
     .map(serializeMilestone);
 }
 
+/** Próximas tareas abiertas de nivel superior, para el preview de la tarjeta (sin fecha al final). */
+function getUpcomingTasks(projectId: string): ProjectTaskPreviewDto[] {
+  const rows = getDb()
+    .select({ id: tasks.id, title: tasks.title, dueDate: tasks.dueDate, priority: tasks.priority })
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.projectId, projectId),
+        eq(tasks.userId, getCurrentUserId()),
+        isNull(tasks.deletedAt),
+        isNull(tasks.parentTaskId),
+        ne(tasks.status, "done"),
+      ),
+    )
+    .all();
+
+  return rows
+    .sort((a, b) => {
+      if (a.dueDate !== b.dueDate) {
+        if (a.dueDate === null) return 1;
+        if (b.dueDate === null) return -1;
+        return a.dueDate < b.dueDate ? -1 : 1;
+      }
+      return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+    })
+    .slice(0, UPCOMING_TASKS_LIMIT)
+    .map((row) => ({ id: row.id, title: row.title, dueDate: row.dueDate }));
+}
+
 function hydrate(row: ProjectRow): ProjectDto {
   const counts = getTaskCounts(row.id);
-  return toProjectDto(row, counts.total, counts.done, getMilestones(row.id));
+  return toProjectDto(row, counts.total, counts.done, getMilestones(row.id), getUpcomingTasks(row.id));
 }
 
 export function createProject(input: ProjectCreateInput): ProjectDto {

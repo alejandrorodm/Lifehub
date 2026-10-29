@@ -124,6 +124,22 @@ export function ProjectsPage() {
                 </div>
 
                 <ProgressBar value={project.progress} />
+
+                {project.upcomingTasks.length > 0 && (
+                  <ul className="space-y-1 text-xs text-text-muted">
+                    {project.upcomingTasks.map((task) => (
+                      <li key={task.id} className="truncate">
+                        · {task.title}
+                      </li>
+                    ))}
+                    {project.taskCount - project.taskDoneCount - project.upcomingTasks.length > 0 && (
+                      <li className="text-text-subtle">
+                        +{project.taskCount - project.taskDoneCount - project.upcomingTasks.length} más
+                      </li>
+                    )}
+                  </ul>
+                )}
+
                 <div className="flex items-center justify-between text-xs text-text-muted">
                   <span>
                     {project.taskCount === 0

@@ -64,6 +64,13 @@ export interface MilestoneDto {
   position: number;
 }
 
+/** Vista reducida de una tarea pendiente, para el preview en la tarjeta del proyecto. */
+export interface ProjectTaskPreviewDto {
+  id: string;
+  title: string;
+  dueDate: string | null;
+}
+
 export interface ProjectDto {
   id: string;
   name: string;
@@ -81,4 +88,6 @@ export interface ProjectDto {
   /** Porcentaje 0-100, o `null` si el proyecto todavía no tiene tareas. */
   progress: number | null;
   milestones: MilestoneDto[];
+  /** Próximas tareas abiertas (hasta 4), ordenadas por fecha y luego prioridad. */
+  upcomingTasks: ProjectTaskPreviewDto[];
 }

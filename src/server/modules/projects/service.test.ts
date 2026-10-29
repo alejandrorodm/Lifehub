@@ -109,6 +109,35 @@ describe("projects service", () => {
     expect(projects.getProject(project.id).milestones).toEqual([]);
   });
 
+  it("las próximas tareas se ordenan por fecha y luego prioridad, excluyen hechas/subtareas/otro proyecto y se limitan a 4", () => {
+    const project = projects.createProject({ name: "Con próximas", status: "active", priority: "normal" });
+    const other = projects.createProject({ name: "Otro", status: "active", priority: "normal" });
+
+    tasks.createTask({ title: "Sin fecha", priority: "urgent", projectId: project.id });
+    tasks.createTask({ title: "Tardía", priority: "normal", projectId: project.id, dueDate: "2026-12-01" });
+    tasks.createTask({ title: "Pronto baja", priority: "low", projectId: project.id, dueDate: "2026-11-01" });
+    tasks.createTask({ title: "Pronto urgente", priority: "urgent", projectId: project.id, dueDate: "2026-11-01" });
+    const done = tasks.createTask({
+      title: "Hecha",
+      priority: "urgent",
+      projectId: project.id,
+      dueDate: "2026-10-01",
+    });
+    tasks.updateTask(done.id, { status: "done" });
+    const parent = tasks.createTask({
+      title: "Padre",
+      priority: "urgent",
+      projectId: project.id,
+      dueDate: "2026-10-01",
+    });
+    tasks.createTask({ title: "Subtarea", priority: "urgent", parentTaskId: parent.id, dueDate: "2026-09-01" });
+    tasks.createTask({ title: "Ajena", priority: "urgent", projectId: other.id, dueDate: "2026-09-01" });
+
+    const upcoming = projects.getProject(project.id).upcomingTasks;
+
+    expect(upcoming.map((t) => t.title)).toEqual(["Padre", "Pronto urgente", "Pronto baja", "Tardía"]);
+  });
+
   it("al borrar un proyecto, sus tareas se desvinculan en vez de borrarse", () => {
     const project = projects.createProject({ name: "Borrable", status: "active", priority: "normal" });
     const task = tasks.createTask({ title: "Huérfana", priority: "normal", projectId: project.id });
