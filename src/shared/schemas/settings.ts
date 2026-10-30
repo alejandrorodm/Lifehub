@@ -11,6 +11,7 @@ export const DASHBOARD_WIDGETS = [
   "reminders",
   "active-projects",
   "quick-capture",
+  "finance",
 ] as const;
 export const DashboardWidgetIdSchema = z.enum(DASHBOARD_WIDGETS);
 export type DashboardWidgetId = z.infer<typeof DashboardWidgetIdSchema>;

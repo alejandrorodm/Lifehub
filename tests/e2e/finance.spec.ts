@@ -146,6 +146,12 @@ test("asignar y retirar dinero de una meta desde una cuenta", async ({ page }) =
 
   await card.getByRole("button", { name: /Historial \(2\)/ }).click();
   await expect(card.getByText(new RegExp(account)).first()).toBeVisible();
+
+  // S6 (fase 19): Hoy muestra el widget de finanzas con la meta más próxima.
+  await page.goto("/");
+  const widget = page.getByRole("region", { name: "Finanzas del mes" });
+  await expect(widget).toContainText("Gastado este mes");
+  await expect(widget).toContainText("Próxima meta");
 });
 
 test("la paleta de comandos registra un gasto con «gasto 7,25 descripción»", async ({ page }) => {

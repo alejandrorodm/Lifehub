@@ -22,6 +22,7 @@ import { cn } from "@client/lib/utils";
 import { DASHBOARD_WIDGETS } from "@shared/schemas/settings";
 import type { DashboardWidgetId } from "@shared/schemas/settings";
 import { DASHBOARD_WIDGET_LABELS } from "./dashboardWidgets";
+import { FinanceWidget } from "@client/features/finance/FinanceWidget";
 
 function useGreeting(): string {
   const hour = new Date().getHours();
@@ -299,6 +300,7 @@ const WIDGET_RENDERERS: Record<DashboardWidgetId, () => ReactNode> = {
   reminders: () => <RemindersWidget />,
   "active-projects": () => <ActiveProjectsWidget />,
   "quick-capture": () => <QuickCaptureWidget />,
+  finance: () => <FinanceWidget />,
 };
 
 function SummaryBar() {

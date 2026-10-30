@@ -7,4 +7,5 @@ export const DASHBOARD_WIDGET_LABELS: Record<DashboardWidgetId, string> = {
   reminders: "Recordatorios",
   "active-projects": "Proyectos activos",
   "quick-capture": "Captura rápida",
+  finance: "Finanzas del mes",
 };
