@@ -255,6 +255,34 @@ const ExportFinanceEntrySchema = z.object({
   createdAt: z.coerce.date(),
 });
 
+// Fase 18: categorías y movimientos de gasto/ingreso. Contenido normal, se
+// exportan; los exports anteriores no los traen, de ahí el `.default([])`.
+const ExportFinanceCategorySchema = z.object({
+  id: z.string().min(1),
+  userId: z.string().min(1),
+  name: z.string(),
+  kind: z.enum(["expense", "income"]),
+  colorSlot: z.number().int(),
+  monthlyBudgetCents: z.number().int().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+  deletedAt: z.coerce.date().nullable(),
+});
+
+const ExportFinanceTransactionSchema = z.object({
+  id: z.string().min(1),
+  userId: z.string().min(1),
+  kind: z.enum(["expense", "income"]),
+  amountCents: z.number().int(),
+  date: dateOnly(),
+  description: z.string(),
+  categoryId: z.string().nullable(),
+  assetId: z.string().nullable(),
+  note: z.string().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+
 // Fase 11: lista de seguimiento de mercados. Contenido normal (como las
 // finanzas de la fase 10), no credenciales — se exporta igual que el resto.
 const ExportWatchlistAssetSchema = z.object({
@@ -294,6 +322,8 @@ export const ExportDataSchema = z.object({
     financeAssets: z.array(ExportFinanceAssetSchema),
     financeGoals: z.array(ExportFinanceGoalSchema),
     financeEntries: z.array(ExportFinanceEntrySchema),
+    financeCategories: z.array(ExportFinanceCategorySchema).default([]),
+    financeTransactions: z.array(ExportFinanceTransactionSchema).default([]),
     watchlistAssets: z.array(ExportWatchlistAssetSchema),
     meta: z.array(ExportMetaSchema),
     settings: SettingsSchema,

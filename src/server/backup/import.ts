@@ -28,12 +28,20 @@ import {
   financeAssets,
   financeGoals,
   financeEntries,
+  financeCategories,
+  financeTransactions,
   watchlistAssets,
 } from "../db/schema";
 import { AppError } from "../lib/errors";
 import { createSnapshot } from "./snapshot";
 import { getCurrentUserId } from "../lib/requestContext";
-import { EXPORT_SCHEMA_VERSION, ExportDataSchema, countsOf, type ExportData, type ImportPreview } from "@shared/schemas/data";
+import {
+  EXPORT_SCHEMA_VERSION,
+  ExportDataSchema,
+  countsOf,
+  type ExportData,
+  type ImportPreview,
+} from "@shared/schemas/data";
 
 /** Valida el archivo importado; lanza un error claro sin tocar la BD si no es válido. */
 export function parseImportOrThrow(raw: unknown): ExportData {
@@ -54,7 +62,11 @@ export function parseImportOrThrow(raw: unknown): ExportData {
 /** Vista previa (conteos por tabla) sin escribir nada en la BD. */
 export function previewImport(raw: unknown): ImportPreview {
   const parsed = parseImportOrThrow(raw);
-  return { schemaVersion: parsed.schemaVersion, exportedAt: parsed.exportedAt, counts: countsOf(parsed.data) };
+  return {
+    schemaVersion: parsed.schemaVersion,
+    exportedAt: parsed.exportedAt,
+    counts: countsOf(parsed.data),
+  };
 }
 
 /**
@@ -65,16 +77,51 @@ export function previewImport(raw: unknown): ImportPreview {
  * suscripciones push de ESE perfil.
  */
 function wipeContentTables(tx: ReturnType<typeof getDb>, userId: string): void {
-  const myProjectIds = tx.select({ id: projects.id }).from(projects).where(eq(projects.userId, userId)).all().map((r) => r.id);
-  const myTaskIds = tx.select({ id: tasks.id }).from(tasks).where(eq(tasks.userId, userId)).all().map((r) => r.id);
-  const myEventIds = tx.select({ id: events.id }).from(events).where(eq(events.userId, userId)).all().map((r) => r.id);
-  const myNoteIds = tx.select({ id: notes.id }).from(notes).where(eq(notes.userId, userId)).all().map((r) => r.id);
-  const myHabitIds = tx.select({ id: habits.id }).from(habits).where(eq(habits.userId, userId)).all().map((r) => r.id);
-  const myRoutineIds = tx.select({ id: routines.id }).from(routines).where(eq(routines.userId, userId)).all().map((r) => r.id);
+  const myProjectIds = tx
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.userId, userId))
+    .all()
+    .map((r) => r.id);
+  const myTaskIds = tx
+    .select({ id: tasks.id })
+    .from(tasks)
+    .where(eq(tasks.userId, userId))
+    .all()
+    .map((r) => r.id);
+  const myEventIds = tx
+    .select({ id: events.id })
+    .from(events)
+    .where(eq(events.userId, userId))
+    .all()
+    .map((r) => r.id);
+  const myNoteIds = tx
+    .select({ id: notes.id })
+    .from(notes)
+    .where(eq(notes.userId, userId))
+    .all()
+    .map((r) => r.id);
+  const myHabitIds = tx
+    .select({ id: habits.id })
+    .from(habits)
+    .where(eq(habits.userId, userId))
+    .all()
+    .map((r) => r.id);
+  const myRoutineIds = tx
+    .select({ id: routines.id })
+    .from(routines)
+    .where(eq(routines.userId, userId))
+    .all()
+    .map((r) => r.id);
   const myRoutineStepIds =
     myRoutineIds.length === 0
       ? []
-      : tx.select({ id: routineSteps.id }).from(routineSteps).where(inArray(routineSteps.routineId, myRoutineIds)).all().map((r) => r.id);
+      : tx
+          .select({ id: routineSteps.id })
+          .from(routineSteps)
+          .where(inArray(routineSteps.routineId, myRoutineIds))
+          .all()
+          .map((r) => r.id);
 
   if (myTaskIds.length) {
     tx.delete(checklistItems).where(inArray(checklistItems.taskId, myTaskIds)).run();
@@ -95,7 +142,8 @@ function wipeContentTables(tx: ReturnType<typeof getDb>, userId: string): void {
     tx.delete(googleTaskLinks).where(inArray(googleTaskLinks.taskId, myTaskIds)).run();
   }
   if (myHabitIds.length) tx.delete(habitLogs).where(inArray(habitLogs.habitId, myHabitIds)).run();
-  if (myRoutineStepIds.length) tx.delete(routineStepLogs).where(inArray(routineStepLogs.stepId, myRoutineStepIds)).run();
+  if (myRoutineStepIds.length)
+    tx.delete(routineStepLogs).where(inArray(routineStepLogs.stepId, myRoutineStepIds)).run();
   if (myRoutineIds.length) tx.delete(routineSteps).where(inArray(routineSteps.routineId, myRoutineIds)).run();
 
   tx.delete(events).where(eq(events.userId, userId)).run();
@@ -107,6 +155,8 @@ function wipeContentTables(tx: ReturnType<typeof getDb>, userId: string): void {
   tx.delete(reminders).where(eq(reminders.userId, userId)).run();
   tx.delete(inboxItems).where(eq(inboxItems.userId, userId)).run();
   tx.delete(tags).where(eq(tags.userId, userId)).run();
+  tx.delete(financeTransactions).where(eq(financeTransactions.userId, userId)).run();
+  tx.delete(financeCategories).where(eq(financeCategories.userId, userId)).run();
   tx.delete(financeEntries).where(eq(financeEntries.userId, userId)).run();
   tx.delete(financeGoals).where(eq(financeGoals.userId, userId)).run();
   tx.delete(financeAssets).where(eq(financeAssets.userId, userId)).run();
@@ -165,10 +215,17 @@ export async function restoreFromImport(raw: unknown): Promise<{ counts: Record<
       if (data.financeAssets.length) tx.insert(financeAssets).values(own(data.financeAssets)).run();
       if (data.financeGoals.length) tx.insert(financeGoals).values(own(data.financeGoals)).run();
       if (data.financeEntries.length) tx.insert(financeEntries).values(own(data.financeEntries)).run();
+      if (data.financeCategories.length)
+        tx.insert(financeCategories).values(own(data.financeCategories)).run();
+      if (data.financeTransactions.length)
+        tx.insert(financeTransactions).values(own(data.financeTransactions)).run();
       if (data.watchlistAssets.length) tx.insert(watchlistAssets).values(own(data.watchlistAssets)).run();
       if (data.meta.length) {
         for (const row of data.meta) {
-          tx.insert(meta).values(row).onConflictDoUpdate({ target: meta.key, set: { value: row.value } }).run();
+          tx.insert(meta)
+            .values(row)
+            .onConflictDoUpdate({ target: meta.key, set: { value: row.value } })
+            .run();
         }
       }
       tx.insert(settingsTable)

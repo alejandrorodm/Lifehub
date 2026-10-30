@@ -7,6 +7,12 @@ import {
   FinanceGoalPatchSchema,
   FinanceEntryCreateSchema,
   FinanceEntryPatchSchema,
+  FinanceCategoryCreateSchema,
+  FinanceCategoryPatchSchema,
+  FinanceTransactionCreateSchema,
+  FinanceTransactionPatchSchema,
+  FinanceTransactionQuerySchema,
+  FinanceSummaryQuerySchema,
 } from "@shared/schemas/finance";
 import * as service from "./service";
 
@@ -54,4 +60,40 @@ export const financeRoutes = new Hono()
   .delete("/entries/:id", (c) => {
     service.deleteEntry(c.req.param("id"));
     return c.body(null, 204);
+  })
+  .get("/categories", (c) => c.json(service.listCategories()))
+  .get("/categories/trash", (c) => c.json(service.listCategoriesTrash()))
+  .post("/categories", async (c) => {
+    const body = parseOrThrow(FinanceCategoryCreateSchema, await c.req.json().catch(() => ({})));
+    return c.json(service.createCategory(body), 201);
+  })
+  .post("/categories/suggested", (c) => c.json(service.createSuggestedCategories(), 201))
+  .patch("/categories/:id", async (c) => {
+    const body = parseOrThrow(FinanceCategoryPatchSchema, await c.req.json().catch(() => ({})));
+    return c.json(service.updateCategory(c.req.param("id"), body));
+  })
+  .delete("/categories/:id", (c) => {
+    service.deleteCategory(c.req.param("id"));
+    return c.body(null, 204);
+  })
+  .post("/categories/:id/restore", (c) => c.json(service.restoreCategory(c.req.param("id"))))
+  .get("/transactions", (c) => {
+    const query = parseOrThrow(FinanceTransactionQuerySchema, c.req.query());
+    return c.json(service.listTransactions(query));
+  })
+  .post("/transactions", async (c) => {
+    const body = parseOrThrow(FinanceTransactionCreateSchema, await c.req.json().catch(() => ({})));
+    return c.json(service.createTransaction(body), 201);
+  })
+  .patch("/transactions/:id", async (c) => {
+    const body = parseOrThrow(FinanceTransactionPatchSchema, await c.req.json().catch(() => ({})));
+    return c.json(service.updateTransaction(c.req.param("id"), body));
+  })
+  .delete("/transactions/:id", (c) => {
+    service.deleteTransaction(c.req.param("id"));
+    return c.body(null, 204);
+  })
+  .get("/summary", (c) => {
+    const query = parseOrThrow(FinanceSummaryQuerySchema, c.req.query());
+    return c.json(service.getSummary(query.month));
   });

@@ -23,6 +23,8 @@ import {
   financeAssets,
   financeGoals,
   financeEntries,
+  financeCategories,
+  financeTransactions,
   watchlistAssets,
 } from "../db/schema";
 import { getSettings } from "../modules/settings/service";
@@ -57,7 +59,12 @@ export function exportData(): ExportData {
       : db
           .select()
           .from(routineSteps)
-          .where(inArray(routineSteps.routineId, myRoutines.map((r) => r.id)))
+          .where(
+            inArray(
+              routineSteps.routineId,
+              myRoutines.map((r) => r.id),
+            ),
+          )
           .all();
 
   const projectIds = myProjects.map((r) => r.id);
@@ -72,19 +79,35 @@ export function exportData(): ExportData {
     exportedAt: new Date().toISOString(),
     data: {
       projects: myProjects,
-      milestones: projectIds.length === 0 ? [] : db.select().from(milestones).where(inArray(milestones.projectId, projectIds)).all(),
+      milestones:
+        projectIds.length === 0
+          ? []
+          : db.select().from(milestones).where(inArray(milestones.projectId, projectIds)).all(),
       tasks: myTasks,
-      checklistItems: taskIds.length === 0 ? [] : db.select().from(checklistItems).where(inArray(checklistItems.taskId, taskIds)).all(),
+      checklistItems:
+        taskIds.length === 0
+          ? []
+          : db.select().from(checklistItems).where(inArray(checklistItems.taskId, taskIds)).all(),
       tags: myTags,
-      taskTags: taskIds.length === 0 ? [] : db.select().from(taskTags).where(inArray(taskTags.taskId, taskIds)).all(),
+      taskTags:
+        taskIds.length === 0 ? [] : db.select().from(taskTags).where(inArray(taskTags.taskId, taskIds)).all(),
       events: myEvents,
       eventExceptions:
-        eventIds.length === 0 ? [] : db.select().from(eventExceptions).where(inArray(eventExceptions.eventId, eventIds)).all(),
+        eventIds.length === 0
+          ? []
+          : db.select().from(eventExceptions).where(inArray(eventExceptions.eventId, eventIds)).all(),
       notes: myNotes,
-      noteTags: noteIds.length === 0 ? [] : db.select().from(noteTags).where(inArray(noteTags.noteId, noteIds)).all(),
-      noteTasks: noteIds.length === 0 ? [] : db.select().from(noteTasks).where(inArray(noteTasks.noteId, noteIds)).all(),
+      noteTags:
+        noteIds.length === 0 ? [] : db.select().from(noteTags).where(inArray(noteTags.noteId, noteIds)).all(),
+      noteTasks:
+        noteIds.length === 0
+          ? []
+          : db.select().from(noteTasks).where(inArray(noteTasks.noteId, noteIds)).all(),
       habits: myHabits,
-      habitLogs: habitIds.length === 0 ? [] : db.select().from(habitLogs).where(inArray(habitLogs.habitId, habitIds)).all(),
+      habitLogs:
+        habitIds.length === 0
+          ? []
+          : db.select().from(habitLogs).where(inArray(habitLogs.habitId, habitIds)).all(),
       routines: myRoutines,
       routineSteps: myRoutineSteps,
       routineStepLogs:
@@ -96,6 +119,16 @@ export function exportData(): ExportData {
       financeAssets: db.select().from(financeAssets).where(eq(financeAssets.userId, userId)).all(),
       financeGoals: db.select().from(financeGoals).where(eq(financeGoals.userId, userId)).all(),
       financeEntries: db.select().from(financeEntries).where(eq(financeEntries.userId, userId)).all(),
+      financeCategories: db
+        .select()
+        .from(financeCategories)
+        .where(eq(financeCategories.userId, userId))
+        .all(),
+      financeTransactions: db
+        .select()
+        .from(financeTransactions)
+        .where(eq(financeTransactions.userId, userId))
+        .all(),
       watchlistAssets: db.select().from(watchlistAssets).where(eq(watchlistAssets.userId, userId)).all(),
       // `meta` es de la instalación entera (versión de esquema, etc.), no de un perfil: se exporta tal cual.
       meta: db.select().from(meta).all(),

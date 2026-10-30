@@ -60,3 +60,42 @@ export const financeEntries = sqliteTable("finance_entries", {
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+/**
+ * Fase 18: categorías de gasto/ingreso con presupuesto mensual opcional.
+ * `colorSlot` (1-8) indexa la paleta categórica de gráficas (`--color-chart-N`),
+ * así el color sigue a la categoría y no a su posición en una gráfica.
+ */
+export const financeCategories = sqliteTable("finance_categories", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => uuidv7()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  kind: text("kind", { enum: ["expense", "income"] }).notNull(),
+  colorSlot: integer("color_slot").notNull().default(1),
+  monthlyBudgetCents: integer("monthly_budget_cents"),
+  ...timestamps,
+  ...softDelete,
+});
+
+// Gastos e ingresos del día a día. Como `finance_entries`, sin papelera: se
+// borran de verdad (la UI pide confirmación).
+export const financeTransactions = sqliteTable("finance_transactions", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => uuidv7()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  kind: text("kind", { enum: ["expense", "income"] }).notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  date: text("date").notNull(), // YYYY-MM-DD
+  description: text("description").notNull(),
+  categoryId: text("category_id").references(() => financeCategories.id, { onDelete: "set null" }),
+  assetId: text("asset_id").references(() => financeAssets.id, { onDelete: "set null" }),
+  note: text("note"),
+  ...timestamps,
+});
