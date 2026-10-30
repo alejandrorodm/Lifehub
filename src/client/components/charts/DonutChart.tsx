@@ -49,7 +49,7 @@ export function DonutChart({ segments, formatValue, ariaLabel, centerLabel, size
   const focus = active === null ? null : segments[active];
 
   return (
-    <svg width={size} height={size} role="img" aria-label={ariaLabel} className="shrink-0">
+    <svg width={size} height={size} role="group" aria-label={ariaLabel} className="shrink-0">
       {total === 0 ? (
         <circle cx={c} cy={c} r={r} fill="none" stroke="var(--color-bg-subtle)" strokeWidth={THICKNESS} />
       ) : (
@@ -73,6 +73,7 @@ export function DonutChart({ segments, formatValue, ariaLabel, centerLabel, size
               stroke="transparent"
               strokeWidth={THICKNESS + 10}
               tabIndex={0}
+              role="img"
               aria-label={`${segment.label}: ${formatValue(segment.value)} (${Math.round((segment.value / total) * 100)}%)`}
               className="cursor-default outline-none"
               onMouseEnter={() => setActive(i)}

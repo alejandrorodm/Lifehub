@@ -77,7 +77,7 @@ export function LineChart({
   const activePoint = active === null ? null : points[active];
 
   return (
-    <div ref={ref} className="relative w-full">
+    <div ref={ref} className="relative w-full min-w-0 overflow-hidden">
       <svg
         width={width}
         height={height}

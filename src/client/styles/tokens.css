@@ -46,8 +46,18 @@
   --color-priority-high: #b45309;
   --color-priority-urgent: #b91c1c;
 
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Fraunces Variable", "Fraunces", Georgia, serif;
+}
+
+:root {
   /* Paleta categórica de gráficas (orden fijo; validada con CVD ΔE ≥ 8 en
-     ambos temas). Slots 3-5 quedan < 3:1 sobre blanco: las gráficas que
+     ambos temas). Fuera de @theme a propósito: Tailwind v4 solo emite las
+     variables de @theme que usa alguna clase, y estas se usan vía var(). Slots 3-5 quedan < 3:1 sobre blanco: las gráficas que
      los usan muestran siempre etiquetas/leyenda con valores o tabla. */
   --color-chart-1: #2a78d6;
   --color-chart-2: #eb6834;
@@ -58,15 +68,6 @@
   --color-chart-7: #6250d6;
   --color-chart-8: #e34948;
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-
-  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
-  --font-display: "Fraunces Variable", "Fraunces", Georgia, serif;
-}
-
-:root {
   /* Sombras (sutiles, sin decoración gratuita) */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
   --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.08);

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 /** Ancho en px de un contenedor, actualizado con ResizeObserver (las gráficas se dibujan a ese ancho, sin escalar el texto). */
-export function useElementWidth<T extends HTMLElement>(fallback = 600) {
+export function useElementWidth<T extends HTMLElement>(fallback = 320) {
   const ref = useRef<T>(null);
   const [width, setWidth] = useState(fallback);
 

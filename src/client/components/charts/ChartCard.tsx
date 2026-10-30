@@ -21,7 +21,7 @@ export function ChartCard({ title, description, table, legend, children }: Chart
   const [showTable, setShowTable] = useState(false);
 
   return (
-    <Card className="p-4">
+    <Card className="min-w-0 p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-text">{title}</h3>

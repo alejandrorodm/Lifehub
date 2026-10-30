@@ -67,8 +67,14 @@ export function BarChart({
   const activeGroup = active === null ? null : groups[active];
 
   return (
-    <div ref={ref} className="relative w-full">
-      <svg width={width} height={height} role="img" aria-label={ariaLabel} className="block overflow-visible">
+    <div ref={ref} className="relative w-full min-w-0 overflow-hidden">
+      <svg
+        width={width}
+        height={height}
+        role="group"
+        aria-label={ariaLabel}
+        className="block overflow-visible"
+      >
         {ticks.map((tick) => (
           <g key={tick}>
             <line
@@ -140,7 +146,7 @@ export function BarChart({
             height={plotH}
             fill="transparent"
             tabIndex={0}
-            role={onSelect ? "button" : undefined}
+            role={onSelect ? "button" : "img"}
             aria-label={`${group.label}: ${series.map((s, si) => `${s.name} ${formatValue(group.values[si] ?? 0)}`).join(", ")}`}
             className="cursor-pointer outline-none focus-visible:stroke-accent focus-visible:stroke-2"
             onMouseEnter={() => setActive(gi)}
