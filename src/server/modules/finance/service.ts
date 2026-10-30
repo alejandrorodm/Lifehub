@@ -313,7 +313,17 @@ export function getNetContributionsInRange(startISO: string, endISO: string): nu
 
 export function createEntry(input: FinanceEntryCreateInput): FinanceEntryDto {
   getAssetRow(input.assetId);
-  if (input.goalId) getGoalRow(input.goalId);
+  if (input.goalId) {
+    getGoalRow(input.goalId);
+    if (input.type === "withdrawal") {
+      const allocated = sumEntries(getEntriesForGoal(input.goalId));
+      if (input.amountCents > allocated) {
+        throw AppError.validation("No puedes retirar de la meta más de lo asignado.", {
+          amountCents: "Supera el dinero asignado a la meta.",
+        });
+      }
+    }
+  }
 
   const row = getDb()
     .insert(financeEntries)

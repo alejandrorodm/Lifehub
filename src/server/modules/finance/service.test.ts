@@ -449,3 +449,35 @@ describe("export/import de finanzas (fase 18)", () => {
     expect(legacy.data.financeTransactions).toEqual([]);
   });
 });
+
+describe("retirar de una meta", () => {
+  it("rechaza retirar más de lo asignado y no guarda el movimiento", () => {
+    const asset = finance.createAsset({ name: "Ahorro", type: "cash" });
+    const goal = finance.createGoal({ name: "Viaje", targetAmountCents: 100_000 });
+    finance.createEntry({
+      assetId: asset.id,
+      goalId: goal.id,
+      date: "2026-10-01",
+      type: "deposit",
+      amountCents: 20_000,
+    });
+    expect(() =>
+      finance.createEntry({
+        assetId: asset.id,
+        goalId: goal.id,
+        date: "2026-10-02",
+        type: "withdrawal",
+        amountCents: 20_001,
+      }),
+    ).toThrow(/más de lo asignado/);
+    expect(finance.getGoal(goal.id).currentCents).toBe(20_000);
+    finance.createEntry({
+      assetId: asset.id,
+      goalId: goal.id,
+      date: "2026-10-02",
+      type: "withdrawal",
+      amountCents: 20_000,
+    });
+    expect(finance.getGoal(goal.id).currentCents).toBe(0);
+  });
+});
