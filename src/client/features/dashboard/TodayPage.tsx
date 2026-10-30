@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useId, useMemo, type ReactNode } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Link } from "react-router-dom";
@@ -37,12 +37,14 @@ interface WidgetProps {
 }
 
 function Widget({ title, children }: WidgetProps & { children: ReactNode }) {
+  // useId en vez del título: un id con espacios rompe aria-labelledby (la región se quedaba sin nombre).
+  const headingId = useId();
   return (
     <section
       className="flex flex-col rounded-lg border border-border bg-bg-elevated"
-      aria-labelledby={`widget-${title}`}
+      aria-labelledby={headingId}
     >
-      <h2 id={`widget-${title}`} className="border-b border-border px-4 py-3 text-sm font-semibold">
+      <h2 id={headingId} className="border-b border-border px-4 py-3 text-sm font-semibold">
         {title}
       </h2>
       {children}
