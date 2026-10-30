@@ -16,12 +16,14 @@ Rama: `feat/finance-budgets` (desde `feat/github-oauth`). Entrega: `ask-on-risk`
 
 | ID | Specs | Ruta | Estado | Commit |
 | -- | ----- | ---- | ------ | ------ |
-| T1 | S2, S3, S4, S5, S6 (backend: tablas, migración, dominio, servicio, rutas, export) | inline | pendiente | |
-| T2 | S5 (componentes de gráficas + tokens de serie) | inline | pendiente | |
-| T3 | S2, S3, S4, S5 (página con pestañas) | inline | pendiente | |
-| T4 | cierre: PLAN.md, typecheck/lint/test/e2e | inline | pendiente | |
+| T1 | S2, S3, S4, S5, S6 (backend: tablas, migración, dominio, servicio, rutas, export) | inline | hecho | 845dec2 |
+| T2 | S5 (componentes de gráficas + tokens de serie) | inline | hecho | f7aa2ec |
+| T3 | S2, S3, S4, S5 (página con pestañas) | inline | hecho | 0644601 |
+| T4 | cierre: PLAN.md, typecheck/lint/test/e2e | inline | hecho | (este commit) |
 
 ## Log
 
 - L1 (2026-10-30): "Propon 10 mejoras, y añade una interfaz completa para llevar gastos, metas, poder poner dinero asignado a metas etc, gráficas y todo lo posible"
 - L2: decisión — se reutilizan `finance_entries` con `goalId` para asignar/retirar dinero de metas (sin tabla nueva); las transacciones de gasto/ingreso son una tabla aparte porque no son aportaciones a una cuenta de inversión. Ruta inline: ningún disparador de escritor (unidades dependientes entre sí).
+- L3: verificación — typecheck/lint limpios; vitest 358/358; e2e finanzas + axe con gráficas en verde. Axe con datos detectó `nested-interactive` y `aria-prohibited-attr` en las gráficas (corregido). Capturas revelaron que Tailwind v4 eliminaba `--color-chart-*` dentro de `@theme` (movidas a `:root`) y desbordamiento en móvil (corregido).
+- L4: fallos e2e ajenos — `shell.spec.ts:93` falla también en `a805329`; `notes.spec.ts:103` intermitente en suite completa, pasa aislado.

@@ -16,6 +16,7 @@
 | 8   | QA, accesibilidad y pulido                                 | ✅ Completada |
 | 9   | Integraciones: notificaciones push y Google Calendar       | ✅ Implementada (ver nota de verificación) |
 | 10  | Revisión periódica, GitHub por proyecto y finanzas con metas | ✅ Implementada |
+| 18  | Finanzas completas: gastos, presupuestos, metas y gráficas | ✅ Implementada (rama `feat/finance-budgets`) |
 
 ## Situación inicial
 
@@ -819,3 +820,19 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 **Probado:** 10 tests del módulo de GitHub (inicio de sesión, estado inválido, desconexión, token del perfil, repos, casos límite de repo vacío, 404 y 401). Suite completa: 302/302. Tipos y lint sin errores.
 
 **Pendiente:** no probado contra GitHub real; sin desplegar.
+
+## Fase 18 — Finanzas completas: gastos, presupuestos, metas con asignación y gráficas (rama `feat/finance-budgets`, 2026-10-30)
+
+**Nota sobre el alcance:** pedido por el usuario ("añade una interfaz completa para llevar gastos, metas, poder poner dinero asignado a metas etc, gráficas y todo lo posible"). Amplía la fase 10. Detalle en `odd/tasks/fase-18-finanzas-completas.md`.
+
+**Diseño:**
+
+- 2 tablas nuevas: `finance_categories` (gasto/ingreso, color 1-8 de la paleta de gráficas, presupuesto mensual opcional, papelera) y `finance_transactions` (gasto/ingreso con descripción, categoría y cuenta opcionales; borrado real con confirmación). Migración `0011`.
+- Asignar/retirar dinero de una meta reutiliza `finance_entries.goalId`: el saldo de cuentas y el de metas nunca divergen. "Sin asignar" = saldo de cuentas − dinero en metas.
+- `GET /finance/summary?month=` agrega KPIs, 12 meses, gasto por categoría con presupuesto, gasto diario acumulado y patrimonio; la lógica vive en funciones puras de `shared/domain/finance.ts`.
+- Gráficas SVG propias en `components/charts` (sin dependencias nuevas): tooltip, teclado, vista de tabla, paleta categórica validada (CVD) en `--color-chart-1..8` para ambos temas.
+- Export/import: tablas nuevas con `.default([])`, los exports anteriores siguen importando.
+
+**Probado:** typecheck y lint sin errores; `npm test` 358/358; e2e de finanzas (2 flujos + axe con gráficas) y a11y en verde.
+
+**Pendiente:** `shell.spec.ts` "crear una tarea… solo con teclado" falla también en el commit base `a805329` (no causado por esta fase); `notes.spec.ts` búsqueda global falla de forma intermitente en la suite completa y pasa aislado. Sin desplegar.
