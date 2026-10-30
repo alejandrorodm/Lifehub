@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { openCommandPalette } from "./helpers";
 
 // Fase 8: sin violaciones críticas de axe en las páginas principales.
 // Se ejecuta solo en Desktop: es una comprobación de marcado/accesibilidad,
@@ -48,8 +49,8 @@ test("la paleta de comandos no tiene violaciones críticas de accesibilidad (axe
 }, testInfo) => {
   test.skip(testInfo.project.name !== "Desktop", "Comprobación de marcado, no de layout responsive.");
   await page.goto("/");
-  await page.keyboard.press("Control+k");
-  await expect(page.getByPlaceholder("Ir a… o buscar tareas, notas, proyectos y eventos")).toBeVisible();
+  await openCommandPalette(page);
+  await expect(page.getByPlaceholder(/gasto 12,50 café/)).toBeVisible();
   await expectNoCriticalViolations(page);
 });
 

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openCommandPalette } from "./helpers";
 
 // Fase 5: crear/editar/archivar/eliminar una nota, formato básico, fijar y
 // favoritos, diario persistente, vincular nota↔tarea desde ambos lados, y
@@ -109,7 +110,7 @@ test("la búsqueda global encuentra una nota y la abre; sin resultados muestra u
   await page.waitForTimeout(1200);
 
   await page.goto("/");
-  await page.keyboard.press("Control+k");
+  await openCommandPalette(page);
   await page.getByLabel("Buscar comando").fill("receta de pan");
   await expect(page.getByRole("button", { name: "Receta de pan casero" })).toBeVisible();
   await page.getByRole("button", { name: "Receta de pan casero" }).click();

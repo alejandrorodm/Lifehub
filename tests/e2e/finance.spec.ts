@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { openCommandPalette } from "./helpers";
 
 // Fase 18: flujo completo de finanzas — categoría con presupuesto, gasto,
 // resumen con gráficas y dinero asignado a una meta desde una cuenta.
@@ -157,11 +158,7 @@ test("asignar y retirar dinero de una meta desde una cuenta", async ({ page }) =
 test("la paleta de comandos registra un gasto con «gasto 7,25 descripción»", async ({ page }) => {
   const description = `Pan ${Date.now()}`;
   await page.goto("/");
-  // Los atajos se registran tras hidratar: reintentar hasta que la paleta abra.
-  await expect(async () => {
-    await page.keyboard.press("Control+k");
-    await expect(page.getByLabel("Buscar comando")).toBeVisible({ timeout: 1000 });
-  }).toPass();
+  await openCommandPalette(page);
   await page.getByLabel("Buscar comando").fill(`gasto 7,25 ${description}`);
   await expect(
     page.getByRole("button", { name: new RegExp(`Registrar gasto de 7,25\\s€ · ${description}`) }),

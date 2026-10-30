@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openCommandPalette } from "./helpers";
 
 // Fase 2: crear, completar y eliminar una tarea; checklist; captura rápida
 // → inbox → conversión a tarea; paleta de comandos y atajos de teclado.
@@ -89,8 +90,7 @@ test("la captura rápida (atajo C) crea un elemento en el inbox convertible en t
 
 test("la paleta de comandos (Ctrl/⌘+K) navega por teclado", async ({ page }) => {
   await page.goto("/");
-  await page.keyboard.press("Control+k");
-  await expect(page.getByLabel("Buscar comando")).toBeVisible();
+  await openCommandPalette(page);
 
   await page.getByLabel("Buscar comando").fill("tareas");
   await page.keyboard.press("Enter");
