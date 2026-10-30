@@ -8,12 +8,18 @@ import {
   StickyNote,
   FolderKanban,
   Calendar as CalendarIcon,
+  Receipt,
 } from "lucide-react";
 import { primaryNavItems, secondaryNavItems } from "@client/app/navigation";
 import { cn } from "@client/lib/utils";
 import { useShortcuts } from "./ShortcutsContext";
 import { useSearch, resultUrl } from "@client/features/search/useSearch";
 import type { SearchResultType } from "@shared/schemas/search";
+import { useToast } from "@client/components/ui/Toast";
+import { useToday } from "@client/lib/useToday";
+import { parseQuickTransaction } from "@client/features/finance/quickTransaction";
+import { useCreateTransaction } from "@client/features/finance/useFinance";
+import { formatCents } from "@client/features/finance/money";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -39,6 +45,30 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const navigate = useNavigate();
   const { openCapture } = useShortcuts();
   const [query, setQuery] = useState("");
+  const today = useToday();
+  const createTransaction = useCreateTransaction();
+  const { show } = useToast();
+
+  // "gasto 12,50 café" / "ingreso 1500 nómina": registra el movimiento de hoy sin abrir Finanzas.
+  const quickTransaction = parseQuickTransaction(query);
+  const quickCommand: Command | null = quickTransaction && {
+    id: "quick-transaction",
+    label: `Registrar ${quickTransaction.kind === "expense" ? "gasto" : "ingreso"} de ${formatCents(quickTransaction.amountCents)} · ${quickTransaction.description}`,
+    icon: Receipt,
+    run: () =>
+      createTransaction.mutate(
+        { ...quickTransaction, date: today },
+        {
+          onSuccess: () =>
+            show({
+              tone: "success",
+              title: quickTransaction.kind === "expense" ? "Gasto registrado" : "Ingreso registrado",
+              description: `${formatCents(quickTransaction.amountCents)} · ${quickTransaction.description}`,
+              action: { label: "Ver", onClick: () => navigate("/finance?tab=transactions") },
+            }),
+        },
+      ),
+  };
 
   const commands = useMemo<Command[]>(() => {
     const navCommands = [...primaryNavItems, ...secondaryNavItems].map((item) => ({
@@ -53,11 +83,13 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     ];
   }, [navigate, openCapture]);
 
-  const filteredCommands = useMemo(() => {
+  const matchingCommands = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return commands;
     return commands.filter((c) => c.label.toLowerCase().includes(q));
   }, [commands, query]);
+  // El registro rápido va primero: Enter lo ejecuta.
+  const filteredCommands = quickCommand ? [quickCommand, ...matchingCommands] : matchingCommands;
 
   const { data: contentResults } = useSearch(query);
   const resultCommands = useMemo<Command[]>(
@@ -105,7 +137,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ir a… o buscar tareas, notas, proyectos y eventos"
+              placeholder="Ir a…, buscar o «gasto 12,50 café»"
               className="flex-1 bg-transparent text-sm text-text placeholder:text-text-subtle focus:outline-none"
               aria-label="Buscar comando"
             />

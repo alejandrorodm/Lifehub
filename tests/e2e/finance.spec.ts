@@ -143,3 +143,18 @@ test("asignar y retirar dinero de una meta desde una cuenta", async ({ page }) =
   await card.getByRole("button", { name: /Historial \(2\)/ }).click();
   await expect(card.getByText(new RegExp(account)).first()).toBeVisible();
 });
+
+test("la paleta de comandos registra un gasto con «gasto 7,25 descripción»", async ({ page }) => {
+  const description = `Pan ${Date.now()}`;
+  await page.goto("/");
+  await page.keyboard.press("Control+k");
+  await page.getByLabel("Buscar comando").fill(`gasto 7,25 ${description}`);
+  await expect(
+    page.getByRole("button", { name: new RegExp(`Registrar gasto de 7,25\\s€ · ${description}`) }),
+  ).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Gasto registrado")).toBeVisible();
+
+  await page.goto("/finance?tab=transactions");
+  await expect(page.locator("section li", { hasText: description })).toContainText(/7,25\s€/);
+});
