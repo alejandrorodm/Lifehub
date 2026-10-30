@@ -17,6 +17,7 @@
 | 9   | Integraciones: notificaciones push y Google Calendar       | ✅ Implementada (ver nota de verificación) |
 | 10  | Revisión periódica, GitHub por proyecto y finanzas con metas | ✅ Implementada |
 | 18  | Finanzas completas: gastos, presupuestos, metas y gráficas | ✅ Implementada (rama `feat/finance-budgets`) |
+| 19  | Mejoras de UI: gasto rápido, iconos, widget de finanzas, barra móvil configurable, cabeceras | ✅ Implementada (rama `feat/ui-improvements`) |
 
 ## Situación inicial
 
@@ -836,3 +837,22 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 **Probado:** typecheck y lint sin errores; `npm test` 358/358; e2e de finanzas (2 flujos + axe con gráficas) y a11y en verde.
 
 **Pendiente:** `shell.spec.ts` "crear una tarea… solo con teclado" falla también en el commit base `a805329` (no causado por esta fase); `notes.spec.ts` búsqueda global falla de forma intermitente en la suite completa y pasa aislado. Sin desplegar.
+
+## Fase 19 — Mejoras de UI y finanzas (rama `feat/ui-improvements`, 2026-10-30)
+
+**Nota sobre el alcance:** el usuario pidió implementar las 10 propuestas de UI hechas al cerrar la fase 18 y buscar al menos 5 mejoras por categoría (estas se entregan como propuesta). Detalle en `odd/tasks/fase-19-mejoras-ui.md`; un commit por implementación.
+
+**Implementado:**
+
+- Gasto rápido: la paleta (⌘K) entiende "gasto 12,50 café" / "ingreso 1500 nómina"; botón flotante en Finanzas en móvil.
+- Diálogo de movimiento con las categorías recientes como botones de un toque.
+- Donut y presupuestos enlazan a Movimientos filtrados (`?tab=transactions&category=`).
+- Iconos de lucide por categoría (migración `0012`, columna `icon` opcional; export compatible).
+- Borrado de movimientos inmediato con "Deshacer" en el toast (el Toast admite ahora `action` y `duration`).
+- Widget "Finanzas del mes" en Hoy (gasto frente a presupuesto y meta más próxima). Los perfiles que ya personalizaron sus widgets deben activarlo en Ajustes → Dashboard.
+- Ajuste `mobileNavItems`: las 4 secciones de la barra inferior en móvil se eligen en Ajustes → Navegación.
+- `EmptyState.preview`: maquetas en gris en los vacíos de Finanzas.
+- Cabeceras unificadas en `PageHeader` + `PageTabs` (las páginas de detalle con título editable se quedan como estaban).
+- Arreglos: nombre accesible de los widgets de Hoy; test de teclado de `shell.spec.ts`; apertura de la paleta en e2e.
+
+**Probado:** typecheck y lint sin errores; `npm test` 373/373; `npm run test:e2e` 81/81 (90 omitidos por diseño).

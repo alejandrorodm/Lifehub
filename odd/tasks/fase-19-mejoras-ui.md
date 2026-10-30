@@ -21,16 +21,19 @@ Rama: `feat/ui-improvements` (desde `feat/finance-budgets`). Entrega: `ask-on-ri
 
 | ID | Specs | Ruta | Estado | Commit |
 | -- | ----- | ---- | ------ | ------ |
-| T1 | S2, S3, S5 (finanzas: chips, saltos filtrados, deshacer) | inline | pendiente | |
-| T2 | S4 (iconos de categoría, migración aditiva) | inline | pendiente | |
-| T3 | S1 (FAB móvil + comando "gasto") | inline | pendiente | |
-| T4 | S6 (widget de finanzas en Hoy) | inline | pendiente | |
-| T5 | S7 (barra inferior configurable) | inline | pendiente | |
-| T6 | S8, S9 (vistas previas en vacíos, cabeceras) | inline | pendiente | |
-| T7 | S10 (test de teclado) | inline | pendiente | |
-| T8 | S11 (auditoría) | explorador | pendiente | |
+| T1 | S2, S3, S5 (finanzas: chips, saltos filtrados, deshacer) | inline | hecho | bf250e6, 24eab0d, 84ab24c |
+| T2 | S4 (iconos de categoría, migración aditiva) | inline | hecho | 123ff13 |
+| T3 | S1 (FAB móvil + comando "gasto") | inline | hecho | 8399a48, 6f8d78b |
+| T4 | S6 (widget de finanzas en Hoy) | inline | hecho | a41353d |
+| T5 | S7 (barra inferior configurable) | inline | hecho | d1f42e8 |
+| T6 | S8, S9 (vistas previas en vacíos, cabeceras) | inline | hecho | 47bef24, 8272994 |
+| T7 | S10 (test de teclado) | inline | hecho | 43ffda0 |
+| T8 | S11 (auditoría) | explorador | hecho (propuesta en la respuesta) | — |
 
 ## Log
 
 - L1 (2026-10-30): "Implementalo todo, y busca mínimo 5 mejoras más de cada uno de estos:arreglos, UI, mejoras, implementaciones nuevas, nuevas configuraciones"
 - L2: ruta — un explorador mapea S1/S6/S7/S9/S10 (más de 5 búsquedas secuenciales) y otro audita S11; la escritura sigue inline (unidades pequeñas que comparten archivos de finanzas).
+- L3 (2026-10-30): "Vale, pero haz commits para cada una de las implementaciones" — un commit por implementación.
+- L4: hallazgos durante la fase: los widgets de Hoy no tenían nombre accesible (id con espacios en aria-labelledby) → 861f032; tests que abrían la paleta antes de hidratar → helper con reintento 113a85e. Suite e2e completa 81/81 (antes 2 fallos heredados).
+- L5: S9 — las páginas de detalle (proyecto, hábito) conservan su cabecera propia: el título es un campo editable, no encaja en PageHeader.
