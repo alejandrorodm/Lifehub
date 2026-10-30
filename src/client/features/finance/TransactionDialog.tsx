@@ -6,11 +6,21 @@ import { Dialog } from "@client/components/ui/Dialog";
 import { useToast } from "@client/components/ui/Toast";
 import { useToday } from "@client/lib/useToday";
 import { cn } from "@client/lib/utils";
-import { useAssetList, useCategoryList, useCreateTransaction, useUpdateTransaction } from "./useFinance";
+import {
+  useAssetList,
+  useCategoryList,
+  useCreateTransaction,
+  useTransactionList,
+  useUpdateTransaction,
+} from "./useFinance";
+import { rankRecentCategories } from "./recentCategories";
+import { chartColor } from "@client/components/charts/chartUtils";
 import { parseEurosToCents, centsToInput } from "./money";
 import type { FinanceTransactionDto, FinanceTransactionKind } from "@shared/schemas/finance";
 
 const NONE = "none";
+/** Categorías que se ofrecen como botones de un toque; el resto, en el desplegable. */
+const QUICK_CATEGORY_COUNT = 6;
 
 interface TransactionDialogProps {
   /** Movimiento a editar; sin él, el diálogo crea uno nuevo. */
@@ -42,6 +52,8 @@ export function TransactionDialog({
 
   const amountCents = parseEurosToCents(amount);
   const kindCategories = (categories ?? []).filter((c) => c.kind === kind);
+  const { data: kindTransactions } = useTransactionList({ kind });
+  const quickCategories = rankRecentCategories(kindCategories, kindTransactions ?? [], QUICK_CATEGORY_COUNT);
   // Si se cambia el tipo, una categoría del otro tipo deja de ser válida.
   const effectiveCategoryId = kindCategories.some((c) => c.id === categoryId) ? categoryId : NONE;
   const canSubmit = amountCents !== null && description.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(date);
@@ -157,6 +169,35 @@ export function TransactionDialog({
             maxLength={200}
           />
         </div>
+        {quickCategories.length > 0 && (
+          <div role="radiogroup" aria-label="Categorías recientes" className="flex flex-wrap gap-1.5">
+            {quickCategories.map((category) => {
+              const selected = effectiveCategoryId === category.id;
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setCategoryId(selected ? NONE : category.id)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs",
+                    selected
+                      ? "border-accent bg-accent-soft text-accent"
+                      : "border-border text-text-muted hover:border-border-strong hover:text-text",
+                  )}
+                >
+                  <span
+                    className="size-2 rounded-full"
+                    style={{ backgroundColor: chartColor(category.colorSlot) }}
+                    aria-hidden
+                  />
+                  {category.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>Categoría</Label>

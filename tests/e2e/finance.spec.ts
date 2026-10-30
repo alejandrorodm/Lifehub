@@ -46,6 +46,17 @@ test("presupuesto de una categoría, gasto registrado y reflejado en movimientos
   await expect(txRow).toContainText(category);
   await expect(txRow).toContainText(/40,00\s€/);
 
+  // S2 (fase 19): la categoría usada aparece como botón de un toque.
+  await page.getByRole("button", { name: "Añadir movimiento" }).first().click();
+  const quickDialog = page.getByRole("dialog");
+  const chip = quickDialog
+    .getByRole("radiogroup", { name: "Categorías recientes" })
+    .getByRole("radio", { name: category });
+  await chip.click();
+  await expect(chip).toHaveAttribute("aria-checked", "true");
+  await expect(quickDialog.getByRole("combobox", { name: "Categoría" })).toContainText(category);
+  await quickDialog.getByRole("button", { name: "Cancelar" }).click();
+
   await page.getByRole("tab", { name: "Resumen" }).click();
   await expect(page.getByRole("heading", { name: "Ingresos y gastos" })).toBeVisible();
   await expect(page.getByRole("group", { name: /Reparto del gasto/ })).toBeVisible();
