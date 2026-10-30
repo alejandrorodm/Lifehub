@@ -41,9 +41,14 @@ export function FinancePage() {
   const monthParam = searchParams.get("month");
   const month = monthParam && /^\d{4}-(0[1-9]|1[0-2])$/.test(monthParam) ? monthParam : currentMonth;
 
-  const update = (changes: { tab?: Tab; month?: string }) => {
+  const categoryFilter = searchParams.get("category");
+
+  /** `category: null` quita el filtro; `undefined` lo deja como está. */
+  const update = (changes: { tab?: Tab; month?: string; category?: string | null }) => {
     const next = new URLSearchParams(searchParams);
     if (changes.tab) next.set("tab", changes.tab);
+    if (changes.category === null) next.delete("category");
+    else if (changes.category) next.set("category", changes.category);
     if (changes.month) {
       if (changes.month === currentMonth) next.delete("month");
       else next.set("month", changes.month);
@@ -131,13 +136,24 @@ export function FinancePage() {
           <SummaryTab
             month={month}
             onSelectMonth={(selected) => update({ month: selected })}
+            onSelectCategory={(id) => update({ tab: "transactions", category: id })}
             onAddTransaction={() => setAddingTransaction(true)}
           />
         )}
         {tab === "transactions" && (
-          <TransactionsTab month={month} onAddTransaction={() => setAddingTransaction(true)} />
+          <TransactionsTab
+            month={month}
+            categoryId={categoryFilter}
+            onCategoryChange={(id) => update({ category: id })}
+            onAddTransaction={() => setAddingTransaction(true)}
+          />
         )}
-        {tab === "budgets" && <BudgetsTab month={month} />}
+        {tab === "budgets" && (
+          <BudgetsTab
+            month={month}
+            onSelectCategory={(id) => update({ tab: "transactions", category: id })}
+          />
+        )}
         {tab === "goals" && (
           <GoalsTab month={currentMonth} onGoToAccounts={() => update({ tab: "accounts" })} />
         )}

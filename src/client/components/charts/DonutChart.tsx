@@ -13,6 +13,8 @@ interface DonutChartProps {
   ariaLabel: string;
   centerLabel: string;
   size?: number;
+  /** Si se da, cada segmento es un botón (p. ej. para filtrar por esa categoría). */
+  onSelect?: (key: string) => void;
 }
 
 const THICKNESS = 22;
@@ -30,7 +32,14 @@ function arc(cx: number, cy: number, r: number, start: number, end: number): str
  * al pasar el ratón o enfocar un segmento, el centro muestra su detalle.
  * La leyenda con importes la pone quien lo usa (identidad nunca solo por color).
  */
-export function DonutChart({ segments, formatValue, ariaLabel, centerLabel, size = 180 }: DonutChartProps) {
+export function DonutChart({
+  segments,
+  formatValue,
+  ariaLabel,
+  centerLabel,
+  size = 180,
+  onSelect,
+}: DonutChartProps) {
   const [active, setActive] = useState<number | null>(null);
   const total = segments.reduce((sum, s) => sum + s.value, 0);
   const r = size / 2 - THICKNESS / 2 - 2;
@@ -73,9 +82,16 @@ export function DonutChart({ segments, formatValue, ariaLabel, centerLabel, size
               stroke="transparent"
               strokeWidth={THICKNESS + 10}
               tabIndex={0}
-              role="img"
+              role={onSelect ? "button" : "img"}
               aria-label={`${segment.label}: ${formatValue(segment.value)} (${Math.round((segment.value / total) * 100)}%)`}
-              className="cursor-default outline-none"
+              className={onSelect ? "cursor-pointer outline-none" : "cursor-default outline-none"}
+              onClick={() => onSelect?.(segment.key)}
+              onKeyDown={(event) => {
+                if (onSelect && (event.key === "Enter" || event.key === " ")) {
+                  event.preventDefault();
+                  onSelect(segment.key);
+                }
+              }}
               onMouseEnter={() => setActive(i)}
               onMouseLeave={() => setActive(null)}
               onFocus={() => setActive(i)}

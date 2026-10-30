@@ -149,13 +149,19 @@ function TransactionRow({
 
 export function TransactionsTab({
   month,
+  categoryId: categoryParam,
+  onCategoryChange,
   onAddTransaction,
 }: {
   month: string;
+  /** Filtro de categoría que vive en la URL, para poder enlazarlo desde gráficas y presupuestos. */
+  categoryId: string | null;
+  onCategoryChange: (categoryId: string | null) => void;
   onAddTransaction: () => void;
 }) {
   const [kind, setKind] = useState<FinanceTransactionKind | typeof ALL>(ALL);
-  const [categoryId, setCategoryId] = useState(ALL);
+  const categoryId = categoryParam ?? ALL;
+  const setCategoryId = (id: string) => onCategoryChange(id === ALL ? null : id);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<FinanceTransactionDto | null>(null);
 

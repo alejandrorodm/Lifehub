@@ -65,10 +65,12 @@ function Kpi({ label, value, children }: { label: string; value: string; childre
 interface SummaryTabProps {
   month: string;
   onSelectMonth: (month: string) => void;
+  /** Abre Movimientos filtrado por esa categoría (`null` = sin filtro, para "Sin categoría"). */
+  onSelectCategory: (categoryId: string | null) => void;
   onAddTransaction: () => void;
 }
 
-export function SummaryTab({ month, onSelectMonth, onAddTransaction }: SummaryTabProps) {
+export function SummaryTab({ month, onSelectMonth, onSelectCategory, onAddTransaction }: SummaryTabProps) {
   const { data: summary, isLoading, isError, refetch } = useFinanceSummary(month);
 
   if (isLoading) {
@@ -188,7 +190,7 @@ export function SummaryTab({ month, onSelectMonth, onAddTransaction }: SummaryTa
 
           <ChartCard
             title="Gasto por categoría"
-            description={formatMonthLong(month)}
+            description={`${formatMonthLong(month)} · pulsa una categoría para ver sus movimientos`}
             table={{
               columns: ["Categoría", "Gasto", "%"],
               rows: expenseSegments.map((s) => [
@@ -212,6 +214,7 @@ export function SummaryTab({ month, onSelectMonth, onAddTransaction }: SummaryTa
                     value: s.amountCents,
                     color: spendColor(s),
                   }))}
+                  onSelect={(key) => onSelectCategory(key === "none" ? null : key)}
                 />
                 <ul className="w-full min-w-0 flex-1 space-y-1.5 text-xs">
                   {expenseSegments.map((s) => (
@@ -222,7 +225,14 @@ export function SummaryTab({ month, onSelectMonth, onAddTransaction }: SummaryTa
                           style={{ backgroundColor: spendColor(s) }}
                           aria-hidden
                         />
-                        <span className="truncate">{s.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => onSelectCategory(s.categoryId)}
+                          aria-label={`Ver movimientos de «${s.name}»`}
+                          className="truncate text-left hover:text-text hover:underline"
+                        >
+                          {s.name}
+                        </button>
                       </span>
                       <span className="shrink-0 tabular-nums text-text">
                         {formatCents(s.amountCents)}{" "}

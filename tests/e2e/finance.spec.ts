@@ -74,6 +74,13 @@ test("presupuesto de una categoría, gasto registrado y reflejado en movimientos
   ).toEqual([]);
   await page.getByRole("button", { name: 'Ver "Gasto por categoría" como tabla' }).click();
   await expect(page.getByRole("cell", { name: category })).toBeVisible();
+
+  // S3 (fase 19): pulsar la categoría del reparto abre Movimientos filtrado.
+  await page.getByRole("button", { name: 'Ver "Gasto por categoría" como gráfica' }).click();
+  await page.getByRole("button", { name: `Ver movimientos de «${category}»` }).click();
+  await expect(page.getByRole("tab", { name: "Movimientos" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("combobox", { name: "Categoría" })).toContainText(category);
+  await expect(page.locator("section li", { hasText: description })).toBeVisible();
 });
 
 test("asignar y retirar dinero de una meta desde una cuenta", async ({ page }) => {

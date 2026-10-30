@@ -204,10 +204,12 @@ function CategoryRow({
   category,
   spentCents,
   onEdit,
+  onOpen,
 }: {
   category: FinanceCategoryDto;
   spentCents: number;
   onEdit: () => void;
+  onOpen: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const deleteCategory = useDeleteCategory();
@@ -245,7 +247,14 @@ function CategoryRow({
               style={{ backgroundColor: chartColor(category.colorSlot) }}
               aria-hidden
             />
-            <span className="min-w-0 flex-1 truncate text-sm text-text">{category.name}</span>
+            <button
+              type="button"
+              onClick={onOpen}
+              aria-label={`Ver movimientos de «${category.name}»`}
+              className="min-w-0 flex-1 truncate text-left text-sm text-text hover:underline"
+            >
+              {category.name}
+            </button>
             <span className="shrink-0 text-sm tabular-nums text-text">
               {formatCents(spentCents)}
               {category.monthlyBudgetCents !== null && (
@@ -278,7 +287,13 @@ function CategoryRow({
   );
 }
 
-export function BudgetsTab({ month }: { month: string }) {
+export function BudgetsTab({
+  month,
+  onSelectCategory,
+}: {
+  month: string;
+  onSelectCategory: (categoryId: string) => void;
+}) {
   const { data: categories, isLoading, isError, refetch } = useCategoryList();
   const { data: trash } = useCategoryTrash();
   const { data: summary } = useFinanceSummary(month);
@@ -375,6 +390,7 @@ export function BudgetsTab({ month }: { month: string }) {
                 category={category}
                 spentCents={spentBy.get(category.id) ?? 0}
                 onEdit={() => setDialog({ kind, category })}
+                onOpen={() => onSelectCategory(category.id)}
               />
             ))}
           </ul>
