@@ -160,6 +160,16 @@ export function FinancePage() {
         {tab === "accounts" && <AccountsTab />}
       </div>
 
+      {/* Móvil: apuntar un gasto con el pulgar, encima de la barra inferior. */}
+      <button
+        type="button"
+        onClick={() => setAddingTransaction(true)}
+        aria-label="Añadir movimiento rápido"
+        className="fixed bottom-20 right-4 z-[var(--z-sidebar)] flex size-14 items-center justify-center rounded-full bg-accent text-accent-contrast shadow-lg hover:bg-accent-hover md:hidden"
+      >
+        <Plus className="size-6" aria-hidden />
+      </button>
+
       {addingTransaction && <TransactionDialog onOpenChange={setAddingTransaction} />}
     </div>
   );

@@ -5,7 +5,11 @@ import AxeBuilder from "@axe-core/playwright";
 // resumen con gráficas y dinero asignado a una meta desde una cuenta.
 // eslint-disable-next-line no-empty-pattern
 test.beforeEach(({}, testInfo) => {
-  test.skip(testInfo.project.name !== "Desktop", "Flujo de datos verificado una sola vez, en Desktop.");
+  const mobileOnly = testInfo.title.startsWith("en móvil");
+  test.skip(
+    !mobileOnly && testInfo.project.name !== "Desktop",
+    "Flujo de datos verificado una sola vez, en Desktop.",
+  );
 });
 
 test("presupuesto de una categoría, gasto registrado y reflejado en movimientos, presupuestos y resumen", async ({
@@ -147,7 +151,11 @@ test("asignar y retirar dinero de una meta desde una cuenta", async ({ page }) =
 test("la paleta de comandos registra un gasto con «gasto 7,25 descripción»", async ({ page }) => {
   const description = `Pan ${Date.now()}`;
   await page.goto("/");
-  await page.keyboard.press("Control+k");
+  // Los atajos se registran tras hidratar: reintentar hasta que la paleta abra.
+  await expect(async () => {
+    await page.keyboard.press("Control+k");
+    await expect(page.getByLabel("Buscar comando")).toBeVisible({ timeout: 1000 });
+  }).toPass();
   await page.getByLabel("Buscar comando").fill(`gasto 7,25 ${description}`);
   await expect(
     page.getByRole("button", { name: new RegExp(`Registrar gasto de 7,25\\s€ · ${description}`) }),
@@ -157,4 +165,11 @@ test("la paleta de comandos registra un gasto con «gasto 7,25 descripción»", 
 
   await page.goto("/finance?tab=transactions");
   await expect(page.locator("section li", { hasText: description })).toContainText(/7,25\s€/);
+});
+
+test("en móvil, el botón flotante abre el alta de movimiento", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "Mobile", "El botón flotante solo existe en móvil.");
+  await page.goto("/finance");
+  await page.getByRole("button", { name: "Añadir movimiento rápido" }).click();
+  await expect(page.getByRole("dialog", { name: "Nuevo movimiento" })).toBeVisible();
 });
