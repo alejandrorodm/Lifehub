@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { HabitsTab } from "./HabitsTab";
 import { RoutinesTab } from "./RoutinesTab";
+import { PageHeader } from "@client/components/ui/PageHeader";
+import { PageTabs } from "@client/components/ui/PageTabs";
 
 const TABS = [
   { value: "habits", label: "Hábitos" },
@@ -13,27 +15,9 @@ export function HabitsPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-border px-6 py-4">
-        <h1 className="text-lg font-semibold">Hábitos</h1>
-        <div role="tablist" aria-label="Hábitos o rutinas" className="mt-3 flex gap-1">
-          {TABS.map((t) => (
-            <button
-              key={t.value}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.value}
-              onClick={() => setTab(t.value)}
-              className={
-                tab === t.value
-                  ? "rounded-md bg-accent-soft px-3 py-1.5 text-sm font-medium text-accent"
-                  : "rounded-md px-3 py-1.5 text-sm font-medium text-text-muted hover:bg-bg-subtle hover:text-text"
-              }
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </header>
+      <PageHeader title="Hábitos">
+        <PageTabs label="Hábitos o rutinas" tabs={TABS} value={tab} onChange={setTab} />
+      </PageHeader>
 
       {tab === "habits" ? <HabitsTab /> : <RoutinesTab />}
     </div>

@@ -8,9 +8,16 @@ import { EmptyState } from "@client/components/ui/EmptyState";
 import { Skeleton } from "@client/components/ui/Skeleton";
 import { useToast } from "@client/components/ui/Toast";
 import { computeTargetProgress } from "@shared/domain/markets";
-import { useWatchlist, useCreateWatchlistAsset, useDeleteWatchlistAsset, useQuotes, useMarketNews } from "./useMarkets";
+import {
+  useWatchlist,
+  useCreateWatchlistAsset,
+  useDeleteWatchlistAsset,
+  useQuotes,
+  useMarketNews,
+} from "./useMarkets";
 import { formatPrice } from "./price";
 import type { WatchlistAssetType, WatchlistAssetDto, NewsCategory, NewsItem } from "@shared/schemas/markets";
+import { PageHeader } from "@client/components/ui/PageHeader";
 
 const ASSET_TYPE_LABELS: Record<WatchlistAssetType, string> = { crypto: "Cripto", stock: "Acción" };
 const ASSET_TYPE_OPTIONS = (Object.keys(ASSET_TYPE_LABELS) as WatchlistAssetType[]).map((value) => ({
@@ -23,7 +30,13 @@ const NEWS_TABS: { id: NewsCategory; label: string }[] = [
   { id: "stocks", label: "Acciones" },
 ];
 
-function AddWatchlistAssetDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function AddWatchlistAssetDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const [type, setType] = useState<WatchlistAssetType>("crypto");
   const [symbol, setSymbol] = useState("");
   const [name, setName] = useState("");
@@ -32,7 +45,8 @@ function AddWatchlistAssetDialog({ open, onOpenChange }: { open: boolean; onOpen
   const { show } = useToast();
 
   const target = targetPrice.trim() ? Number(targetPrice.replace(",", ".")) : undefined;
-  const canSubmit = symbol.trim().length > 0 && name.trim().length > 0 && (target === undefined || target > 0);
+  const canSubmit =
+    symbol.trim().length > 0 && name.trim().length > 0 && (target === undefined || target > 0);
 
   const submit = () => {
     if (!canSubmit) return;
@@ -55,7 +69,12 @@ function AddWatchlistAssetDialog({ open, onOpenChange }: { open: boolean; onOpen
       <div className="space-y-3">
         <div>
           <Label htmlFor="watchlist-type">Tipo</Label>
-          <Select aria-label="Tipo de activo" value={type} onValueChange={setType} options={ASSET_TYPE_OPTIONS} />
+          <Select
+            aria-label="Tipo de activo"
+            value={type}
+            onValueChange={setType}
+            options={ASSET_TYPE_OPTIONS}
+          />
         </div>
         <div>
           <Label htmlFor="watchlist-symbol">Símbolo</Label>
@@ -68,7 +87,12 @@ function AddWatchlistAssetDialog({ open, onOpenChange }: { open: boolean; onOpen
         </div>
         <div>
           <Label htmlFor="watchlist-name">Nombre</Label>
-          <Input id="watchlist-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={type === "crypto" ? "Bitcoin" : "Apple"} />
+          <Input
+            id="watchlist-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={type === "crypto" ? "Bitcoin" : "Apple"}
+          />
         </div>
         <div>
           <Label htmlFor="watchlist-target">Objetivo de precio (opcional, USD)</Label>
@@ -123,7 +147,10 @@ function WatchlistCard({
           ) : currentPrice !== null ? (
             <span className="text-sm font-semibold">{formatPrice(currentPrice)}</span>
           ) : (
-            <span className="flex items-center gap-1 text-xs text-text-subtle" title={quoteError ?? undefined}>
+            <span
+              className="flex items-center gap-1 text-xs text-text-subtle"
+              title={quoteError ?? undefined}
+            >
               <AlertTriangle className="size-3.5" aria-hidden />
               Sin cotización
             </span>
@@ -131,7 +158,9 @@ function WatchlistCard({
           <button
             type="button"
             onClick={() =>
-              deleteAsset.mutate(asset.id, { onSuccess: () => show({ tone: "success", title: "Activo eliminado" }) })
+              deleteAsset.mutate(asset.id, {
+                onSuccess: () => show({ tone: "success", title: "Activo eliminado" }),
+              })
             }
             aria-label={`Eliminar "${asset.symbol}" de la lista de seguimiento`}
             className="text-text-subtle hover:text-danger"
@@ -160,7 +189,15 @@ function WatchlistCard({
   );
 }
 
-function NewsList({ items, isLoading, error }: { items: NewsItem[] | undefined; isLoading: boolean; error: string | null | undefined }) {
+function NewsList({
+  items,
+  isLoading,
+  error,
+}: {
+  items: NewsItem[] | undefined;
+  isLoading: boolean;
+  error: string | null | undefined;
+}) {
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -219,10 +256,10 @@ export function MarketsPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-border px-6 py-4">
-        <h1 className="text-lg font-semibold">Mercados</h1>
-        <p className="text-sm text-text-muted">Noticias de crypto y acciones, y objetivos de precio de tu lista de seguimiento.</p>
-      </header>
+      <PageHeader
+        title="Mercados"
+        description="Noticias de crypto y acciones, y objetivos de precio de tu lista de seguimiento."
+      />
 
       <div className="mx-auto w-full max-w-2xl flex-1 space-y-8 p-6">
         <section className="space-y-3">

@@ -36,6 +36,7 @@ import {
   GitFork,
 } from "lucide-react";
 import { EmptyState } from "@client/components/ui/EmptyState";
+import { PageHeader } from "@client/components/ui/PageHeader";
 
 const WIPE_CONFIRM_PHRASE = "BORRAR TODO";
 
@@ -645,9 +646,10 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-border px-6 py-4">
-        <h1 className="text-lg font-semibold">Ajustes</h1>
-      </header>
+      <PageHeader
+        title="Ajustes"
+        description="Apariencia, preferencias, navegación, integraciones y datos."
+      />
 
       <div className="mx-auto w-full max-w-2xl flex-1 space-y-8 p-6">
         <section className="space-y-4">

@@ -7,6 +7,8 @@ import { Button } from "@client/components/ui/Button";
 import { useRegisterNewHandler } from "@client/app/shortcuts/ShortcutsContext";
 import { useNoteList, useCreateNote } from "./useNotes";
 import type { NoteListStatus } from "@shared/schemas/notes";
+import { PageHeader } from "@client/components/ui/PageHeader";
+import { PageTabs } from "@client/components/ui/PageTabs";
 
 const STATUS_FILTERS: { value: NoteListStatus; label: string }[] = [
   { value: "all", label: "Todas" },
@@ -42,9 +44,9 @@ export function NotesPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-lg font-semibold">Notas</h1>
+      <PageHeader
+        title="Notas"
+        actions={
           <Button
             size="sm"
             onClick={() =>
@@ -56,26 +58,15 @@ export function NotesPage() {
           >
             Nueva nota
           </Button>
-        </div>
-        <div role="tablist" aria-label="Filtro de notas" className="mt-3 flex gap-1 overflow-x-auto">
-          {STATUS_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              role="tab"
-              aria-selected={status === f.value}
-              onClick={() => setSearchParams(f.value === "all" ? {} : { status: f.value })}
-              className={
-                status === f.value
-                  ? "shrink-0 rounded-md bg-accent-soft px-3 py-1.5 text-sm font-medium text-accent"
-                  : "shrink-0 rounded-md px-3 py-1.5 text-sm font-medium text-text-muted hover:bg-bg-subtle hover:text-text"
-              }
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </header>
+        }
+      >
+        <PageTabs
+          label="Filtro de notas"
+          tabs={STATUS_FILTERS}
+          value={status}
+          onChange={(value) => setSearchParams(value === "all" ? {} : { status: value })}
+        />
+      </PageHeader>
 
       <div className="border-b border-border px-6 py-3">
         <Input

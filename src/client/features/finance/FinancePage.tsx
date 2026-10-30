@@ -4,7 +4,6 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@client/components/ui/Button";
 import { PageHeader } from "@client/components/ui/PageHeader";
 import { useToday } from "@client/lib/useToday";
-import { cn } from "@client/lib/utils";
 import { formatMonthLong } from "@client/components/charts/chartUtils";
 import { shiftMonth } from "@shared/domain/finance";
 import { SummaryTab } from "./SummaryTab";
@@ -13,6 +12,7 @@ import { BudgetsTab } from "./BudgetsTab";
 import { GoalsTab } from "./GoalsTab";
 import { AccountsTab } from "./AccountsTab";
 import { TransactionDialog } from "./TransactionDialog";
+import { PageTabs } from "@client/components/ui/PageTabs";
 
 const TABS = [
   { value: "summary", label: "Resumen" },
@@ -69,29 +69,12 @@ export function FinancePage() {
         }
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div
-            role="tablist"
-            aria-label="Secciones de finanzas"
-            className="-mx-1 flex gap-1 overflow-x-auto px-1"
-          >
-            {TABS.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                role="tab"
-                aria-selected={tab === t.value}
-                onClick={() => update({ tab: t.value })}
-                className={cn(
-                  "shrink-0 rounded-md px-3 py-1.5 text-sm font-medium",
-                  tab === t.value
-                    ? "bg-accent-soft text-accent"
-                    : "text-text-muted hover:bg-bg-subtle hover:text-text",
-                )}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <PageTabs
+            label="Secciones de finanzas"
+            tabs={TABS}
+            value={tab}
+            onChange={(value) => update({ tab: value })}
+          />
           {MONTH_TABS.includes(tab) && (
             <div role="group" aria-label="Mes" className="flex items-center gap-1">
               <button

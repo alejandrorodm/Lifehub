@@ -9,6 +9,7 @@ import { formatCents } from "@client/features/finance/money";
 import { PROJECT_STATUS_LABELS } from "@client/features/projects/projectDisplay";
 import { useReviewSummary } from "./useReview";
 import type { ReviewPeriod } from "@shared/schemas/review";
+import { PageHeader } from "@client/components/ui/PageHeader";
 
 const PERIOD_OPTIONS: { value: ReviewPeriod; label: string }[] = [
   { value: "week", label: "Esta semana" },
@@ -44,15 +45,15 @@ export function ReviewPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-border px-6 py-4">
-        <div>
-          <h1 className="text-lg font-semibold">Revisión</h1>
-          <p className="text-sm text-text-muted">
-            {summary ? `${summary.startDate} → ${summary.endDate}` : "Resumen agregado de tu actividad."}
-          </p>
-        </div>
-        <Select aria-label="Periodo" value={period} onValueChange={setPeriod} options={PERIOD_OPTIONS} />
-      </header>
+      <PageHeader
+        title="Revisión"
+        description={
+          summary ? `${summary.startDate} → ${summary.endDate}` : "Resumen agregado de tu actividad."
+        }
+        actions={
+          <Select aria-label="Periodo" value={period} onValueChange={setPeriod} options={PERIOD_OPTIONS} />
+        }
+      />
 
       <div className="mx-auto w-full max-w-3xl flex-1 space-y-8 p-6">
         {isLoading || !summary ? (
@@ -119,7 +120,9 @@ export function ReviewPage() {
                     >
                       <div className="mb-1 flex items-center justify-between text-sm">
                         <span className="font-medium">{project.name}</span>
-                        <span className="text-xs text-text-muted">{PROJECT_STATUS_LABELS[project.status]}</span>
+                        <span className="text-xs text-text-muted">
+                          {PROJECT_STATUS_LABELS[project.status]}
+                        </span>
                       </div>
                       <div className="mb-1 flex items-center justify-between text-xs text-text-muted">
                         <span>

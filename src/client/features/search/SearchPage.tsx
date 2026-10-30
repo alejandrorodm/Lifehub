@@ -5,6 +5,8 @@ import { Input } from "@client/components/ui/Input";
 import { EmptyState } from "@client/components/ui/EmptyState";
 import { useSearch, resultUrl } from "./useSearch";
 import type { SearchResultType } from "@shared/schemas/search";
+import { PageHeader } from "@client/components/ui/PageHeader";
+import { PageTabs } from "@client/components/ui/PageTabs";
 
 const TYPE_FILTERS: { value: SearchResultType | "all"; label: string; icon: typeof Search }[] = [
   { value: "all", label: "Todo", icon: Search },
@@ -44,8 +46,7 @@ export function SearchPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-border px-6 py-4">
-        <h1 className="mb-3 text-lg font-semibold">Búsqueda</h1>
+      <PageHeader title="Búsqueda">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-subtle" aria-hidden />
           <Input
@@ -60,25 +61,14 @@ export function SearchPage() {
             className="pl-9"
           />
         </div>
-        <div role="tablist" aria-label="Filtrar por tipo" className="mt-3 flex gap-1 overflow-x-auto">
-          {TYPE_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              role="tab"
-              aria-selected={type === f.value}
-              onClick={() => applyQuery(query, f.value)}
-              className={
-                type === f.value
-                  ? "shrink-0 rounded-md bg-accent-soft px-3 py-1.5 text-sm font-medium text-accent"
-                  : "shrink-0 rounded-md px-3 py-1.5 text-sm font-medium text-text-muted hover:bg-bg-subtle hover:text-text"
-              }
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </header>
+        <PageTabs
+          label="Filtrar por tipo"
+          tabs={TYPE_FILTERS}
+          value={type}
+          onChange={(value) => applyQuery(query, value)}
+          className="mt-3"
+        />
+      </PageHeader>
 
       {query.trim().length === 0 ? (
         <EmptyState

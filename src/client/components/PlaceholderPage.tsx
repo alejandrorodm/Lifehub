@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { EmptyState } from "@client/components/ui/EmptyState";
+import { PageHeader } from "@client/components/ui/PageHeader";
 
 interface PlaceholderPageProps {
   icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
@@ -16,9 +17,7 @@ interface PlaceholderPageProps {
 export function PlaceholderPage({ icon, title, phase }: PlaceholderPageProps) {
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-border px-6 py-4">
-        <h1 className="text-lg font-semibold">{title}</h1>
-      </header>
+      <PageHeader title={title} />
       <EmptyState
         icon={icon}
         title="Este módulo todavía no está disponible"

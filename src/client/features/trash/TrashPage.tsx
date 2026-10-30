@@ -8,6 +8,7 @@ import { useRestoreNote } from "@client/features/notes/useNotes";
 import { useRestoreProject } from "@client/features/projects/useProjects";
 import { useRestoreEvent } from "@client/features/calendar/useEvents";
 import { useTrashedTasks, useTrashedNotes, useTrashedProjects, useTrashedEvents } from "./useTrash";
+import { PageHeader } from "@client/components/ui/PageHeader";
 
 function TrashSection<T>({
   title,
@@ -76,12 +77,10 @@ export function TrashPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-border px-6 py-4">
-        <h1 className="text-lg font-semibold">Papelera</h1>
-        <p className="mt-1 text-sm text-text-muted">
-          Tareas, notas, proyectos y eventos eliminados. Restaurar los devuelve a su sitio.
-        </p>
-      </header>
+      <PageHeader
+        title="Papelera"
+        description="Tareas, notas, proyectos y eventos eliminados. Restaurar los devuelve a su sitio."
+      />
 
       <div className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-6">
         <TrashSection

@@ -11,6 +11,8 @@ import { useProjectList, useCreateProject } from "./useProjects";
 import { PROJECT_STATUS_CLASS, PROJECT_STATUS_LABELS } from "./projectDisplay";
 import { GithubImportDialog } from "./GithubImportDialog";
 import type { ProjectStatus } from "@shared/schemas/projects";
+import { PageHeader } from "@client/components/ui/PageHeader";
+import { PageTabs } from "@client/components/ui/PageTabs";
 
 const STATUS_FILTERS: { value: ProjectStatus | "all"; label: string }[] = [
   { value: "all", label: "Todos" },
@@ -49,27 +51,14 @@ export function ProjectsPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-border px-6 py-4">
-        <h1 className="text-lg font-semibold">Proyectos</h1>
-        <div role="tablist" aria-label="Estado de los proyectos" className="mt-3 flex gap-1 overflow-x-auto">
-          {STATUS_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              role="tab"
-              aria-selected={status === f.value}
-              onClick={() => setSearchParams(f.value === "all" ? {} : { status: f.value })}
-              className={
-                status === f.value
-                  ? "shrink-0 rounded-md bg-accent-soft px-3 py-1.5 text-sm font-medium text-accent"
-                  : "shrink-0 rounded-md px-3 py-1.5 text-sm font-medium text-text-muted hover:bg-bg-subtle hover:text-text"
-              }
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </header>
+      <PageHeader title="Proyectos">
+        <PageTabs
+          label="Estado de los proyectos"
+          tabs={STATUS_FILTERS}
+          value={status}
+          onChange={(value) => setSearchParams(value === "all" ? {} : { status: value })}
+        />
+      </PageHeader>
 
       <div className="flex items-center gap-2 border-b border-border px-6 py-3">
         <div className="min-w-0 flex-1">

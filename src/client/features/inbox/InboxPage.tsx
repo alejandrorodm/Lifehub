@@ -4,6 +4,7 @@ import { Button } from "@client/components/ui/Button";
 import { useToast } from "@client/components/ui/Toast";
 import { useRegisterNewHandler, useShortcuts } from "@client/app/shortcuts/ShortcutsContext";
 import { useInboxItems, useConvertInboxItemToTask, useArchiveInboxItem } from "./useInbox";
+import { PageHeader } from "@client/components/ui/PageHeader";
 
 export function InboxPage() {
   const { data: items, isLoading } = useInboxItems();
@@ -16,13 +17,15 @@ export function InboxPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-border px-6 py-4">
-        <h1 className="text-lg font-semibold">Inbox</h1>
-        <p className="mt-1 text-sm text-text-muted">
-          Captura cualquier cosa sin decidir todavía dónde va. Pulsa{" "}
-          <kbd className="rounded border border-border px-1">C</kbd> en cualquier pantalla para añadir algo.
-        </p>
-      </header>
+      <PageHeader
+        title="Inbox"
+        description={
+          <>
+            Captura cualquier cosa sin decidir todavía dónde va. Pulsa{" "}
+            <kbd className="rounded border border-border px-1">C</kbd> en cualquier pantalla para añadir algo.
+          </>
+        }
+      />
 
       {isLoading ? (
         <div className="flex-1" />

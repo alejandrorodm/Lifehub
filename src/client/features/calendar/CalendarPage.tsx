@@ -21,6 +21,8 @@ import { WeekView } from "./WeekView";
 import { EventFormDialog } from "./EventFormDialog";
 import { useEventsInRange } from "./useEvents";
 import type { EventOccurrenceDto } from "@shared/schemas/events";
+import { PageHeader } from "@client/components/ui/PageHeader";
+import { PageTabs } from "@client/components/ui/PageTabs";
 
 type ViewMode = "month" | "week" | "day";
 const VIEWS: { value: ViewMode; label: string }[] = [
@@ -113,52 +115,39 @@ export function CalendarPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex flex-wrap items-center gap-3 border-b border-border px-6 py-4">
-        <h1 className="text-lg font-semibold capitalize">Calendario</h1>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={goPrev} aria-label="Anterior">
-            <ChevronLeft className="size-4" aria-hidden />
-          </Button>
-          <Button variant="secondary" size="sm" onClick={goToday}>
-            Hoy
-          </Button>
-          <Button variant="ghost" size="sm" onClick={goNext} aria-label="Siguiente">
-            <ChevronRight className="size-4" aria-hidden />
-          </Button>
-        </div>
-        <span className="text-sm font-medium capitalize text-text-muted">{label}</span>
-
-        <div role="tablist" aria-label="Vista del calendario" className="ml-auto hidden gap-1 md:flex">
-          {VIEWS.map((v) => (
-            <button
-              key={v.value}
-              type="button"
-              role="tab"
-              aria-selected={view === v.value}
-              onClick={() => setView(v.value)}
-              className={
-                view === v.value
-                  ? "rounded-md bg-accent-soft px-3 py-1.5 text-sm font-medium text-accent"
-                  : "rounded-md px-3 py-1.5 text-sm font-medium text-text-muted hover:bg-bg-subtle hover:text-text"
-              }
+      <PageHeader
+        title="Calendario"
+        description={<span className="capitalize">{label}</span>}
+        actions={
+          <>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={goPrev} aria-label="Anterior">
+                <ChevronLeft className="size-4" aria-hidden />
+              </Button>
+              <Button variant="secondary" size="sm" onClick={goToday}>
+                Hoy
+              </Button>
+              <Button variant="ghost" size="sm" onClick={goNext} aria-label="Siguiente">
+                <ChevronRight className="size-4" aria-hidden />
+              </Button>
+            </div>
+            <div className="hidden md:block">
+              <PageTabs label="Vista del calendario" tabs={VIEWS} value={view} onChange={setView} />
+            </div>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingOccurrence(null);
+                setNewEventDate(anchor);
+                setFormOpen(true);
+              }}
             >
-              {v.label}
-            </button>
-          ))}
-        </div>
-
-        <Button
-          size="sm"
-          onClick={() => {
-            setEditingOccurrence(null);
-            setNewEventDate(anchor);
-            setFormOpen(true);
-          }}
-        >
-          <Plus className="size-4" aria-hidden />
-          Nuevo evento
-        </Button>
-      </header>
+              <Plus className="size-4" aria-hidden />
+              Nuevo evento
+            </Button>
+          </>
+        }
+      />
 
       {view === "month" ? (
         <MonthView
