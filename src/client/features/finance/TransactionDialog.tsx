@@ -14,7 +14,7 @@ import {
   useUpdateTransaction,
 } from "./useFinance";
 import { rankRecentCategories } from "./recentCategories";
-import { chartColor } from "@client/components/charts/chartUtils";
+import { CategoryBadge } from "./CategoryIcon";
 import { parseEurosToCents, centsToInput } from "./money";
 import type { FinanceTransactionDto, FinanceTransactionKind } from "@shared/schemas/finance";
 
@@ -187,11 +187,7 @@ export function TransactionDialog({
                       : "border-border text-text-muted hover:border-border-strong hover:text-text",
                   )}
                 >
-                  <span
-                    className="size-2 rounded-full"
-                    style={{ backgroundColor: chartColor(category.colorSlot) }}
-                    aria-hidden
-                  />
+                  <CategoryBadge icon={category.icon} colorSlot={category.colorSlot} size="sm" />
                   {category.name}
                 </button>
               );

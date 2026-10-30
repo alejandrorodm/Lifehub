@@ -44,6 +44,7 @@ import type {
   FinanceTransactionKind,
   FinanceSummaryDto,
   FinanceCategorySpend,
+  CategoryIcon,
 } from "@shared/schemas/finance";
 
 type AssetRow = typeof financeAssets.$inferSelect;
@@ -386,6 +387,7 @@ function serializeCategory(row: CategoryRow): FinanceCategoryDto {
     name: row.name,
     kind: row.kind,
     colorSlot: row.colorSlot,
+    icon: (row.icon as CategoryIcon | null) ?? null,
     monthlyBudgetCents: row.monthlyBudgetCents,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -438,6 +440,7 @@ export function createCategory(input: FinanceCategoryCreateInput): FinanceCatego
       name: input.name,
       kind: input.kind,
       colorSlot: input.colorSlot,
+      icon: input.icon ?? null,
       monthlyBudgetCents: input.monthlyBudgetCents ?? null,
     })
     .returning()
@@ -450,6 +453,7 @@ export function updateCategory(id: string, patch: FinanceCategoryPatchInput): Fi
   const changes: Record<string, unknown> = { updatedAt: new Date() };
   if (patch.name !== undefined) changes.name = patch.name;
   if (patch.colorSlot !== undefined) changes.colorSlot = patch.colorSlot;
+  if (patch.icon !== undefined) changes.icon = patch.icon;
   if (patch.monthlyBudgetCents !== undefined) changes.monthlyBudgetCents = patch.monthlyBudgetCents;
   getDb()
     .update(financeCategories)
@@ -478,17 +482,22 @@ export function restoreCategory(id: string): FinanceCategoryDto {
   return serializeCategory(getCategoryRow(id));
 }
 
-const SUGGESTED_CATEGORIES: { name: string; kind: FinanceTransactionKind; colorSlot: number }[] = [
-  { name: "Vivienda", kind: "expense", colorSlot: 1 },
-  { name: "Supermercado", kind: "expense", colorSlot: 2 },
-  { name: "Restaurantes", kind: "expense", colorSlot: 3 },
-  { name: "Transporte", kind: "expense", colorSlot: 4 },
-  { name: "Ocio", kind: "expense", colorSlot: 5 },
-  { name: "Salud", kind: "expense", colorSlot: 6 },
-  { name: "Suscripciones", kind: "expense", colorSlot: 7 },
-  { name: "Otros gastos", kind: "expense", colorSlot: 8 },
-  { name: "Nómina", kind: "income", colorSlot: 1 },
-  { name: "Ingresos extra", kind: "income", colorSlot: 3 },
+const SUGGESTED_CATEGORIES: {
+  name: string;
+  kind: FinanceTransactionKind;
+  colorSlot: number;
+  icon: CategoryIcon;
+}[] = [
+  { name: "Vivienda", kind: "expense", colorSlot: 1, icon: "house" },
+  { name: "Supermercado", kind: "expense", colorSlot: 2, icon: "cart" },
+  { name: "Restaurantes", kind: "expense", colorSlot: 3, icon: "utensils" },
+  { name: "Transporte", kind: "expense", colorSlot: 4, icon: "car" },
+  { name: "Ocio", kind: "expense", colorSlot: 5, icon: "film" },
+  { name: "Salud", kind: "expense", colorSlot: 6, icon: "health" },
+  { name: "Suscripciones", kind: "expense", colorSlot: 7, icon: "repeat" },
+  { name: "Otros gastos", kind: "expense", colorSlot: 8, icon: "tag" },
+  { name: "Nómina", kind: "income", colorSlot: 1, icon: "briefcase" },
+  { name: "Ingresos extra", kind: "income", colorSlot: 3, icon: "piggy" },
 ];
 
 /** Crea las categorías sugeridas que aún no existan (por nombre y tipo). Idempotente. */
@@ -664,6 +673,7 @@ export function getSummary(monthInput?: string): FinanceSummaryDto {
         categoryId,
         name: category?.name ?? "Sin categoría",
         colorSlot: category?.colorSlot ?? null,
+        icon: (category?.icon as CategoryIcon | null | undefined) ?? null,
         amountCents,
         budgetCents: category && !category.deletedAt ? category.monthlyBudgetCents : null,
       };
@@ -677,6 +687,7 @@ export function getSummary(monthInput?: string): FinanceSummaryDto {
           categoryId: category.id,
           name: category.name,
           colorSlot: category.colorSlot,
+          icon: (category.icon as CategoryIcon | null) ?? null,
           amountCents: 0,
           budgetCents: category.monthlyBudgetCents,
         });

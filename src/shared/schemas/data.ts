@@ -263,6 +263,7 @@ const ExportFinanceCategorySchema = z.object({
   name: z.string(),
   kind: z.enum(["expense", "income"]),
   colorSlot: z.number().int(),
+  icon: z.string().nullable().default(null),
   monthlyBudgetCents: z.number().int().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),

@@ -1,0 +1,1 @@
+ALTER TABLE `finance_categories` ADD `icon` text;

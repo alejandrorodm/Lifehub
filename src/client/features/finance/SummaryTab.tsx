@@ -17,6 +17,7 @@ import {
 import { cn } from "@client/lib/utils";
 import { useFinanceSummary } from "./useFinance";
 import { formatCents } from "./money";
+import { CategoryBadge } from "./CategoryIcon";
 import type { FinanceCategorySpend } from "@shared/schemas/finance";
 
 const INCOME_COLOR = chartColor(1);
@@ -220,11 +221,7 @@ export function SummaryTab({ month, onSelectMonth, onSelectCategory, onAddTransa
                   {expenseSegments.map((s) => (
                     <li key={s.categoryId ?? "none"} className="flex items-center justify-between gap-2">
                       <span className="flex min-w-0 items-center gap-1.5 text-text-muted">
-                        <span
-                          className="size-2.5 shrink-0 rounded-sm"
-                          style={{ backgroundColor: spendColor(s) }}
-                          aria-hidden
-                        />
+                        <CategoryBadge icon={s.icon} colorSlot={s.colorSlot} size="sm" />
                         <button
                           type="button"
                           onClick={() => onSelectCategory(s.categoryId)}

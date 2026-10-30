@@ -76,6 +76,8 @@ export const financeCategories = sqliteTable("finance_categories", {
   name: text("name").notNull(),
   kind: text("kind", { enum: ["expense", "income"] }).notNull(),
   colorSlot: integer("color_slot").notNull().default(1),
+  // Fase 19: clave de icono (CATEGORY_ICON_KEYS); null = sin icono.
+  icon: text("icon"),
   monthlyBudgetCents: integer("monthly_budget_cents"),
   ...timestamps,
   ...softDelete,

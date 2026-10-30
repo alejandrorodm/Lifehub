@@ -26,8 +26,21 @@ test("presupuesto de una categoría, gasto registrado y reflejado en movimientos
   const categoryDialog = page.getByRole("dialog");
   await categoryDialog.getByLabel("Nombre").fill(category);
   await categoryDialog.getByLabel("Presupuesto mensual (€, opcional)").fill("100");
+  await categoryDialog
+    .getByRole("radiogroup", { name: "Icono" })
+    .getByRole("radio", { name: "Comida" })
+    .click();
   await categoryDialog.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText(category)).toBeVisible();
+  // S4 (fase 19): el icono elegido se guarda.
+  await page.getByRole("button", { name: `Editar categoría «${category}»` }).click();
+  await expect(
+    page
+      .getByRole("dialog")
+      .getByRole("radiogroup", { name: "Icono" })
+      .getByRole("radio", { name: "Comida" }),
+  ).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("dialog").getByRole("button", { name: "Cancelar" }).click();
 
   await page.getByRole("button", { name: "Añadir movimiento" }).first().click();
   const txDialog = page.getByRole("dialog");

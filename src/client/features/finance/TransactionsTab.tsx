@@ -16,7 +16,7 @@ import { Card } from "@client/components/ui/Card";
 import { Skeleton } from "@client/components/ui/Skeleton";
 import { EmptyState } from "@client/components/ui/EmptyState";
 import { useToast } from "@client/components/ui/Toast";
-import { chartColor, formatMonthLong } from "@client/components/charts/chartUtils";
+import { formatMonthLong } from "@client/components/charts/chartUtils";
 import {
   useCategoryList,
   useCategoryTrash,
@@ -27,7 +27,12 @@ import {
 } from "./useFinance";
 import { formatCents } from "./money";
 import { TransactionDialog } from "./TransactionDialog";
-import type { FinanceTransactionDto, FinanceTransactionKind } from "@shared/schemas/finance";
+import type {
+  FinanceCategoryDto,
+  FinanceTransactionDto,
+  FinanceTransactionKind,
+} from "@shared/schemas/finance";
+import { CategoryBadge } from "./CategoryIcon";
 
 const ALL = "all";
 const DATE_HEADING = new Intl.DateTimeFormat("es-ES", {
@@ -50,13 +55,13 @@ function toCsv(rows: string[][]): string {
 function TransactionRow({
   transaction,
   categoryName,
-  categoryColor,
+  category,
   assetName,
   onEdit,
 }: {
   transaction: FinanceTransactionDto;
   categoryName: string | null;
-  categoryColor: string | null;
+  category: FinanceCategoryDto | null;
   assetName: string | null;
   onEdit: () => void;
 }) {
@@ -108,13 +113,7 @@ function TransactionRow({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm text-text">{transaction.description}</p>
         <p className="flex min-w-0 items-center gap-1.5 truncate text-xs text-text-muted">
-          {categoryColor && (
-            <span
-              className="size-2 shrink-0 rounded-sm"
-              style={{ backgroundColor: categoryColor }}
-              aria-hidden
-            />
-          )}
+          {category && <CategoryBadge icon={category.icon} colorSlot={category.colorSlot} size="sm" />}
           {categoryName ?? "Sin categoría"}
           {assetName && <span className="text-text-subtle">· {assetName}</span>}
           {transaction.note && <span className="truncate text-text-subtle">· {transaction.note}</span>}
@@ -346,7 +345,7 @@ export function TransactionsTab({
                         key={tx.id}
                         transaction={tx}
                         categoryName={category?.name ?? null}
-                        categoryColor={category ? chartColor(category.colorSlot) : null}
+                        category={category ?? null}
                         assetName={(tx.assetId && assetById.get(tx.assetId)?.name) || null}
                         onEdit={() => setEditing(tx)}
                       />

@@ -111,10 +111,41 @@ export type FinanceTransactionKind = z.infer<typeof FinanceTransactionKindSchema
 export const CHART_COLOR_SLOTS = 8;
 const ColorSlotSchema = z.number().int().min(1).max(CHART_COLOR_SLOTS);
 
+/** Iconos disponibles para categorías (claves estables; el cliente las traduce a iconos de lucide). */
+export const CATEGORY_ICON_KEYS = [
+  "house",
+  "cart",
+  "utensils",
+  "coffee",
+  "car",
+  "bus",
+  "fuel",
+  "plane",
+  "film",
+  "health",
+  "dumbbell",
+  "repeat",
+  "smartphone",
+  "zap",
+  "shirt",
+  "gift",
+  "book",
+  "education",
+  "pet",
+  "baby",
+  "briefcase",
+  "wallet",
+  "piggy",
+  "tag",
+] as const;
+export const CategoryIconSchema = z.enum(CATEGORY_ICON_KEYS);
+export type CategoryIcon = z.infer<typeof CategoryIconSchema>;
+
 export const FinanceCategoryCreateSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio.").max(100),
   kind: FinanceTransactionKindSchema,
   colorSlot: ColorSlotSchema.default(1),
+  icon: CategoryIconSchema.optional(),
   monthlyBudgetCents: z.number().int().positive("El presupuesto debe ser mayor que 0.").optional(),
 });
 export type FinanceCategoryCreateInput = z.infer<typeof FinanceCategoryCreateSchema>;
@@ -123,6 +154,7 @@ export const FinanceCategoryPatchSchema = z
   .object({
     name: z.string().trim().min(1).max(100),
     colorSlot: ColorSlotSchema,
+    icon: CategoryIconSchema.nullable(),
     monthlyBudgetCents: z.number().int().positive().nullable(),
   })
   .partial();
@@ -133,6 +165,7 @@ export interface FinanceCategoryDto {
   name: string;
   kind: FinanceTransactionKind;
   colorSlot: number;
+  icon: CategoryIcon | null;
   monthlyBudgetCents: number | null;
   createdAt: string;
   updatedAt: string;
@@ -190,6 +223,7 @@ export interface FinanceCategorySpend {
   categoryId: string | null;
   name: string;
   colorSlot: number | null;
+  icon: CategoryIcon | null;
   amountCents: number;
   budgetCents: number | null;
 }

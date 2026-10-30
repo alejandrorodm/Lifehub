@@ -22,9 +22,13 @@ import {
 import { formatCents, parseEurosToCents, centsToInput } from "./money";
 import {
   CHART_COLOR_SLOTS,
+  CATEGORY_ICON_KEYS,
+  type CategoryIcon as CategoryIconKey,
   type FinanceCategoryDto,
   type FinanceTransactionKind,
 } from "@shared/schemas/finance";
+import { CategoryBadge } from "./CategoryIcon";
+import { CATEGORY_ICONS } from "./categoryIcons";
 
 function CategoryDialog({
   category,
@@ -38,6 +42,7 @@ function CategoryDialog({
   const kind = category?.kind ?? defaultKind;
   const [name, setName] = useState(category?.name ?? "");
   const [colorSlot, setColorSlot] = useState(category?.colorSlot ?? 1);
+  const [icon, setIcon] = useState<CategoryIconKey | null>(category?.icon ?? null);
   const [budget, setBudget] = useState(
     category?.monthlyBudgetCents ? centsToInput(category.monthlyBudgetCents) : "",
   );
@@ -62,6 +67,7 @@ function CategoryDialog({
           patch: {
             name: name.trim(),
             colorSlot,
+            icon,
             monthlyBudgetCents: kind === "expense" ? budgetCents : null,
           },
         },
@@ -73,6 +79,7 @@ function CategoryDialog({
           name: name.trim(),
           kind,
           colorSlot,
+          icon: icon ?? undefined,
           monthlyBudgetCents: kind === "expense" && budgetCents ? budgetCents : undefined,
         },
         { onSuccess: done },
@@ -127,6 +134,46 @@ function CategoryDialog({
                 style={{ backgroundColor: chartColor(slot) }}
               />
             ))}
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend className="mb-1.5 text-sm font-medium text-text">Icono</legend>
+          <div role="radiogroup" aria-label="Icono" className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={icon === null}
+              aria-label="Sin icono"
+              onClick={() => setIcon(null)}
+              className={cn(
+                "flex size-8 items-center justify-center rounded-md border text-xs text-text-muted",
+                icon === null ? "border-text" : "border-border hover:border-border-strong",
+              )}
+            >
+              —
+            </button>
+            {CATEGORY_ICON_KEYS.map((key) => {
+              const { icon: Icon, label } = CATEGORY_ICONS[key];
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  role="radio"
+                  aria-checked={icon === key}
+                  aria-label={label}
+                  title={label}
+                  onClick={() => setIcon(key)}
+                  className={cn(
+                    "flex size-8 items-center justify-center rounded-md border",
+                    icon === key
+                      ? "border-text bg-bg-subtle text-text"
+                      : "border-border text-text-muted hover:border-border-strong hover:text-text",
+                  )}
+                >
+                  <Icon className="size-4" aria-hidden />
+                </button>
+              );
+            })}
           </div>
         </fieldset>
         {kind === "expense" && (
@@ -242,11 +289,7 @@ function CategoryRow({
       ) : (
         <>
           <div className="flex items-center gap-2">
-            <span
-              className="size-3 shrink-0 rounded-sm"
-              style={{ backgroundColor: chartColor(category.colorSlot) }}
-              aria-hidden
-            />
+            <CategoryBadge icon={category.icon} colorSlot={category.colorSlot} />
             <button
               type="button"
               onClick={onOpen}

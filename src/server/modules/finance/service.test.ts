@@ -376,8 +376,15 @@ describe("resumen", () => {
     expect(summary.previous).toEqual({ incomeCents: 0, expenseCents: 10_000 });
     expect(summary.totalBudgetCents).toBe(34_000);
     expect(summary.expenseByCategory).toEqual([
-      { categoryId: food.id, name: "Comida", colorSlot: 2, amountCents: 50_000, budgetCents: 30_000 },
-      { categoryId: gym.id, name: "Gimnasio", colorSlot: 3, amountCents: 0, budgetCents: 4_000 },
+      {
+        categoryId: food.id,
+        name: "Comida",
+        colorSlot: 2,
+        icon: null,
+        amountCents: 50_000,
+        budgetCents: 30_000,
+      },
+      { categoryId: gym.id, name: "Gimnasio", colorSlot: 3, icon: null, amountCents: 0, budgetCents: 4_000 },
     ]);
     expect(summary.monthly).toHaveLength(12);
     expect(summary.monthly.at(-1)).toEqual({ month: "2026-10", incomeCents: 200_000, expenseCents: 50_000 });
@@ -479,5 +486,32 @@ describe("retirar de una meta", () => {
       amountCents: 20_000,
     });
     expect(finance.getGoal(goal.id).currentCents).toBe(0);
+  });
+});
+
+describe("iconos de categoría (fase 19)", () => {
+  it("guarda, cambia y quita el icono; las sugeridas traen icono", () => {
+    const cat = finance.createCategory({ name: "Café", kind: "expense", colorSlot: 2, icon: "coffee" });
+    expect(cat.icon).toBe("coffee");
+    expect(finance.updateCategory(cat.id, { icon: "utensils" }).icon).toBe("utensils");
+    expect(finance.updateCategory(cat.id, { icon: null }).icon).toBeNull();
+    // Cambiar otro campo no toca el icono.
+    finance.updateCategory(cat.id, { icon: "coffee" });
+    expect(finance.updateCategory(cat.id, { name: "Cafés" }).icon).toBe("coffee");
+
+    const suggested = finance.createSuggestedCategories();
+    expect(suggested.filter((c) => c.name !== "Cafés").every((c) => c.icon !== null)).toBe(true);
+  });
+
+  it("el resumen expone el icono de cada categoría", () => {
+    const cat = finance.createCategory({ name: "Bus", kind: "expense", colorSlot: 4, icon: "bus" });
+    finance.createTransaction({
+      kind: "expense",
+      amountCents: 150,
+      date: "2026-10-03",
+      description: "Bono",
+      categoryId: cat.id,
+    });
+    expect(finance.getSummary("2026-10").expenseByCategory[0]).toMatchObject({ name: "Bus", icon: "bus" });
   });
 });
