@@ -106,7 +106,8 @@ test("crear una tarea, abrir su detalle y cerrarlo se puede hacer solo con tecla
   await quickAdd.pressSequentially(title);
   await page.keyboard.press("Enter");
 
-  const taskButton = page.getByRole("button", { name: new RegExp(title) });
+  // Anclado al inicio: el botón "Eliminar «título»" de la misma fila también contiene el título.
+  const taskButton = page.getByRole("button", { name: new RegExp(`^${title}`) });
   await expect(taskButton).toBeVisible();
   await taskButton.focus();
   await page.keyboard.press("Enter");
