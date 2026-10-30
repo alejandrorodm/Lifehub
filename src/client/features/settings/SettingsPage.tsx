@@ -14,11 +14,11 @@ import { useGoogleStatus, useDisconnectGoogle, useSyncGoogleNow } from "./useGoo
 import { useGithubStatus, useDisconnectGithub } from "./useGithub";
 import { McpSection } from "./McpSection";
 import { api } from "@client/lib/api";
-import { DASHBOARD_WIDGETS, NAV_SECTIONS } from "@shared/schemas/settings";
+import { DASHBOARD_WIDGETS, MOBILE_NAV_IDS, NAV_SECTIONS, type MobileNavId } from "@shared/schemas/settings";
 import type { Theme, DashboardWidgetId, NavSectionId } from "@shared/schemas/settings";
 import type { ImportPreview } from "@shared/schemas/data";
 import { DASHBOARD_WIDGET_LABELS } from "@client/features/dashboard/dashboardWidgets";
-import { navItemsBySectionId } from "@client/app/navigation";
+import { mobileNavItem, navItemsBySectionId } from "@client/app/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import {
@@ -164,6 +164,43 @@ function DashboardWidgetsSection({
         );
       })}
     </ul>
+  );
+}
+
+/** Los 4 huecos de la barra inferior móvil; elegir una sección ya colocada intercambia los huecos. */
+function MobileNavSection({
+  items,
+  onChange,
+}: {
+  items: MobileNavId[];
+  onChange: (next: MobileNavId[]) => void;
+}) {
+  const options = MOBILE_NAV_IDS.map((id) => ({ value: id, label: mobileNavItem(id).label }));
+
+  const choose = (slot: number, id: MobileNavId) => {
+    const next = [...items];
+    const previousSlot = next.indexOf(id);
+    if (previousSlot !== -1) next[previousSlot] = next[slot]!;
+    next[slot] = id;
+    onChange(next);
+  };
+
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {items.map((id, slot) => (
+        <div key={slot}>
+          <p className="mb-1 text-xs text-text-muted" aria-hidden>
+            Hueco {slot + 1}
+          </p>
+          <Select
+            aria-label={`Hueco ${slot + 1} de la barra inferior`}
+            value={id}
+            onValueChange={(value) => choose(slot, value)}
+            options={options}
+          />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -690,6 +727,20 @@ export function SettingsPage() {
               onChange={(visibleNavSections) => updateSettings.mutate({ visibleNavSections })}
             />
           )}
+          <div className="space-y-2 pt-2">
+            <p className="text-sm font-medium">Barra inferior en móvil</p>
+            <p className="text-sm text-text-muted">
+              Las 4 secciones a un toque; el resto queda en &quot;Más&quot;.
+            </p>
+            {isPending || !settings ? (
+              <Skeleton className="h-16" />
+            ) : (
+              <MobileNavSection
+                items={settings.mobileNavItems}
+                onChange={(mobileNavItems) => updateSettings.mutate({ mobileNavItems })}
+              />
+            )}
+          </div>
         </section>
 
         <section className="space-y-4">

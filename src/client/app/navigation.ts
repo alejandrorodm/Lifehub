@@ -13,7 +13,7 @@ import {
   Settings,
   type LucideIcon,
 } from "lucide-react";
-import { NAV_SECTIONS, type NavSectionId } from "@shared/schemas/settings";
+import { NAV_SECTIONS, type MobileNavId, type NavSectionId } from "@shared/schemas/settings";
 
 export interface NavItem {
   to: string;
@@ -58,4 +58,34 @@ export function visibleMoreNavItems(visibleNavSections: NavSectionId[]): NavItem
   return visibleNavSections
     .filter((id): id is NavSectionId => NAV_SECTIONS.includes(id))
     .map((id) => navItemsBySectionId[id]);
+}
+
+const fixedNavItemsById: Record<"today" | "inbox" | "tasks" | "calendar", NavItem> = {
+  today: fixedNavItems[0]!,
+  inbox: fixedNavItems[1]!,
+  tasks: fixedNavItems[2]!,
+  calendar: fixedNavItems[3]!,
+};
+
+/** NavItem de cada sección que puede ir en la barra inferior móvil. */
+export function mobileNavItem(id: MobileNavId): NavItem {
+  return id in fixedNavItemsById
+    ? fixedNavItemsById[id as keyof typeof fixedNavItemsById]
+    : navItemsBySectionId[id as NavSectionId];
+}
+
+/**
+ * Reparte la navegación móvil: las 4 secciones elegidas van a la barra y el
+ * resto (fijas no elegidas, secciones visibles no elegidas y Ajustes) a "Más".
+ */
+export function splitMobileNav(
+  barIds: readonly MobileNavId[],
+  visibleNavSections: NavSectionId[],
+): { bar: NavItem[]; more: NavItem[] } {
+  const bar = barIds.map(mobileNavItem);
+  const inBar = new Set(bar.map((item) => item.to));
+  const more = [...fixedNavItems, ...visibleMoreNavItems(visibleNavSections), ...secondaryNavItems].filter(
+    (item) => !inBar.has(item.to),
+  );
+  return { bar, more };
 }

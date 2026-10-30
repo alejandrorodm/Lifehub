@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { Search, Plus, LogOut, MoreHorizontal } from "lucide-react";
-import { fixedNavItems, secondaryNavItems, visibleMoreNavItems, type NavItem } from "./navigation";
+import {
+  fixedNavItems,
+  secondaryNavItems,
+  splitMobileNav,
+  visibleMoreNavItems,
+  type NavItem,
+} from "./navigation";
 import { cn } from "@client/lib/utils";
 import { useInboxCount } from "@client/features/inbox/useInbox";
 import { ShortcutsProvider, useShortcuts } from "./shortcuts/ShortcutsContext";
@@ -10,7 +16,7 @@ import { LoginPage } from "@client/features/auth/LoginPage";
 import { useSettings } from "@client/features/settings/useSettings";
 import { Sheet } from "@client/components/ui/Sheet";
 import { GoogleAutoSync } from "@client/features/settings/GoogleAutoSync";
-import { NAV_SECTIONS } from "@shared/schemas/settings";
+import { DEFAULT_SETTINGS, NAV_SECTIONS } from "@shared/schemas/settings";
 
 function NavBadge({ item }: { item: NavItem }) {
   const { data } = useInboxCount();
@@ -151,7 +157,12 @@ function ShellHeaderActions() {
 function AppShellContent() {
   const { data: settings } = useSettings();
   const [moreOpen, setMoreOpen] = useState(false);
-  const visibleMore = visibleMoreNavItems(settings?.visibleNavSections ?? [...NAV_SECTIONS]);
+  const visibleSections = settings?.visibleNavSections ?? [...NAV_SECTIONS];
+  const visibleMore = visibleMoreNavItems(visibleSections);
+  const mobileNav = splitMobileNav(
+    settings?.mobileNavItems ?? DEFAULT_SETTINGS.mobileNavItems,
+    visibleSections,
+  );
 
   return (
     <div className="flex min-h-screen bg-bg text-text">
@@ -193,12 +204,12 @@ function AppShellContent() {
         </main>
       </div>
 
-      {/* Navegación inferior — móvil: 4 secciones fijas + "Más" */}
+      {/* Navegación inferior — móvil: 4 secciones elegidas en Ajustes + "Más" */}
       <nav
         aria-label="Navegación principal"
         className="fixed inset-x-0 bottom-0 z-[var(--z-sidebar)] flex border-t border-border bg-bg-elevated px-1 py-1.5 md:hidden"
       >
-        {fixedNavItems.map((item) => (
+        {mobileNav.bar.map((item) => (
           <BottomNavLink key={item.to} item={item} />
         ))}
         <button
@@ -210,7 +221,7 @@ function AppShellContent() {
           <span>Más</span>
         </button>
       </nav>
-      <MoreMenuSheet open={moreOpen} onOpenChange={setMoreOpen} items={[...visibleMore, ...secondaryNavItems]} />
+      <MoreMenuSheet open={moreOpen} onOpenChange={setMoreOpen} items={mobileNav.more} />
     </div>
   );
 }

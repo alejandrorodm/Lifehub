@@ -45,3 +45,26 @@ describe("SettingsPatchSchema", () => {
     expect(SettingsPatchSchema.parse({})).toEqual({});
   });
 });
+
+describe("mobileNavItems (fase 19)", () => {
+  it("por defecto es Hoy, Inbox, Tareas y Calendario", () => {
+    expect(SettingsSchema.parse({}).mobileNavItems).toEqual(["today", "inbox", "tasks", "calendar"]);
+  });
+
+  it("acepta cuatro secciones distintas, incluidas las ocultables", () => {
+    expect(
+      SettingsPatchSchema.parse({ mobileNavItems: ["today", "tasks", "finance", "habits"] }).mobileNavItems,
+    ).toEqual(["today", "tasks", "finance", "habits"]);
+  });
+
+  it("rechaza repetidos, menos o más de cuatro y secciones desconocidas", () => {
+    for (const bad of [
+      ["today", "today", "tasks", "calendar"],
+      ["today", "tasks", "calendar"],
+      ["today", "inbox", "tasks", "calendar", "notes"],
+      ["today", "inbox", "tasks", "settings"],
+    ]) {
+      expect(SettingsPatchSchema.safeParse({ mobileNavItems: bad }).success).toBe(false);
+    }
+  });
+});
