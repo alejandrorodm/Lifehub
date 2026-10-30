@@ -19,7 +19,9 @@ export function CategoryBadge({
   className?: string;
 }) {
   const color = colorSlot ? chartColor(colorSlot) : "var(--color-text-subtle)";
-  if (!icon) {
+  // Una clave desconocida (p. ej. de un backup editado a mano) se trata como "sin icono".
+  const entry = icon ? CATEGORY_ICONS[icon] : undefined;
+  if (!entry) {
     return (
       <span
         className={cn("shrink-0 rounded-full", size === "sm" ? "size-2" : "size-2.5", className)}
@@ -28,7 +30,7 @@ export function CategoryBadge({
       />
     );
   }
-  const Icon = CATEGORY_ICONS[icon].icon;
+  const Icon = entry.icon;
   return (
     <span
       className={cn(
