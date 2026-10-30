@@ -19,6 +19,7 @@ import { useFinanceSummary } from "./useFinance";
 import { formatCents } from "./money";
 import { CategoryBadge } from "./CategoryIcon";
 import type { FinanceCategorySpend } from "@shared/schemas/finance";
+import { SummaryPreview } from "./emptyPreviews";
 
 const INCOME_COLOR = chartColor(1);
 const EXPENSE_COLOR = chartColor(2);
@@ -139,6 +140,7 @@ export function SummaryTab({ month, onSelectMonth, onSelectCategory, onAddTransa
         <EmptyState
           icon={Receipt}
           title="Aún no hay gastos ni ingresos"
+          preview={<SummaryPreview />}
           description="Registra tu primer movimiento para ver aquí la evolución mensual, el reparto por categorías y el ritmo de gasto."
           action={
             <Button size="sm" onClick={onAddTransaction}>

@@ -32,6 +32,7 @@ import {
 } from "./useFinance";
 import { formatCents, parseEurosToCents, centsToInput } from "./money";
 import type { FinanceGoalDto } from "@shared/schemas/finance";
+import { GoalsPreview } from "./emptyPreviews";
 
 function GoalFormDialog({
   goal,
@@ -518,6 +519,7 @@ export function GoalsTab({ month, onGoToAccounts }: { month: string; onGoToAccou
         <EmptyState
           icon={Target}
           title="Sin metas todavía"
+          preview={<GoalsPreview />}
           description="Crea una meta (viaje, colchón, coche…) y ve asignándole dinero de tus cuentas."
           action={
             <Button size="sm" onClick={() => setAdding(true)}>

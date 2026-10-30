@@ -16,4 +16,22 @@ describe("EmptyState", () => {
 
     expect(screen.getByRole("button", { name: "Crear" })).toBeInTheDocument();
   });
+
+  it("con vista previa, la maqueta queda oculta a lectores de pantalla y no es interactiva", () => {
+    render(
+      <EmptyState
+        icon={Inbox}
+        title="Sin elementos"
+        action={<button>Crear</button>}
+        preview={<button>Botón de ejemplo</button>}
+      />,
+    );
+
+    // La maqueta no se expone: solo el botón real es accesible.
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Crear" })).toBeInTheDocument();
+    const preview = screen.getByTestId("empty-state-preview");
+    expect(preview).toHaveAttribute("aria-hidden", "true");
+    expect(preview).toHaveAttribute("inert");
+  });
 });

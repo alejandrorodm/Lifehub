@@ -33,6 +33,7 @@ import type {
   FinanceTransactionKind,
 } from "@shared/schemas/finance";
 import { CategoryBadge } from "./CategoryIcon";
+import { TransactionsPreview } from "./emptyPreviews";
 
 const ALL = "all";
 const DATE_HEADING = new Intl.DateTimeFormat("es-ES", {
@@ -299,6 +300,7 @@ export function TransactionsTab({
       ) : groups.length === 0 ? (
         <EmptyState
           icon={Receipt}
+          preview={filtersActive ? undefined : <TransactionsPreview />}
           title={
             filtersActive
               ? "Ningún movimiento coincide con los filtros"
