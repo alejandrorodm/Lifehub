@@ -22,6 +22,7 @@ import {
   useCategoryTrash,
   useTransactionList,
   useDeleteTransaction,
+  useCreateTransaction,
   useAssetList,
 } from "./useFinance";
 import { formatCents } from "./money";
@@ -59,38 +60,39 @@ function TransactionRow({
   assetName: string | null;
   onEdit: () => void;
 }) {
-  const [confirming, setConfirming] = useState(false);
   const deleteTransaction = useDeleteTransaction();
+  const createTransaction = useCreateTransaction();
   const { show } = useToast();
   const isIncome = transaction.kind === "income";
   const Icon = isIncome ? ArrowDownLeft : ArrowUpRight;
 
-  if (confirming) {
-    return (
-      <li className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-        <span className="text-sm text-text-muted">
-          ¿Eliminar «{transaction.description}»? No se puede deshacer.
-        </span>
-        <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setConfirming(false)}>
-            Cancelar
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            disabled={deleteTransaction.isPending}
-            onClick={() =>
-              deleteTransaction.mutate(transaction.id, {
-                onSuccess: () => show({ tone: "success", title: "Movimiento eliminado" }),
-              })
-            }
-          >
-            Eliminar
-          </Button>
-        </div>
-      </li>
-    );
-  }
+  // Borrado inmediato con "Deshacer": se recrea con los mismos datos (nuevo id).
+  const remove = () =>
+    deleteTransaction.mutate(transaction.id, {
+      onSuccess: () =>
+        show({
+          tone: "success",
+          title: "Movimiento eliminado",
+          description: transaction.description,
+          duration: 8000,
+          action: {
+            label: "Deshacer",
+            onClick: () =>
+              createTransaction.mutate(
+                {
+                  kind: transaction.kind,
+                  amountCents: transaction.amountCents,
+                  date: transaction.date,
+                  description: transaction.description,
+                  categoryId: transaction.categoryId ?? undefined,
+                  assetId: transaction.assetId ?? undefined,
+                  note: transaction.note ?? undefined,
+                },
+                { onSuccess: () => show({ tone: "success", title: "Movimiento restaurado" }) },
+              ),
+          },
+        }),
+    });
 
   return (
     <li className="group flex items-center gap-3 px-4 py-2.5">
@@ -133,7 +135,8 @@ function TransactionRow({
         </button>
         <button
           type="button"
-          onClick={() => setConfirming(true)}
+          onClick={remove}
+          disabled={deleteTransaction.isPending}
           aria-label={`Eliminar «${transaction.description}»`}
           className="rounded-sm p-1.5 text-text-subtle hover:bg-bg-subtle hover:text-danger"
         >

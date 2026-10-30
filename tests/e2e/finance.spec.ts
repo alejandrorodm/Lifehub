@@ -42,9 +42,15 @@ test("presupuesto de una categoría, gasto registrado y reflejado en movimientos
   await expect(categoryRow.getByText(/Quedan 60,00\s€/)).toBeVisible();
 
   await page.getByRole("tab", { name: "Movimientos" }).click();
-  const txRow = page.locator("li", { hasText: description });
+  const txRow = page.locator("section li", { hasText: description });
   await expect(txRow).toContainText(category);
   await expect(txRow).toContainText(/40,00\s€/);
+
+  // S5 (fase 19): borrar es inmediato y se puede deshacer desde el toast.
+  await txRow.getByRole("button", { name: `Eliminar «${description}»` }).click();
+  await expect(txRow).toBeHidden();
+  await page.getByRole("button", { name: "Deshacer" }).click();
+  await expect(page.locator("section li", { hasText: description })).toContainText(category);
 
   // S2 (fase 19): la categoría usada aparece como botón de un toque.
   await page.getByRole("button", { name: "Añadir movimiento" }).first().click();

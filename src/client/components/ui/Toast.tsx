@@ -10,6 +10,10 @@ interface ToastInput {
   title: string;
   description?: string;
   tone?: ToastTone;
+  /** Acción opcional (p. ej. "Deshacer"); al pulsarla, el toast se cierra. */
+  action?: { label: string; onClick: () => void };
+  /** Milisegundos visible; por defecto 5 s (con acción conviene algo más). */
+  duration?: number;
 }
 
 interface ToastItem extends ToastInput {
@@ -63,6 +67,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           return (
             <ToastPrimitive.Root
               key={toast.id}
+              duration={toast.duration}
               onOpenChange={(open) => !open && dismiss(toast.id)}
               className={cn(
                 "flex items-start gap-3 rounded-md border bg-bg-elevated px-4 py-3 shadow-md transition-opacity",
@@ -81,6 +86,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   </ToastPrimitive.Description>
                 )}
               </div>
+              {toast.action && (
+                <ToastPrimitive.Action altText={toast.action.label} asChild>
+                  <button
+                    type="button"
+                    onClick={toast.action.onClick}
+                    className="shrink-0 rounded-sm text-sm font-medium text-accent hover:underline"
+                  >
+                    {toast.action.label}
+                  </button>
+                </ToastPrimitive.Action>
+              )}
               <ToastPrimitive.Close
                 aria-label="Cerrar notificación"
                 className="text-text-subtle hover:text-text"
