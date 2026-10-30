@@ -46,6 +46,18 @@
   --color-priority-high: #b45309;
   --color-priority-urgent: #b91c1c;
 
+  /* Paleta categórica de gráficas (orden fijo; validada con CVD ΔE ≥ 8 en
+     ambos temas). Slots 3-5 quedan < 3:1 sobre blanco: las gráficas que
+     los usan muestran siempre etiquetas/leyenda con valores o tabla. */
+  --color-chart-1: #2a78d6;
+  --color-chart-2: #eb6834;
+  --color-chart-3: #1baf7a;
+  --color-chart-4: #eda100;
+  --color-chart-5: #e87ba4;
+  --color-chart-6: #008300;
+  --color-chart-7: #6250d6;
+  --color-chart-8: #e34948;
+
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -98,6 +110,15 @@
   --color-priority-normal: #38bdf8;
   --color-priority-high: #fbbf24;
   --color-priority-urgent: #f87171;
+
+  --color-chart-1: #3987e5;
+  --color-chart-2: #d95926;
+  --color-chart-3: #199e70;
+  --color-chart-4: #c98500;
+  --color-chart-5: #d55181;
+  --color-chart-6: #008300;
+  --color-chart-7: #9085e9;
+  --color-chart-8: #e66767;
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.4);
