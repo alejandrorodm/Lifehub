@@ -143,3 +143,43 @@ export function netWorthSeries(
     return { month, balanceCents: sumEntries(entries.filter((entry) => entry.date <= end)) };
   });
 }
+
+// --- Aportaciones a inversiones ---
+
+export interface ContributionMonth {
+  month: string; // YYYY-MM
+  depositedCents: number;
+  withdrawnCents: number;
+}
+
+export interface ContributionSummary {
+  depositedCents: number;
+  withdrawnCents: number;
+  /** Aportado menos retirado: lo que sigue metido de tu bolsillo. */
+  netCents: number;
+  /** Solo meses con movimientos, más recientes primero. */
+  byMonth: ContributionMonth[];
+}
+
+/** Totales de aportaciones y retiros, global y por mes. */
+export function summarizeContributions(
+  entries: readonly (FinanceEntryLike & { date: string })[],
+): ContributionSummary {
+  const months = new Map<string, ContributionMonth>();
+  let depositedCents = 0;
+  let withdrawnCents = 0;
+  for (const entry of entries) {
+    const month = entry.date.slice(0, 7);
+    const bucket = months.get(month) ?? { month, depositedCents: 0, withdrawnCents: 0 };
+    if (entry.type === "deposit") {
+      depositedCents += entry.amountCents;
+      bucket.depositedCents += entry.amountCents;
+    } else {
+      withdrawnCents += entry.amountCents;
+      bucket.withdrawnCents += entry.amountCents;
+    }
+    months.set(month, bucket);
+  }
+  const byMonth = [...months.values()].sort((a, b) => b.month.localeCompare(a.month));
+  return { depositedCents, withdrawnCents, netCents: depositedCents - withdrawnCents, byMonth };
+}

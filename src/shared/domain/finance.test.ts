@@ -11,6 +11,7 @@ import {
   cumulativeDaily,
   computeSavingsRate,
   netWorthSeries,
+  summarizeContributions,
 } from "./finance";
 
 describe("sumEntries", () => {
@@ -145,5 +146,34 @@ describe("netWorthSeries", () => {
       { month: "2026-09", balanceCents: 1000 },
       { month: "2026-10", balanceCents: 700 },
     ]);
+  });
+});
+
+describe("summarizeContributions", () => {
+  it("suma aportaciones y retiros y agrupa por mes, más recientes primero", () => {
+    const summary = summarizeContributions([
+      { date: "2026-09-03", type: "deposit", amountCents: 10_000 },
+      { date: "2026-10-15", type: "deposit", amountCents: 25_000 },
+      { date: "2026-10-01", type: "withdrawal", amountCents: 5_000 },
+      { date: "2026-10-20", type: "deposit", amountCents: 5_000 },
+    ]);
+    expect(summary).toEqual({
+      depositedCents: 40_000,
+      withdrawnCents: 5_000,
+      netCents: 35_000,
+      byMonth: [
+        { month: "2026-10", depositedCents: 30_000, withdrawnCents: 5_000 },
+        { month: "2026-09", depositedCents: 10_000, withdrawnCents: 0 },
+      ],
+    });
+  });
+
+  it("devuelve ceros sin movimientos", () => {
+    expect(summarizeContributions([])).toEqual({
+      depositedCents: 0,
+      withdrawnCents: 0,
+      netCents: 0,
+      byMonth: [],
+    });
   });
 });

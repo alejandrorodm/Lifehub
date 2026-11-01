@@ -155,6 +155,41 @@ test("asignar y retirar dinero de una meta desde una cuenta", async ({ page }) =
   await expect(widget).toContainText("Próxima meta");
 });
 
+test("registrar una aportación a cripto y verla en el historial de aportaciones", async ({ page }) => {
+  const suffix = Date.now();
+  const account = `Bitcoin ${suffix}`;
+  const note = `0,01 BTC ${suffix}`;
+
+  await page.goto("/finance?tab=accounts");
+  await page.getByRole("button", { name: "Añadir cuenta" }).first().click();
+  const accountDialog = page.getByRole("dialog");
+  await accountDialog.getByLabel("Nombre").fill(account);
+  await accountDialog.getByRole("combobox", { name: "Tipo de cuenta" }).click();
+  await page.getByRole("option", { name: "Cripto" }).click();
+  await accountDialog.getByRole("button", { name: "Añadir" }).click();
+  await expect(page.getByText(account)).toBeVisible();
+
+  await page.getByRole("tab", { name: "Aportaciones" }).click();
+  await page.getByRole("combobox", { name: "Filtrar por tipo" }).click();
+  await page.getByRole("option", { name: "Cripto" }).click();
+  await page.getByRole("button", { name: "Añadir aportación" }).first().click();
+  const entryDialog = page.getByRole("dialog");
+  // El selector de cuenta solo aparece si hay más de una cuenta de cripto (BD compartida entre tests).
+  const accountSelect = entryDialog.getByRole("combobox", { name: "Cuenta" });
+  if (await accountSelect.count()) {
+    await accountSelect.click();
+    await page.getByRole("option", { name: new RegExp(account) }).click();
+  }
+  await entryDialog.getByLabel("Importe (€)").fill("150");
+  await entryDialog.getByLabel("Nota (opcional)").fill(note);
+  await entryDialog.getByRole("button", { name: "Guardar" }).click();
+
+  const item = page.locator("li", { hasText: note });
+  await expect(item).toContainText(account);
+  await expect(item).toContainText(/150,00\s€/);
+  await expect(page.getByText("Total aportado")).toBeVisible();
+});
+
 test("la paleta de comandos registra un gasto con «gasto 7,25 descripción»", async ({ page }) => {
   const description = `Pan ${Date.now()}`;
   await page.goto("/");

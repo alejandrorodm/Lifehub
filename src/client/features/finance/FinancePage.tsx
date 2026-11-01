@@ -11,6 +11,7 @@ import { TransactionsTab } from "./TransactionsTab";
 import { BudgetsTab } from "./BudgetsTab";
 import { GoalsTab } from "./GoalsTab";
 import { AccountsTab } from "./AccountsTab";
+import { ContributionsTab } from "./ContributionsTab";
 import { TransactionDialog } from "./TransactionDialog";
 import { PageTabs } from "@client/components/ui/PageTabs";
 
@@ -19,6 +20,7 @@ const TABS = [
   { value: "transactions", label: "Movimientos" },
   { value: "budgets", label: "Presupuestos" },
   { value: "goals", label: "Metas" },
+  { value: "contributions", label: "Aportaciones" },
   { value: "accounts", label: "Cuentas" },
 ] as const;
 type Tab = (typeof TABS)[number]["value"];
@@ -140,6 +142,7 @@ export function FinancePage() {
         {tab === "goals" && (
           <GoalsTab month={currentMonth} onGoToAccounts={() => update({ tab: "accounts" })} />
         )}
+        {tab === "contributions" && <ContributionsTab onGoToAccounts={() => update({ tab: "accounts" })} />}
         {tab === "accounts" && <AccountsTab />}
       </div>
 

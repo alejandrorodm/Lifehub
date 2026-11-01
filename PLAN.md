@@ -853,6 +853,7 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - Ajuste `mobileNavItems`: las 4 secciones de la barra inferior en móvil se eligen en Ajustes → Navegación.
 - `EmptyState.preview`: maquetas en gris en los vacíos de Finanzas.
 - Cabeceras unificadas en `PageHeader` + `PageTabs` (las páginas de detalle con título editable se quedan como estaban).
+- Pestaña **Aportaciones** en Finanzas: historial por mes de aportaciones y retiros a cuentas de cripto, acciones y fondos, con totales (aportado, retirado, neto) y filtro por tipo. Reutiliza `financeEntries` (sin migración); el diálogo de movimiento permite elegir cuenta y añadir nota.
 - Arreglos: nombre accesible de los widgets de Hoy; test de teclado de `shell.spec.ts`; apertura de la paleta en e2e.
 
 **Probado:** typecheck y lint sin errores; `npm test` 373/373; `npm run test:e2e` 81/81 (90 omitidos por diseño).

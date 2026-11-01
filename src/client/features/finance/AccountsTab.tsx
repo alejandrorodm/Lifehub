@@ -10,6 +10,7 @@ import { useToast } from "@client/components/ui/Toast";
 import { useToday } from "@client/lib/useToday";
 import { useAssetList, useCreateAsset, useDeleteAsset, useGoalList, useCreateEntry } from "./useFinance";
 import { formatCents } from "./money";
+import { ASSET_TYPE_LABELS } from "./assetTypes";
 import type {
   FinanceAssetType,
   FinanceAssetDto,
@@ -17,13 +18,6 @@ import type {
   FinanceEntryType,
 } from "@shared/schemas/finance";
 
-const ASSET_TYPE_LABELS: Record<FinanceAssetType, string> = {
-  fund: "Fondo",
-  crypto: "Cripto",
-  stock: "Acción",
-  cash: "Efectivo",
-  other: "Otro",
-};
 const ASSET_TYPE_OPTIONS = (Object.keys(ASSET_TYPE_LABELS) as FinanceAssetType[]).map((value) => ({
   value,
   label: ASSET_TYPE_LABELS[value],
@@ -89,28 +83,32 @@ function AddAssetDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
   );
 }
 
-function AddEntryDialog({
-  asset,
+/** Alta de aportación/retiro; con varias cuentas deja elegir a cuál va. */
+export function AddEntryDialog({
+  assets,
   goals,
   onOpenChange,
 }: {
-  asset: FinanceAssetDto;
+  assets: FinanceAssetDto[];
   goals: FinanceGoalDto[];
   onOpenChange: (open: boolean) => void;
 }) {
   const today = useToday();
+  const [assetId, setAssetId] = useState(assets[0]?.id ?? "");
   const [type, setType] = useState<FinanceEntryType>("deposit");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(today);
   const [goalId, setGoalId] = useState("none");
+  const [note, setNote] = useState("");
+  const asset = assets.find((a) => a.id === assetId);
   const createEntry = useCreateEntry();
   const { show } = useToast();
 
   const amountCents = Math.round(Number(amount.replace(",", ".")) * 100);
-  const canSubmit = Number.isFinite(amountCents) && amountCents > 0;
+  const canSubmit = Boolean(asset) && Number.isFinite(amountCents) && amountCents > 0;
 
   const submit = () => {
-    if (!canSubmit) return;
+    if (!canSubmit || !asset) return;
     createEntry.mutate(
       {
         assetId: asset.id,
@@ -118,6 +116,7 @@ function AddEntryDialog({
         amountCents,
         date,
         goalId: goalId !== "none" ? goalId : undefined,
+        note: note.trim() || undefined,
       },
       {
         onSuccess: () => {
@@ -132,8 +131,26 @@ function AddEntryDialog({
   };
 
   return (
-    <Dialog open onOpenChange={onOpenChange} title={`Nuevo movimiento · ${asset.name}`}>
+    <Dialog
+      open
+      onOpenChange={onOpenChange}
+      title={assets.length === 1 ? `Nuevo movimiento · ${assets[0]!.name}` : "Nuevo movimiento"}
+    >
       <div className="space-y-3">
+        {assets.length > 1 && (
+          <div>
+            <Label>Cuenta</Label>
+            <Select
+              aria-label="Cuenta"
+              value={assetId}
+              onValueChange={setAssetId}
+              options={assets.map((a) => ({
+                value: a.id,
+                label: `${a.name} · ${ASSET_TYPE_LABELS[a.type]}`,
+              }))}
+            />
+          </div>
+        )}
         <div>
           <Label htmlFor="entry-type">Tipo</Label>
           <Select
@@ -156,6 +173,16 @@ function AddEntryDialog({
         <div>
           <Label htmlFor="entry-date">Fecha</Label>
           <Input id="entry-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        <div>
+          <Label htmlFor="entry-note">Nota (opcional)</Label>
+          <Input
+            id="entry-note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="p. ej. 0,01 BTC"
+            maxLength={2000}
+          />
         </div>
         {goals.length > 0 && (
           <div>
@@ -260,7 +287,7 @@ function AssetCard({ asset, goals }: { asset: FinanceAssetDto; goals: FinanceGoa
         </ul>
       )}
 
-      {addingEntry && <AddEntryDialog asset={asset} goals={goals} onOpenChange={setAddingEntry} />}
+      {addingEntry && <AddEntryDialog assets={[asset]} goals={goals} onOpenChange={setAddingEntry} />}
     </div>
   );
 }
