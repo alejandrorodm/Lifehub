@@ -19,6 +19,7 @@ import { TrashPage } from "@client/features/trash/TrashPage";
 import { FinancePage } from "@client/features/finance/FinancePage";
 import { ReviewPage } from "@client/features/review/ReviewPage";
 import { MarketsPage } from "@client/features/markets/MarketsPage";
+import { ShoppingPage } from "@client/features/shopping/ShoppingPage";
 import { PrivacyPage } from "@client/features/legal/PrivacyPage";
 
 export const router = createBrowserRouter([
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
       { path: "finance", element: <FinancePage /> },
       { path: "review", element: <ReviewPage /> },
       { path: "markets", element: <MarketsPage /> },
+      { path: "shopping", element: <ShoppingPage /> },
     ],
   },
 ]);

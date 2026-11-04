@@ -8,6 +8,7 @@ import {
   FolderKanban,
   Flame,
   Wallet,
+  ShoppingCart,
   BarChart3,
   LineChart,
   Settings,
@@ -40,6 +41,7 @@ export const moreNavItems: NavItem[] = [
   { to: "/projects", label: "Proyectos", icon: FolderKanban, shortcutHint: "G P", sectionId: "projects" },
   { to: "/habits", label: "Hábitos", icon: Flame, sectionId: "habits" },
   { to: "/finance", label: "Finanzas", icon: Wallet, sectionId: "finance" },
+  { to: "/shopping", label: "Compra", icon: ShoppingCart, shortcutHint: "G L", sectionId: "shopping" },
   { to: "/markets", label: "Mercados", icon: LineChart, sectionId: "markets" },
   { to: "/review", label: "Revisión", icon: BarChart3, sectionId: "review" },
 ];

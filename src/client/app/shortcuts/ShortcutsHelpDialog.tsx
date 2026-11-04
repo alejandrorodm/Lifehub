@@ -8,7 +8,7 @@ interface ShortcutsHelpDialogProps {
 const SHORTCUTS: { keys: string; description: string }[] = [
   { keys: "Ctrl/⌘ K", description: "Abrir la paleta de comandos" },
   { keys: "C o Q", description: "Captura rápida" },
-  { keys: "G luego H/I/T/C/N/P", description: "Ir a Hoy/Inbox/Tareas/Calendario/Notas/Proyectos" },
+  { keys: "G luego H/I/T/C/N/P/L", description: "Ir a Hoy/Inbox/Tareas/Calendario/Notas/Proyectos/Lista de la compra" },
   { keys: "N", description: "Nuevo elemento en la vista actual" },
   { keys: "J / K", description: "Mover la selección en una lista" },
   { keys: "X", description: "Completar la tarea seleccionada" },

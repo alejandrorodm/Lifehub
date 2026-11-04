@@ -23,6 +23,7 @@ export const NAV_SECTIONS = [
   "projects",
   "habits",
   "finance",
+  "shopping",
   "markets",
   "review",
 ] as const;

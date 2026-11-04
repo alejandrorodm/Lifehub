@@ -45,6 +45,7 @@ const GO_TO_ROUTES: Record<string, string> = {
   c: "/calendar",
   n: "/notes",
   p: "/projects",
+  l: "/shopping",
 };
 
 function isTypingTarget(target: EventTarget | null): boolean {

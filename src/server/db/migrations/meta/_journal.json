@@ -99,6 +99,13 @@
       "when": 1793793866877,
       "tag": "0013_shopping_lists",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1793794174714,
+      "tag": "0014_show_shopping_nav_section",
+      "breakpoints": true
     }
   ]
 }
