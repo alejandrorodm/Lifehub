@@ -16,8 +16,10 @@ export function Checkbox({ checked, onCheckedChange, className, ...aria }: Check
       onCheckedChange={(value) => onCheckedChange(value === true)}
       aria-label={aria["aria-label"]}
       className={cn(
-        "flex size-4.5 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-bg-elevated",
-        "data-[state=checked]:border-accent data-[state=checked]:bg-accent",
+        "relative flex size-5 shrink-0 items-center justify-center rounded-full border-[1.5px] border-border-strong bg-bg-elevated md:size-4.5",
+        "transition-colors hover:border-accent data-[state=checked]:border-accent data-[state=checked]:bg-accent",
+        // Área táctil ampliada sin cambiar el tamaño visual.
+        "before:absolute before:-inset-3 before:content-['']",
         className,
       )}
     >

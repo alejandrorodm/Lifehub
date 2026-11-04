@@ -18,6 +18,14 @@ export function ThemeEffect() {
     const apply = () => {
       const resolved = resolveTheme(theme, media.matches);
       document.documentElement.setAttribute("data-theme", resolved);
+      // Barra de estado del móvil/PWA con el mismo fondo que la app.
+      const background = getComputedStyle(document.documentElement).getPropertyValue("--color-bg").trim();
+      if (background) {
+        document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+          meta.setAttribute("content", background);
+          meta.removeAttribute("media");
+        });
+      }
       try {
         localStorage.setItem("lifehub:theme", resolved);
       } catch {

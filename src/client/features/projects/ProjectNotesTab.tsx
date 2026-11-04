@@ -33,7 +33,7 @@ export function ProjectNotesTab({ projectId }: { projectId: string }) {
     <ul className="divide-y divide-border">
       {notes.map((note) => (
         <li key={note.id}>
-          <Link to={`/notes/${note.id}`} className="block px-6 py-3 hover:bg-bg-subtle">
+          <Link to={`/notes/${note.id}`} className="block px-4 md:px-6 py-3 hover:bg-bg-subtle">
             <span className="text-sm font-medium text-text">{note.title || "Sin título"}</span>
             {note.contentText && (
               <p className="mt-0.5 truncate text-sm text-text-muted">{note.contentText}</p>

@@ -13,10 +13,10 @@ interface PageHeaderProps {
 /** Cabecera de página: titular en la fuente de titulares, descripción y acciones con un ritmo común. */
 export function PageHeader({ title, description, actions, className, children }: PageHeaderProps) {
   return (
-    <header className={cn("border-b border-border px-6 pb-4 pt-5", className)}>
+    <header className={cn("px-4 pb-3 pt-4 md:px-6 md:pb-4 md:pt-6", className)}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl text-text">{title}</h1>
+          <h1 className="text-[22px] leading-tight text-text md:text-2xl">{title}</h1>
           {description && <p className="mt-1 text-sm text-text-muted">{description}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

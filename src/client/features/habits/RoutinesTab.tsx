@@ -145,7 +145,7 @@ export function RoutinesTab() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex items-center gap-2 border-b border-border px-6 py-3">
+      <div className="flex items-center gap-2 border-b border-border px-4 md:px-6 py-3">
         <Input
           ref={inputRef}
           value={draft}

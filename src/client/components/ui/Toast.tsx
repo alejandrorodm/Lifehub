@@ -91,7 +91,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   <button
                     type="button"
                     onClick={toast.action.onClick}
-                    className="shrink-0 rounded-sm text-sm font-medium text-accent hover:underline"
+                    className="shrink-0 rounded-sm px-1 py-1 text-sm font-semibold text-accent hover:underline"
                   >
                     {toast.action.label}
                   </button>
@@ -99,14 +99,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               )}
               <ToastPrimitive.Close
                 aria-label="Cerrar notificación"
-                className="text-text-subtle hover:text-text"
+                className="-m-1.5 p-1.5 text-text-subtle hover:text-text"
               >
                 <X className="size-4" aria-hidden="true" />
               </ToastPrimitive.Close>
             </ToastPrimitive.Root>
           );
         })}
-        <ToastPrimitive.Viewport className="fixed bottom-4 right-4 z-[var(--z-toast)] flex w-[min(380px,calc(100vw-2rem))] flex-col gap-2 outline-none" />
+        <ToastPrimitive.Viewport className="fixed bottom-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+0.75rem)] left-4 right-4 z-[var(--z-toast)] flex flex-col gap-2 outline-none md:bottom-4 md:left-auto md:w-[min(380px,calc(100vw-2rem))]" />
       </ToastPrimitive.Provider>
     </ToastContext.Provider>
   );

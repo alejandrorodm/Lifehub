@@ -43,7 +43,7 @@ function HabitDetailView({ habit }: { habit: HabitDto }) {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-border px-6 py-4">
+      <header className="border-b border-border px-4 md:px-6 py-4">
         <button
           type="button"
           onClick={() => navigate("/habits")}
@@ -152,7 +152,7 @@ function HabitDetailView({ habit }: { habit: HabitDto }) {
         )}
       </header>
 
-      <div className="border-b border-border px-6 py-4">
+      <div className="border-b border-border px-4 md:px-6 py-4">
         <Textarea
           defaultValue={habit.description ?? ""}
           onBlur={(e) =>
@@ -165,7 +165,7 @@ function HabitDetailView({ habit }: { habit: HabitDto }) {
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4">
         <h2 className="mb-3 text-sm font-semibold text-text-muted">Historial (últimos 70 días)</h2>
         <div className="grid grid-cols-7 gap-1.5 sm:max-w-md" role="group" aria-label="Historial de 70 días">
           {habit.history.map((day) => (

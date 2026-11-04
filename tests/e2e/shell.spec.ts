@@ -96,13 +96,19 @@ test("crear una tarea, abrir su detalle y cerrarlo se puede hacer solo con tecla
   const title = `Tarea por teclado ${Date.now()}`;
 
   await page.goto("/");
-  await page.keyboard.press("g");
-  await page.keyboard.press("t");
-  await expect(page).toHaveURL(/\/tasks$/);
+  // Los atajos se registran al hidratar (y "N" cuando la página monta): se
+  // reintenta la pulsación hasta que surte efecto, como en `openCommandPalette`.
+  await expect(async () => {
+    await page.keyboard.press("g");
+    await page.keyboard.press("t");
+    await expect(page).toHaveURL(/\/tasks$/, { timeout: 1000 });
+  }).toPass();
 
-  await page.keyboard.press("n");
   const quickAdd = page.getByLabel("Añadir tarea");
-  await expect(quickAdd).toBeFocused();
+  await expect(async () => {
+    await page.keyboard.press("n");
+    await expect(quickAdd).toBeFocused({ timeout: 1000 });
+  }).toPass();
   await quickAdd.pressSequentially(title);
   await page.keyboard.press("Enter");
 

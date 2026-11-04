@@ -21,8 +21,11 @@ export function InboxPage() {
         title="Inbox"
         description={
           <>
-            Captura cualquier cosa sin decidir todavía dónde va. Pulsa{" "}
-            <kbd className="rounded border border-border px-1">C</kbd> en cualquier pantalla para añadir algo.
+            Captura cualquier cosa sin decidir todavía dónde va.
+            <span className="hidden md:inline">
+              {" "}
+              Pulsa <kbd className="rounded border border-border px-1">C</kbd> en cualquier pantalla para añadir algo.
+            </span>
           </>
         }
       />
@@ -33,7 +36,7 @@ export function InboxPage() {
         <EmptyState
           icon={InboxIcon}
           title="El inbox está vacío"
-          description="Pulsa C para capturar una idea, tarea o recordatorio."
+          description="Apunta una idea, tarea o recordatorio y decide más tarde dónde va."
           action={<Button onClick={openCapture}>Capturar algo</Button>}
         />
       ) : (
@@ -41,7 +44,7 @@ export function InboxPage() {
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex items-start justify-between gap-3 border-b border-border px-6 py-3 last:border-b-0"
+              className="flex items-start justify-between gap-3 border-b border-border px-4 md:px-6 py-3 last:border-b-0"
             >
               <p className="flex-1 text-sm text-text">{item.text}</p>
               <div className="flex shrink-0 gap-1.5">

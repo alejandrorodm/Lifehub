@@ -6,9 +6,10 @@ import {
 } from "react";
 import { cn } from "@client/lib/utils";
 
+// 16 px en móvil: con menos, iOS hace zoom al enfocar el campo.
 const fieldClasses =
-  "w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm text-text placeholder:text-text-subtle " +
-  "hover:border-border-strong focus-visible:border-accent disabled:opacity-50";
+  "w-full rounded-md border border-border bg-bg-elevated px-3 py-2.5 text-base text-text placeholder:text-text-subtle " +
+  "md:py-2 md:text-sm hover:border-border-strong focus-visible:border-accent disabled:opacity-50";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...props }, ref) => <input ref={ref} className={cn(fieldClasses, className)} {...props} />,

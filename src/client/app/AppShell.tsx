@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { Search, Plus, LogOut, MoreHorizontal } from "lucide-react";
+import { IconButton } from "@client/components/ui/IconButton";
 import {
   fixedNavItems,
   secondaryNavItems,
@@ -31,6 +32,18 @@ function NavBadge({ item }: { item: NavItem }) {
   );
 }
 
+/** Punto de aviso en la barra inferior (el número no cabe con legibilidad). */
+function NavBadgeDot({ item }: { item: NavItem }) {
+  const { data } = useInboxCount();
+  if (item.to !== "/inbox" || !data || data.open === 0) return null;
+  return (
+    <>
+      <span aria-hidden="true" className="absolute right-[calc(50%-1.25rem)] top-1 size-2 rounded-full bg-accent" />
+      <span className="sr-only">({data.open} sin procesar)</span>
+    </>
+  );
+}
+
 function SidebarLink({ item }: { item: NavItem }) {
   const Icon = item.icon;
   return (
@@ -39,12 +52,12 @@ function SidebarLink({ item }: { item: NavItem }) {
       end={item.to === "/"}
       className={({ isActive }) =>
         cn(
-          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-          isActive ? "bg-accent-soft text-accent" : "text-text-muted hover:bg-bg-subtle hover:text-text",
+          "flex items-center gap-3 rounded-md px-2.5 py-[7px] text-sm font-medium transition-colors",
+          isActive ? "bg-bg-subtle text-text" : "text-text-muted hover:bg-bg-subtle/70 hover:text-text",
         )
       }
     >
-      <Icon className="size-4.5 shrink-0" aria-hidden />
+      <Icon className="size-4 shrink-0" aria-hidden />
       <span>{item.label}</span>
       <NavBadge item={item} />
     </NavLink>
@@ -59,13 +72,25 @@ function BottomNavLink({ item }: { item: NavItem }) {
       end={item.to === "/"}
       className={({ isActive }) =>
         cn(
-          "relative flex flex-1 flex-col items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium",
-          isActive ? "text-accent" : "text-text-muted",
+          "group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
+          isActive ? "text-text" : "text-text-muted",
         )
       }
     >
-      <Icon className="size-5" aria-hidden />
-      <span>{item.label}</span>
+      {({ isActive }) => (
+        <>
+          <span
+            className={cn(
+              "flex h-7 w-12 items-center justify-center rounded-full transition-colors",
+              isActive ? "bg-accent-soft text-accent" : "group-active:bg-bg-subtle",
+            )}
+          >
+            <Icon className="size-5" aria-hidden />
+          </span>
+          <span className="max-w-full truncate px-1">{item.label}</span>
+          <NavBadgeDot item={item} />
+        </>
+      )}
     </NavLink>
   );
 }
@@ -80,8 +105,8 @@ function MoreMenuSheet({
   items: NavItem[];
 }) {
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} title="Más">
-      <nav aria-label="Más secciones" className="flex flex-col gap-0.5">
+    <Sheet open={open} onOpenChange={onOpenChange} title="Más" footer={<MoreMenuUser />}>
+      <nav aria-label="Más secciones" className="grid grid-cols-3 gap-2">
         {items.map((item) => {
           const Icon = item.icon;
           return (
@@ -91,18 +116,57 @@ function MoreMenuSheet({
               onClick={() => onOpenChange(false)}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive ? "bg-accent-soft text-accent" : "text-text hover:bg-bg-subtle",
+                  "flex flex-col items-center justify-center gap-1.5 rounded-lg px-2 py-3.5 text-[13px] font-medium transition-colors",
+                  isActive ? "bg-accent-soft text-accent" : "bg-bg-subtle/60 text-text active:bg-bg-subtle",
                 )
               }
             >
-              <Icon className="size-4.5 shrink-0" aria-hidden />
-              <span>{item.label}</span>
+              <Icon className="size-5 shrink-0" aria-hidden />
+              <span className="max-w-full truncate">{item.label}</span>
             </NavLink>
           );
         })}
       </nav>
     </Sheet>
+  );
+}
+
+/** Pie del menú "Más" en móvil: perfil activo y cierre de sesión (en escritorio está en la barra lateral). */
+function MoreMenuUser() {
+  const { data: user } = useSessionUser();
+  const logout = useLogout();
+  if (!user) return null;
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="truncate text-sm text-text-muted">{user.name}</span>
+      <button
+        type="button"
+        onClick={() => logout.mutate()}
+        disabled={logout.isPending}
+        className="flex h-10 items-center gap-2 rounded-md px-3 text-sm font-medium text-text-muted hover:bg-bg-subtle hover:text-text"
+      >
+        <LogOut className="size-4" aria-hidden />
+        Cerrar sesión
+      </button>
+    </div>
+  );
+}
+
+/** Barra superior móvil: marca y accesos a búsqueda y captura rápida (en escritorio están en la barra lateral). */
+function MobileTopBar() {
+  const { openPalette, openCapture } = useShortcuts();
+  return (
+    <div className="flex h-14 items-center justify-between gap-2 px-4 pt-[env(safe-area-inset-top)] md:hidden">
+      <span className="text-[15px] font-semibold tracking-tight">LifeHub</span>
+      <div className="flex items-center gap-1">
+        <IconButton aria-label="Buscar" onClick={openPalette}>
+          <Search className="size-5" aria-hidden />
+        </IconButton>
+        <IconButton aria-label="Captura rápida" variant="primary" onClick={openCapture} className="size-9">
+          <Plus className="size-5" aria-hidden />
+        </IconButton>
+      </div>
+    </div>
   );
 }
 
@@ -176,7 +240,7 @@ function AppShellContent() {
       {/* Navegación lateral — escritorio y tablet */}
       <nav
         aria-label="Navegación principal"
-        className="hidden w-60 shrink-0 flex-col border-r border-border bg-bg-elevated p-3 md:flex"
+        className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto border-r border-border bg-bg p-3 md:flex"
       >
         <div className="mb-2 flex items-center justify-between px-2 pt-1">
           <span className="text-base font-semibold tracking-tight">LifeHub</span>
@@ -198,7 +262,8 @@ function AppShellContent() {
         </div>
       </nav>
 
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col pb-16 md:pb-0">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col pb-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom))] md:pb-0">
+        <MobileTopBar />
         <main id="main-content" className="flex min-w-0 flex-1 flex-col" tabIndex={-1}>
           <Outlet />
         </main>
@@ -207,7 +272,7 @@ function AppShellContent() {
       {/* Navegación inferior — móvil: 4 secciones elegidas en Ajustes + "Más" */}
       <nav
         aria-label="Navegación principal"
-        className="fixed inset-x-0 bottom-0 z-[var(--z-sidebar)] flex border-t border-border bg-bg-elevated px-1 py-1.5 md:hidden"
+        className="fixed inset-x-0 bottom-0 z-[var(--z-sidebar)] flex h-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom))] border-t border-border bg-bg-elevated/90 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
       >
         {mobileNav.bar.map((item) => (
           <BottomNavLink key={item.to} item={item} />
@@ -215,9 +280,13 @@ function AppShellContent() {
         <button
           type="button"
           onClick={() => setMoreOpen(true)}
-          className="relative flex flex-1 flex-col items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-text-muted"
+          aria-haspopup="dialog"
+          aria-expanded={moreOpen}
+          className="group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-text-muted"
         >
-          <MoreHorizontal className="size-5" aria-hidden />
+          <span className="flex h-7 w-12 items-center justify-center rounded-full group-active:bg-bg-subtle">
+            <MoreHorizontal className="size-5" aria-hidden />
+          </span>
           <span>Más</span>
         </button>
       </nav>

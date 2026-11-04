@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
-@import "@fontsource-variable/fraunces";
 @import "./tokens.css";
 @plugin "@tailwindcss/typography";
 
@@ -32,6 +31,17 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    font-feature-settings: "cv11", "ss01";
+    /* Sin el destello gris de toque de WebKit: el feedback lo dan los estados :active. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Botones y enlaces sin el retardo de doble toque en móvil. */
+  button,
+  a,
+  [role="button"],
+  [role="tab"] {
+    touch-action: manipulation;
   }
 
   /* Foco visible y consistente para toda la app (accesibilidad por teclado). */
@@ -41,12 +51,12 @@
     border-radius: var(--radius-sm);
   }
 
-  /* Titulares con serif de carácter (agenda de papel); el texto sigue en Inter. */
+  /* Titulares: misma familia que el texto, con peso y tracking ajustado. */
   h1,
   h2 {
     font-family: var(--font-display);
     font-weight: 600;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.02em;
     text-wrap: balance;
   }
 

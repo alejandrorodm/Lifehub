@@ -27,7 +27,7 @@ export function Select<T extends string>({
       <SelectPrimitive.Trigger
         aria-label={aria["aria-label"]}
         className={cn(
-          "inline-flex h-9 items-center justify-between gap-2 rounded-md border border-border bg-bg-elevated px-3 text-sm text-text",
+          "inline-flex h-11 items-center justify-between gap-2 rounded-md border border-border bg-bg-elevated px-3 text-[15px] text-text md:h-9 md:text-sm",
           "hover:border-border-strong disabled:opacity-50",
         )}
       >
@@ -48,7 +48,7 @@ export function Select<T extends string>({
                 key={option.value}
                 value={option.value}
                 className={cn(
-                  "relative flex cursor-pointer select-none items-center rounded-sm px-7 py-2 text-sm text-text outline-none",
+                  "relative flex cursor-pointer select-none items-center rounded-sm px-7 py-2.5 text-[15px] text-text outline-none md:py-2 md:text-sm",
                   "data-[highlighted]:bg-accent-soft data-[highlighted]:text-accent",
                 )}
               >

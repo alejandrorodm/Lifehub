@@ -89,7 +89,7 @@ export function SearchPage() {
                 <button
                   type="button"
                   onClick={() => navigate(resultUrl(result))}
-                  className="flex w-full items-start gap-3 px-6 py-3 text-left hover:bg-bg-subtle"
+                  className="flex w-full items-start gap-3 px-4 md:px-6 py-3 text-left hover:bg-bg-subtle"
                 >
                   <Icon className="mt-0.5 size-4 shrink-0 text-text-muted" aria-hidden />
                   <div className="min-w-0 flex-1">

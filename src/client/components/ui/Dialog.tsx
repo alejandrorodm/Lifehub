@@ -12,16 +12,21 @@ interface DialogProps {
   className?: string;
 }
 
-/** Modal centrado: para formularios cortos y confirmaciones. */
+/**
+ * Formularios cortos y confirmaciones: hoja inferior en móvil (al alcance del
+ * pulgar, igual que `Sheet`) y modal centrado desde `md`.
+ */
 export function Dialog({ open, onOpenChange, title, description, children, className }: DialogProps) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[var(--z-overlay)] bg-black/40" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[var(--z-overlay)] bg-black/40 backdrop-blur-[2px]" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed left-1/2 top-1/2 z-[var(--z-dialog)] flex max-h-[85vh] w-[min(480px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col",
-            "rounded-lg border border-border bg-bg-elevated p-5 shadow-lg focus:outline-none",
+            "fixed inset-x-0 bottom-0 z-[var(--z-dialog)] flex max-h-[90dvh] w-full flex-col",
+            "rounded-t-[var(--radius-xl)] border-t border-border bg-bg-elevated p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-lg focus:outline-none",
+            "md:inset-x-auto md:bottom-auto md:left-1/2 md:top-1/2 md:max-h-[85vh] md:w-[min(480px,calc(100vw-2rem))] md:-translate-x-1/2 md:-translate-y-1/2",
+            "md:rounded-lg md:border md:pb-5",
             className,
           )}
         >
@@ -36,9 +41,9 @@ export function Dialog({ open, onOpenChange, title, description, children, class
             </div>
             <DialogPrimitive.Close
               aria-label="Cerrar"
-              className="shrink-0 rounded-sm text-text-subtle hover:text-text"
+              className="-mr-2 -mt-2 flex size-10 shrink-0 items-center justify-center rounded-full text-text-subtle hover:bg-bg-subtle hover:text-text md:size-8"
             >
-              <X className="size-4" aria-hidden />
+              <X className="size-4.5" aria-hidden />
             </DialogPrimitive.Close>
           </div>
           <div className="overflow-y-auto">{children}</div>

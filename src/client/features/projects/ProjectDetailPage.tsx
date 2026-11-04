@@ -61,7 +61,7 @@ function ProjectGithubTab({ project }: { project: ProjectDto }) {
   const { data: repos, error: reposError } = useGithubRepos(githubStatus?.connected === true);
 
   return (
-    <div className="space-y-4 px-6 py-4">
+    <div className="space-y-4 px-4 md:px-6 py-4">
       <div>
         <Label htmlFor="project-github-repo">Repositorio de GitHub</Label>
         <Input
@@ -224,7 +224,7 @@ function ProjectTasksTab({ projectId }: { projectId: string }) {
 
   return (
     <div>
-      <div className="px-6 py-3">
+      <div className="px-4 md:px-6 py-3">
         <Input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -294,7 +294,7 @@ function ProjectDetailView({ project }: { project: ProjectDto }) {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-border px-6 py-4">
+      <header className="border-b border-border px-4 md:px-6 py-4">
         <button
           type="button"
           onClick={() => navigate("/projects")}
@@ -367,7 +367,7 @@ function ProjectDetailView({ project }: { project: ProjectDto }) {
         </div>
       </header>
 
-      <div className="border-b border-border px-6 py-4">
+      <div className="border-b border-border px-4 md:px-6 py-4">
         <Textarea
           defaultValue={project.description ?? ""}
           onBlur={(e) =>
@@ -380,13 +380,13 @@ function ProjectDetailView({ project }: { project: ProjectDto }) {
         />
       </div>
 
-      <div className="border-b border-border px-6 py-4">
+      <div className="border-b border-border px-4 md:px-6 py-4">
         <h2 className="mb-2 text-sm font-semibold text-text-muted">Hitos</h2>
         <MilestonesSection projectId={id} milestones={project.milestones} />
       </div>
 
       <div
-        className="flex gap-1 border-b border-border px-6 pt-3"
+        className="flex gap-1 border-b border-border px-4 md:px-6 pt-3"
         role="tablist"
         aria-label="Contenido del proyecto"
       >
@@ -428,7 +428,7 @@ function ProjectDetailView({ project }: { project: ProjectDto }) {
         {tab === "github" && <ProjectGithubTab project={project} />}
       </div>
 
-      <div className="border-t border-border px-6 py-3">
+      <div className="border-t border-border px-4 md:px-6 py-3">
         {confirmingDelete ? (
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm text-text-muted">

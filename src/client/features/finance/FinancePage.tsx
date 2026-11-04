@@ -151,7 +151,7 @@ export function FinancePage() {
         type="button"
         onClick={() => setAddingTransaction(true)}
         aria-label="Añadir movimiento rápido"
-        className="fixed bottom-20 right-4 z-[var(--z-sidebar)] flex size-14 items-center justify-center rounded-full bg-accent text-accent-contrast shadow-lg hover:bg-accent-hover md:hidden"
+        className="fixed bottom-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+1rem)] right-4 z-[var(--z-sidebar)] flex size-14 items-center justify-center rounded-full bg-accent text-accent-contrast shadow-lg hover:bg-accent-hover md:hidden"
       >
         <Plus className="size-6" aria-hidden />
       </button>

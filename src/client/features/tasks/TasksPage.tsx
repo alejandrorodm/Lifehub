@@ -22,6 +22,7 @@ import {
 import { ListViewSettingsDialog } from "./ListViewSettingsDialog";
 import type { TaskDto, TaskView } from "@shared/schemas/tasks";
 import { PageHeader } from "@client/components/ui/PageHeader";
+import { PageTabs } from "@client/components/ui/PageTabs";
 import { useGoogleTaskLists } from "../settings/useGoogleCalendar";
 import { useProjectList } from "../projects/useProjects";
 
@@ -363,28 +364,16 @@ export function TasksPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader title="Tareas">
-        <div role="tablist" aria-label="Vista de tareas" className="mt-3 flex gap-1 overflow-x-auto">
-          {VIEWS.map((v) => (
-            <button
-              key={v.value}
-              type="button"
-              role="tab"
-              aria-selected={view === v.value}
-              onClick={() => setSearchParams(v.value === "today" ? {} : { view: v.value })}
-              className={
-                view === v.value
-                  ? "shrink-0 rounded-md bg-accent-soft px-3 py-1.5 text-sm font-medium text-accent"
-                  : "shrink-0 rounded-md px-3 py-1.5 text-sm font-medium text-text-muted hover:bg-bg-subtle hover:text-text"
-              }
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
+        <PageTabs
+          label="Vista de tareas"
+          tabs={VIEWS}
+          value={view}
+          onChange={(value) => setSearchParams(value === "today" ? {} : { view: value })}
+        />
       </PageHeader>
 
       {view !== "completed" && (
-        <div className="border-b border-border px-6 py-3">
+        <div className="border-b border-border px-4 md:px-6 py-3">
           <Input
             ref={quickAddRef}
             value={quickTitle}
@@ -402,7 +391,7 @@ export function TasksPage() {
       )}
 
       {view === "lists" && (
-        <div className="flex justify-end border-b border-border px-6 py-2">
+        <div className="flex justify-end border-b border-border px-4 md:px-6 py-2">
           <Button variant="ghost" size="sm" onClick={() => setCustomizing(true)}>
             <Settings2 className="size-4" aria-hidden />
             Personalizar vista

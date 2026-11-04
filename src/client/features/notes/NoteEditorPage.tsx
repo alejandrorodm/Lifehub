@@ -18,7 +18,7 @@ export function NoteEditorPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex items-center justify-between gap-3 border-b border-border px-6 py-2.5">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 md:px-6 py-2.5">
         <button
           type="button"
           onClick={() => navigate("/notes")}

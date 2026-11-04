@@ -68,7 +68,7 @@ export function NotesPage() {
         />
       </PageHeader>
 
-      <div className="border-b border-border px-6 py-3">
+      <div className="border-b border-border px-4 md:px-6 py-3">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -89,7 +89,7 @@ export function NotesPage() {
         <ul className="flex-1 overflow-y-auto">
           {notes.map((note) => (
             <li key={note.id} className="border-b border-border last:border-b-0">
-              <Link to={`/notes/${note.id}`} className="block px-6 py-3 hover:bg-bg-subtle">
+              <Link to={`/notes/${note.id}`} className="block px-4 md:px-6 py-3 hover:bg-bg-subtle">
                 <div className="flex items-center gap-2">
                   {note.pinned && <Pin className="size-3.5 shrink-0 text-accent" aria-label="Fijada" />}
                   {note.favorite && <Star className="size-3.5 shrink-0 text-warning" aria-label="Favorita" />}

@@ -20,22 +20,25 @@ export function Sheet({ open, onOpenChange, title, children, footer }: SheetProp
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[var(--z-overlay)] bg-black/40" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[var(--z-overlay)] bg-black/40 backdrop-blur-[2px]" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed inset-x-0 bottom-0 top-auto z-[var(--z-dialog)] flex max-h-[85vh] w-full flex-col",
-            "rounded-t-xl border-t border-border bg-bg-elevated shadow-lg focus:outline-none",
+            "fixed inset-x-0 bottom-0 top-auto z-[var(--z-dialog)] flex max-h-[90dvh] w-full flex-col",
+            "rounded-t-[var(--radius-xl)] border-t border-border bg-bg-elevated pb-[env(safe-area-inset-bottom)] shadow-lg focus:outline-none",
+            "md:pb-0",
             "md:inset-y-0 md:right-0 md:left-auto md:top-0 md:bottom-0 md:w-[min(480px,100vw)] md:max-h-none",
             "md:rounded-none md:border-l md:border-t-0",
           )}
         >
-          <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
+          {/* Asa visual de hoja inferior (solo móvil). */}
+          <div aria-hidden="true" className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-border-strong md:hidden" />
+          <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-3 md:border-b md:border-border md:py-4">
             <DialogPrimitive.Title className="text-base font-semibold">{title}</DialogPrimitive.Title>
             <DialogPrimitive.Close
               aria-label="Cerrar"
-              className="shrink-0 rounded-sm text-text-subtle hover:text-text"
+              className="-mr-2 flex size-10 shrink-0 items-center justify-center rounded-full text-text-subtle hover:bg-bg-subtle hover:text-text md:size-8"
             >
-              <X className="size-4" aria-hidden />
+              <X className="size-4.5" aria-hidden />
             </DialogPrimitive.Close>
           </div>
           <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
