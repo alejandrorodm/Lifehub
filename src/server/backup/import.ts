@@ -31,6 +31,8 @@ import {
   financeCategories,
   financeTransactions,
   watchlistAssets,
+  shoppingLists,
+  shoppingItems,
 } from "../db/schema";
 import { AppError } from "../lib/errors";
 import { createSnapshot } from "./snapshot";
@@ -161,6 +163,15 @@ function wipeContentTables(tx: ReturnType<typeof getDb>, userId: string): void {
   tx.delete(financeGoals).where(eq(financeGoals.userId, userId)).run();
   tx.delete(financeAssets).where(eq(financeAssets.userId, userId)).run();
   tx.delete(watchlistAssets).where(eq(watchlistAssets.userId, userId)).run();
+  const myShoppingListIds = tx
+    .select({ id: shoppingLists.id })
+    .from(shoppingLists)
+    .where(eq(shoppingLists.userId, userId))
+    .all()
+    .map((r) => r.id);
+  if (myShoppingListIds.length)
+    tx.delete(shoppingItems).where(inArray(shoppingItems.listId, myShoppingListIds)).run();
+  tx.delete(shoppingLists).where(eq(shoppingLists.userId, userId)).run();
   tx.delete(projects).where(eq(projects.userId, userId)).run();
   tx.delete(settingsTable).where(eq(settingsTable.userId, userId)).run();
   tx.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId)).run();
@@ -220,6 +231,8 @@ export async function restoreFromImport(raw: unknown): Promise<{ counts: Record<
       if (data.financeTransactions.length)
         tx.insert(financeTransactions).values(own(data.financeTransactions)).run();
       if (data.watchlistAssets.length) tx.insert(watchlistAssets).values(own(data.watchlistAssets)).run();
+      if (data.shoppingLists.length) tx.insert(shoppingLists).values(own(data.shoppingLists)).run();
+      if (data.shoppingItems.length) tx.insert(shoppingItems).values(data.shoppingItems).run();
       if (data.meta.length) {
         for (const row of data.meta) {
           tx.insert(meta)

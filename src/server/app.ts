@@ -18,6 +18,7 @@ import { remindersRoutes } from "./modules/reminders/routes";
 import { notesRoutes } from "./modules/notes/routes";
 import { searchRoutes } from "./modules/search/routes";
 import { habitsRoutes } from "./modules/habits/routes";
+import { shoppingRoutes } from "./modules/shopping/routes";
 import { routinesRoutes } from "./modules/routines/routes";
 import { pushRoutes } from "./modules/push/routes";
 import { googleCalendarRoutes } from "./modules/googleCalendar/routes";
@@ -66,6 +67,7 @@ export function createApp(): Hono {
     .route("/notes", notesRoutes)
     .route("/search", searchRoutes)
     .route("/habits", habitsRoutes)
+    .route("/shopping", shoppingRoutes)
     .route("/routines", routinesRoutes)
     .route("/push", pushRoutes)
     .route("/integrations/google", googleCalendarRoutes)

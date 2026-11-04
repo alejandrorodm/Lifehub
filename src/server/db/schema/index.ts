@@ -11,3 +11,4 @@ export * from "./integrations";
 export * from "./mcp";
 export * from "./finance";
 export * from "./markets";
+export * from "./shopping";

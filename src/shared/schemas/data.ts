@@ -298,6 +298,27 @@ const ExportWatchlistAssetSchema = z.object({
   deletedAt: z.coerce.date().nullable(),
 });
 
+// Fase 20: listas de la compra. Los exports anteriores no las traen (`.default([])`).
+const ExportShoppingListSchema = z.object({
+  id: z.string().min(1),
+  userId: z.string().min(1),
+  name: z.string(),
+  position: z.number().int(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+
+const ExportShoppingItemSchema = z.object({
+  id: z.string().min(1),
+  listId: z.string().min(1),
+  name: z.string(),
+  quantity: z.string().nullable(),
+  checked: z.boolean(),
+  position: z.number().int(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+
 export const ExportDataSchema = z.object({
   schemaVersion: z.number().int(),
   exportedAt: z.string(),
@@ -326,6 +347,8 @@ export const ExportDataSchema = z.object({
     financeCategories: z.array(ExportFinanceCategorySchema).default([]),
     financeTransactions: z.array(ExportFinanceTransactionSchema).default([]),
     watchlistAssets: z.array(ExportWatchlistAssetSchema),
+    shoppingLists: z.array(ExportShoppingListSchema).default([]),
+    shoppingItems: z.array(ExportShoppingItemSchema).default([]),
     meta: z.array(ExportMetaSchema),
     settings: SettingsSchema,
   }),

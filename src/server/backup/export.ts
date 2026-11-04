@@ -26,6 +26,8 @@ import {
   financeCategories,
   financeTransactions,
   watchlistAssets,
+  shoppingLists,
+  shoppingItems,
 } from "../db/schema";
 import { getSettings } from "../modules/settings/service";
 import { getCurrentUserId } from "../lib/requestContext";
@@ -52,6 +54,8 @@ export function exportData(): ExportData {
   const myEvents = db.select().from(events).where(eq(events.userId, userId)).all();
   const myNotes = db.select().from(notes).where(eq(notes.userId, userId)).all();
   const myHabits = db.select().from(habits).where(eq(habits.userId, userId)).all();
+  const myShoppingLists = db.select().from(shoppingLists).where(eq(shoppingLists.userId, userId)).all();
+  const myShoppingListIds = myShoppingLists.map((l) => l.id);
   const myRoutines = db.select().from(routines).where(eq(routines.userId, userId)).all();
   const myRoutineSteps =
     myRoutines.length === 0
@@ -130,6 +134,11 @@ export function exportData(): ExportData {
         .where(eq(financeTransactions.userId, userId))
         .all(),
       watchlistAssets: db.select().from(watchlistAssets).where(eq(watchlistAssets.userId, userId)).all(),
+      shoppingLists: myShoppingLists,
+      shoppingItems:
+        myShoppingListIds.length === 0
+          ? []
+          : db.select().from(shoppingItems).where(inArray(shoppingItems.listId, myShoppingListIds)).all(),
       // `meta` es de la instalación entera (versión de esquema, etc.), no de un perfil: se exporta tal cual.
       meta: db.select().from(meta).all(),
       settings: getSettings(),
