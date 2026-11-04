@@ -69,8 +69,11 @@ test("eliminar una tarea pide confirmación antes de borrarla", async ({ page })
 test("la captura rápida (atajo C) crea un elemento en el inbox convertible en tarea", async ({ page }) => {
   await page.goto("/");
 
-  await page.keyboard.press("c");
-  await expect(page.getByRole("heading", { name: "Captura rápida" })).toBeVisible();
+  // El atajo se registra al hidratar: se reintenta hasta que abre la captura.
+  await expect(async () => {
+    await page.keyboard.press("c");
+    await expect(page.getByRole("heading", { name: "Captura rápida" })).toBeVisible({ timeout: 1000 });
+  }).toPass();
 
   const textarea = page.getByPlaceholder("¿Qué quieres recordar?");
   await textarea.fill("Revisar el contrato del gimnasio");
@@ -103,4 +106,37 @@ test("el atajo G luego T navega a Tareas", async ({ page }) => {
   await page.keyboard.press("g");
   await page.keyboard.press("t");
   await expect(page).toHaveURL(/\/tasks$/);
+});
+
+test("la casilla «Fecha hoy» decide si la tarea nueva vence hoy o queda sin fecha", async ({ page }) => {
+  const stamp = Date.now();
+  const undated = `Sin fecha ${stamp}`;
+  const dated = `Con fecha ${stamp}`;
+
+  // En "Hoy" viene marcada; al desmarcarla la tarea se crea sin fecha y no aparece en Hoy.
+  await page.goto("/tasks");
+  const todayBox = page.getByRole("checkbox", { name: "Fecha hoy" });
+  await expect(todayBox).toBeChecked();
+  await todayBox.click();
+  await expect(todayBox).not.toBeChecked();
+  const quickAdd = page.getByLabel("Añadir tarea");
+  await quickAdd.fill(undated);
+  await quickAdd.press("Enter");
+  await expect(page.getByText("Tarea creada sin fecha")).toBeVisible();
+  await expect(page.locator("li", { hasText: undated })).toHaveCount(0);
+
+  // En "Todas" viene desmarcada; al marcarla la tarea vence hoy.
+  await page.goto("/tasks?view=all");
+  const allBox = page.getByRole("checkbox", { name: "Fecha hoy" });
+  await expect(allBox).not.toBeChecked();
+  await allBox.click();
+  await page.getByLabel("Añadir tarea").fill(dated);
+  await page.getByLabel("Añadir tarea").press("Enter");
+
+  await page.goto("/tasks");
+  await expect(page.locator("li", { hasText: dated })).toBeVisible();
+  await expect(page.locator("li", { hasText: undated })).toHaveCount(0);
+
+  await page.goto("/tasks?view=all");
+  await expect(page.locator("li", { hasText: undated })).toBeVisible();
 });

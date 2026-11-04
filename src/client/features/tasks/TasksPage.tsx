@@ -5,6 +5,7 @@ import { Button } from "@client/components/ui/Button";
 import { cn } from "@client/lib/utils";
 import { EmptyState } from "@client/components/ui/EmptyState";
 import { Input } from "@client/components/ui/Input";
+import { Checkbox } from "@client/components/ui/Checkbox";
 import { useToast } from "@client/components/ui/Toast";
 import { useToday } from "@client/lib/useToday";
 import { useRegisterNewHandler } from "@client/app/shortcuts/ShortcutsContext";
@@ -76,7 +77,13 @@ function visibleTasksOf(board: Board | null, plain: TaskDto[]): TaskDto[] {
 
 /** Alta rápida dentro de una columna de "Por lista". La tarea se crea sin lista de Google asignada
  *  (igual que el alta rápida general) y queda en "Sin lista de Google" hasta la próxima sincronización. */
-function ColumnQuickAdd({ columnTitle, onCreate }: { columnTitle: string; onCreate: (title: string) => void }) {
+function ColumnQuickAdd({
+  columnTitle,
+  onCreate,
+}: {
+  columnTitle: string;
+  onCreate: (title: string) => void;
+}) {
   const [title, setTitle] = useState("");
 
   const submit = () => {
@@ -319,6 +326,10 @@ export function TasksPage() {
   const { show } = useToast();
 
   const [quickTitle, setQuickTitle] = useState("");
+  // "Fecha hoy": marcada por defecto en la vista Hoy y desmarcada en el resto;
+  // si el usuario la cambia, se respeta hasta que cambie de vista.
+  const [dueTodayOverride, setDueTodayOverride] = useState<boolean | null>(null);
+  const dueToday = dueTodayOverride ?? view === "today";
   const quickAddRef = useRef<HTMLInputElement>(null);
 
   useRegisterNewHandler(() => quickAddRef.current?.focus());
@@ -355,8 +366,11 @@ export function TasksPage() {
     const title = quickTitle.trim();
     if (!title) return;
     createTask.mutate(
-      { title, priority: "normal", dueDate: view === "today" ? today : undefined },
-      { onSuccess: () => show({ tone: "success", title: "Tarea creada" }) },
+      { title, priority: "normal", dueDate: dueToday ? today : undefined },
+      {
+        onSuccess: () =>
+          show({ tone: "success", title: dueToday ? "Tarea creada para hoy" : "Tarea creada sin fecha" }),
+      },
     );
     setQuickTitle("");
   };
@@ -368,12 +382,15 @@ export function TasksPage() {
           label="Vista de tareas"
           tabs={VIEWS}
           value={view}
-          onChange={(value) => setSearchParams(value === "today" ? {} : { view: value })}
+          onChange={(value) => {
+            setDueTodayOverride(null);
+            setSearchParams(value === "today" ? {} : { view: value });
+          }}
         />
       </PageHeader>
 
       {view !== "completed" && (
-        <div className="border-b border-border px-4 md:px-6 py-3">
+        <div className="flex items-center gap-3 border-b border-border px-4 py-3 md:px-6">
           <Input
             ref={quickAddRef}
             value={quickTitle}
@@ -384,9 +401,18 @@ export function TasksPage() {
                 submitQuickAdd();
               }
             }}
-            placeholder="Añadir una tarea y pulsar Enter… (N)"
+            placeholder="Añadir una tarea…"
             aria-label="Añadir tarea"
           />
+          <label className="flex shrink-0 cursor-pointer select-none items-center gap-2 text-sm text-text-muted">
+            <Checkbox
+              checked={dueToday}
+              onCheckedChange={setDueTodayOverride}
+              aria-label="Fecha hoy"
+              shape="square"
+            />
+            <span aria-hidden="true">Fecha hoy</span>
+          </label>
         </div>
       )}
 

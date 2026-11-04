@@ -872,6 +872,8 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - Márgenes laterales de 16 px en móvil en todas las pantallas; Tareas usa `PageTabs`; textos que solo hablaban de teclas se ocultan en móvil.
 - **Listas de la compra** (`/shopping`, sección "Compra", atajo `G L`): varias listas con nombre; artículos con cantidad ("2 leche", "1 kg naranjas", "huevos x12" se interpretan solos), marcar como comprado (respuesta inmediata), editar, borrar con "Deshacer", "Quitar comprados", renombrar y eliminar lista con confirmación. En móvil: índice de listas → lista con "Volver" y campo de alta fijo abajo. Tablas `shopping_lists`/`shopping_items` (migración `0013`, aditiva), export/import compatible con exports anteriores. Migración de datos `0014`: añade "Compra" una vez a las secciones visibles de los perfiles que ya las habían personalizado.
 
+- Tareas: casilla «Fecha hoy» junto al campo de alta rápida para crear la tarea con fecha de hoy o sin fecha (marcada por defecto en la vista Hoy, desmarcada en las demás; se reinicia al cambiar de vista). `Checkbox` admite `shape="square"` para opciones.
+
 **Probado:** `npm run typecheck` y `npm run lint` sin errores; `npm test` 396/396; `npm run test:e2e` 84 pasan y 1 fallo intermitente de temporización en `shell.spec.ts` (atajo pulsado antes de hidratar), corregido con reintento y verificado (6/6 del spec). Capturas revisadas en Mobile y Desktop, temas claro y oscuro.
 
 **Pendiente:** sin desplegar ni push. La barra inferior de cada perfil no cambia sola: "Compra" se puede fijar en Ajustes → Navegación. Pestañas del detalle de proyecto siguen con su estilo propio.
