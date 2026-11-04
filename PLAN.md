@@ -18,6 +18,7 @@
 | 10  | Revisión periódica, GitHub por proyecto y finanzas con metas | ✅ Implementada |
 | 18  | Finanzas completas: gastos, presupuestos, metas y gráficas | ✅ Implementada (rama `feat/finance-budgets`) |
 | 19  | Mejoras de UI: gasto rápido, iconos, widget de finanzas, barra móvil configurable, cabeceras | ✅ Implementada (rama `feat/ui-improvements`) |
+| 20  | UI móvil "neutro sobrio" y listas de la compra             | ✅ Implementada (rama `feat/mobile-redesign-shopping`) |
 
 ## Situación inicial
 
@@ -857,3 +858,20 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 - Arreglos: nombre accesible de los widgets de Hoy; test de teclado de `shell.spec.ts`; apertura de la paleta en e2e.
 
 **Probado:** typecheck y lint sin errores; `npm test` 373/373; `npm run test:e2e` 81/81 (90 omitidos por diseño).
+
+## Fase 20 — UI móvil "neutro sobrio" y listas de la compra (rama `feat/mobile-redesign-shopping`, 2026-11-04)
+
+**Nota sobre el alcance:** pedido por el usuario ("la aplicación no me parece cómoda de usar con el móvil, instala hooks y skills para mejorar la interfaz darle un toque nuevo minimalista y profesional ... además añade listas de cosas para comprar"). Dirección visual elegida por el usuario: "Neutro sobrio". Detalle en `odd/tasks/fase-20-movil-listas-compra.md`.
+
+**Implementado:**
+
+- Herramientas de Claude Code en el repo: skills `frontend-design` (Anthropic, Apache 2.0) y `lifehub-ui` (reglas móviles y tokens de esta app) en `.claude/skills`; hook `PostToolUse` que pasa ESLint --fix a cada archivo editado y devuelve los errores.
+- Sistema visual: una sola familia (Inter; se quita Fraunces y su dependencia), grises fríos, acento índigo contenido, tarjetas sin sombra, pestañas en píldora. Contrastes AA comprobados en ambos temas.
+- Primitivas táctiles: botones de 40-44 px en móvil, `IconButton` nuevo, campos a 16 px (sin zoom en iOS), casillas redondas con área táctil ampliada, `Dialog` como hoja inferior en móvil, `Sheet` con asa y zona segura, toasts por encima de la barra inferior.
+- Shell móvil: barra superior con búsqueda y captura rápida (antes no había acceso en móvil), barra inferior con indicador activo, zona segura (`viewport-fit=cover`) y aviso del inbox; menú "Más" en cuadrícula con perfil y "Cerrar sesión" (antes no se podía cerrar sesión en móvil). Color de la barra del sistema según el tema.
+- Márgenes laterales de 16 px en móvil en todas las pantallas; Tareas usa `PageTabs`; textos que solo hablaban de teclas se ocultan en móvil.
+- **Listas de la compra** (`/shopping`, sección "Compra", atajo `G L`): varias listas con nombre; artículos con cantidad ("2 leche", "1 kg naranjas", "huevos x12" se interpretan solos), marcar como comprado (respuesta inmediata), editar, borrar con "Deshacer", "Quitar comprados", renombrar y eliminar lista con confirmación. En móvil: índice de listas → lista con "Volver" y campo de alta fijo abajo. Tablas `shopping_lists`/`shopping_items` (migración `0013`, aditiva), export/import compatible con exports anteriores. Migración de datos `0014`: añade "Compra" una vez a las secciones visibles de los perfiles que ya las habían personalizado.
+
+**Probado:** `npm run typecheck` y `npm run lint` sin errores; `npm test` 396/396; `npm run test:e2e` 84 pasan y 1 fallo intermitente de temporización en `shell.spec.ts` (atajo pulsado antes de hidratar), corregido con reintento y verificado (6/6 del spec). Capturas revisadas en Mobile y Desktop, temas claro y oscuro.
+
+**Pendiente:** sin desplegar ni push. La barra inferior de cada perfil no cambia sola: "Compra" se puede fijar en Ajustes → Navegación. Pestañas del detalle de proyecto siguen con su estilo propio.
