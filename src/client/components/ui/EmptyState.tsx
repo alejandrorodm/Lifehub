@@ -25,11 +25,11 @@ export function EmptyState({ icon: Icon, title, description, action, className, 
         className,
       )}
     >
-      <div className="flex size-12 items-center justify-center rounded-full bg-bg-subtle text-text-subtle">
-        <Icon className="size-5" aria-hidden />
+      <div className="flex size-14 items-center justify-center rounded-[18px] bg-accent-soft text-accent">
+        <Icon className="size-6" aria-hidden />
       </div>
       <div className="max-w-sm space-y-1">
-        <p className="text-sm font-medium text-text">{title}</p>
+        <p className="text-[15px] font-semibold text-text">{title}</p>
         {description && <p className="text-sm text-text-muted">{description}</p>}
       </div>
       {action}

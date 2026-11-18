@@ -18,7 +18,7 @@ export function Checkbox({ checked, onCheckedChange, shape = "round", className,
       onCheckedChange={(value) => onCheckedChange(value === true)}
       aria-label={aria["aria-label"]}
       className={cn(
-        "relative flex size-5 shrink-0 items-center justify-center border-[1.5px] border-border-strong bg-bg-elevated md:size-4.5",
+        "relative flex size-5 shrink-0 items-center justify-center border-2 border-border-strong bg-bg-elevated md:size-4.5",
         shape === "round" ? "rounded-full" : "rounded-[5px]",
         "transition-colors hover:border-accent data-[state=checked]:border-accent data-[state=checked]:bg-accent",
         // Área táctil ampliada sin cambiar el tamaño visual.

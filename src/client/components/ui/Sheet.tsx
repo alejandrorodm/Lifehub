@@ -31,9 +31,12 @@ export function Sheet({ open, onOpenChange, title, children, footer }: SheetProp
           )}
         >
           {/* Asa visual de hoja inferior (solo móvil). */}
-          <div aria-hidden="true" className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-border-strong md:hidden" />
+          <div
+            aria-hidden="true"
+            className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-border-strong md:hidden"
+          />
           <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-3 md:border-b md:border-border md:py-4">
-            <DialogPrimitive.Title className="text-base font-semibold">{title}</DialogPrimitive.Title>
+            <DialogPrimitive.Title className="text-lg font-bold">{title}</DialogPrimitive.Title>
             <DialogPrimitive.Close
               aria-label="Cerrar"
               className="-mr-2 flex size-10 shrink-0 items-center justify-center rounded-full text-text-subtle hover:bg-bg-subtle hover:text-text md:size-8"

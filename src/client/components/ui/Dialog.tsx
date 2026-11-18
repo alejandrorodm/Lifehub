@@ -26,13 +26,13 @@ export function Dialog({ open, onOpenChange, title, description, children, class
             "fixed inset-x-0 bottom-0 z-[var(--z-dialog)] flex max-h-[90dvh] w-full flex-col",
             "rounded-t-[var(--radius-xl)] border-t border-border bg-bg-elevated p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-lg focus:outline-none",
             "md:inset-x-auto md:bottom-auto md:left-1/2 md:top-1/2 md:max-h-[85vh] md:w-[min(480px,calc(100vw-2rem))] md:-translate-x-1/2 md:-translate-y-1/2",
-            "md:rounded-lg md:border md:pb-5",
+            "md:rounded-xl md:border md:pb-5",
             className,
           )}
         >
           <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
             <div>
-              <DialogPrimitive.Title className="text-base font-semibold">{title}</DialogPrimitive.Title>
+              <DialogPrimitive.Title className="text-lg font-bold">{title}</DialogPrimitive.Title>
               {description && (
                 <DialogPrimitive.Description className="mt-1 text-sm text-text-muted">
                   {description}
