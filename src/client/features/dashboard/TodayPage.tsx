@@ -2,7 +2,19 @@ import { useId, useMemo, type ReactNode } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Link } from "react-router-dom";
-import { ListChecks, CalendarClock, Flame, Bell, FolderKanban, CheckCircle2, Plus } from "lucide-react";
+import {
+  ListChecks,
+  CalendarClock,
+  Flame,
+  Bell,
+  FolderKanban,
+  CheckCircle2,
+  Plus,
+  Lightbulb,
+  Wallet,
+  ChevronRight,
+  type LucideIcon,
+} from "lucide-react";
 import { EmptyState } from "@client/components/ui/EmptyState";
 import { Checkbox } from "@client/components/ui/Checkbox";
 import { Button } from "@client/components/ui/Button";
@@ -23,6 +35,9 @@ import { DASHBOARD_WIDGETS } from "@shared/schemas/settings";
 import type { DashboardWidgetId } from "@shared/schemas/settings";
 import { DASHBOARD_WIDGET_LABELS } from "./dashboardWidgets";
 import { FinanceWidget } from "@client/features/finance/FinanceWidget";
+import { SectionIcon } from "@client/components/ui/SectionIcon";
+import type { SectionTone } from "@client/components/ui/sectionTone";
+import { QuickTiles } from "./QuickTiles";
 
 function useGreeting(): string {
   const hour = new Date().getHours();
@@ -32,21 +47,46 @@ function useGreeting(): string {
   return "Buenas noches";
 }
 
-interface WidgetProps {
-  title: string;
+interface WidgetMeta {
+  icon: LucideIcon;
+  tone: SectionTone;
+  /** Pantalla con el detalle completo ("Ver todo"). */
+  to?: string;
 }
 
-function Widget({ title, children }: WidgetProps & { children: ReactNode }) {
+const WIDGET_META: Record<DashboardWidgetId, WidgetMeta> = {
+  "priority-overdue": { icon: ListChecks, tone: "tasks", to: "/tasks" },
+  "today-agenda": { icon: CalendarClock, tone: "calendar", to: "/calendar" },
+  "habits-today": { icon: Flame, tone: "habits", to: "/habits" },
+  reminders: { icon: Bell, tone: "today" },
+  "active-projects": { icon: FolderKanban, tone: "projects", to: "/projects" },
+  "quick-capture": { icon: Lightbulb, tone: "inbox" },
+  finance: { icon: Wallet, tone: "finance", to: "/finance" },
+};
+
+function Widget({ title, meta, children }: { title: string; meta: WidgetMeta; children: ReactNode }) {
   // useId en vez del título: un id con espacios rompe aria-labelledby (la región se quedaba sin nombre).
   const headingId = useId();
   return (
     <section
-      className="flex flex-col rounded-lg border border-border bg-bg-elevated"
+      className="flex flex-col overflow-hidden rounded-lg border border-border/60 bg-bg-elevated shadow-sm"
       aria-labelledby={headingId}
     >
-      <h2 id={headingId} className="border-b border-border px-4 py-3 text-sm font-semibold">
-        {title}
-      </h2>
+      <div className="flex items-center gap-2.5 px-4 pb-2 pt-3.5">
+        <SectionIcon icon={meta.icon} tone={meta.tone} size="sm" />
+        <h2 id={headingId} className="flex-1 truncate text-[15px] font-semibold">
+          {title}
+        </h2>
+        {meta.to && (
+          <Link
+            to={meta.to}
+            className="-mr-1 inline-flex items-center gap-0.5 rounded-full px-2 py-1 text-xs font-medium text-text-muted hover:bg-bg-subtle hover:text-text"
+          >
+            Ver todo
+            <ChevronRight className="size-3.5" aria-hidden />
+          </Link>
+        )}
+      </div>
       {children}
     </section>
   );
@@ -282,15 +322,24 @@ function HabitsWidget() {
 }
 
 function QuickCaptureWidget() {
-  const { openCapture } = useShortcuts();
+  const { openCapture, openCreate } = useShortcuts();
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 md:px-6 py-10 text-center">
-      <Button onClick={openCapture}>
-        <Plus className="size-4" aria-hidden />
-        Captura rápida
-      </Button>
-      <p className="text-xs text-text-muted">O pulsa “C” en cualquier pantalla.</p>
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-8 text-center">
+      <p className="max-w-xs text-sm text-text-muted">
+        Apunta una idea para ordenarla luego, o crea directamente una tarea, un gasto o una nota.
+      </p>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button onClick={openCapture}>
+          <Lightbulb className="size-4" aria-hidden />
+          Idea rápida
+        </Button>
+        <Button variant="secondary" onClick={openCreate}>
+          <Plus className="size-4" aria-hidden />
+          Crear
+        </Button>
+      </div>
+      <p className="hidden text-xs text-text-subtle md:block">O pulsa “C” en cualquier pantalla.</p>
     </div>
   );
 }
@@ -309,11 +358,11 @@ function SummaryBar() {
   const { data } = useTasksSummary();
   if (!data) return null;
   return (
-    <div className="flex flex-wrap gap-4 text-sm text-text-muted">
-      <span>
+    <div className="flex flex-wrap gap-2 text-sm text-text-muted">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-bg-elevated px-3 py-1 shadow-sm ring-1 ring-border/60">
         <strong className="font-semibold text-text">{data.pending}</strong> pendientes
       </span>
-      <span className="inline-flex items-center gap-1">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-bg-elevated px-3 py-1 shadow-sm ring-1 ring-border/60">
         <CheckCircle2 className="size-4 text-success" aria-hidden />
         <strong className="font-semibold text-text">{data.completedToday}</strong> completadas hoy
       </span>
@@ -328,17 +377,17 @@ export function TodayPage() {
   const widgetIds = settings?.dashboardWidgets ?? [...DASHBOARD_WIDGETS];
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-6">
+    <div className="flex flex-1 flex-col gap-6 px-4 pb-6 pt-4 md:px-6 md:pt-7">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold capitalize">{greeting}</h1>
-          <p className="mt-1 text-sm capitalize text-text-muted">{today}</p>
+          <p className="text-sm font-medium text-text-muted first-letter:uppercase">{today}</p>
+          <h1 className="mt-0.5 text-3xl font-bold md:text-4xl">{greeting}</h1>
         </div>
         <Link
           to="/plan"
-          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-bg-subtle px-3 text-sm text-text hover:border-border-strong"
+          className="inline-flex h-10 items-center gap-1.5 rounded-full border border-border bg-bg-elevated px-4 text-sm font-semibold text-text shadow-sm hover:border-border-strong md:h-9"
         >
-          <CalendarClock className="size-4" aria-hidden />
+          <CalendarClock className="size-4 text-accent" aria-hidden />
           Plan del día
         </Link>
         <div className="w-full">
@@ -346,9 +395,11 @@ export function TodayPage() {
         </div>
       </header>
 
+      <QuickTiles />
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {widgetIds.map((widgetId) => (
-          <Widget key={widgetId} title={DASHBOARD_WIDGET_LABELS[widgetId]}>
+          <Widget key={widgetId} title={DASHBOARD_WIDGET_LABELS[widgetId]} meta={WIDGET_META[widgetId]}>
             {WIDGET_RENDERERS[widgetId]()}
           </Widget>
         ))}
