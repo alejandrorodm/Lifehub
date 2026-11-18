@@ -1,13 +1,27 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { QuickCaptureDialog } from "./QuickCaptureDialog";
 import { CommandPalette } from "./CommandPalette";
 import { ShortcutsHelpDialog } from "./ShortcutsHelpDialog";
+import { CreateMenu } from "./CreateMenu";
 
 interface ShortcutsContextValue {
   openCapture: () => void;
   openPalette: () => void;
   openHelp: () => void;
+  /** Abre el menú "Crear" (tarea, movimiento, compra, nota...). */
+  openCreate: () => void;
+  /** Va a `path` y lanza la acción "nueva" de esa pantalla en cuanto la registra. */
+  startNew: (path: string) => void;
   /** La página activa registra aquí qué hace la tecla "N" ("nueva tarea", "nueva nota"...). */
   registerNewHandler: (handler: (() => void) | null) => void;
 }
@@ -56,6 +70,8 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 export function ShortcutsProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const [createOpen, setCreateOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -63,16 +79,53 @@ export function ShortcutsProvider({ children }: { children: ReactNode }) {
   const awaitingGoToRef = useRef(false);
   const goToTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Ruta cuya acción "nueva" se pidió desde el menú "Crear" y aún no se ha lanzado.
+  const pendingNewRef = useRef<string | null>(null);
+  // Cambia cada vez que una pantalla registra su acción, para reintentar la pendiente.
+  const [handlerVersion, setHandlerVersion] = useState(0);
+
   const registerNewHandler = useCallback((handler: (() => void) | null) => {
     newHandlerRef.current = handler;
+    if (handler && pendingNewRef.current) setHandlerVersion((version) => version + 1);
   }, []);
 
-  const value: ShortcutsContextValue = {
-    openCapture: () => setCaptureOpen(true),
-    openPalette: () => setPaletteOpen(true),
-    openHelp: () => setHelpOpen(true),
-    registerNewHandler,
-  };
+  useEffect(() => {
+    const pending = pendingNewRef.current;
+    if (!pending) return;
+    if (pending !== pathname) {
+      // El usuario se fue a otra pantalla antes de que la acción se lanzara.
+      pendingNewRef.current = null;
+      return;
+    }
+    if (newHandlerRef.current) {
+      pendingNewRef.current = null;
+      newHandlerRef.current();
+    }
+  }, [pathname, handlerVersion]);
+
+  const startNew = useCallback(
+    (path: string) => {
+      if (path === pathname && newHandlerRef.current) {
+        newHandlerRef.current();
+        return;
+      }
+      pendingNewRef.current = path;
+      navigate(path);
+    },
+    [navigate, pathname],
+  );
+
+  const value: ShortcutsContextValue = useMemo(
+    () => ({
+      openCapture: () => setCaptureOpen(true),
+      openPalette: () => setPaletteOpen(true),
+      openHelp: () => setHelpOpen(true),
+      openCreate: () => setCreateOpen(true),
+      startNew,
+      registerNewHandler,
+    }),
+    [startNew, registerNewHandler],
+  );
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -138,6 +191,7 @@ export function ShortcutsProvider({ children }: { children: ReactNode }) {
   return (
     <ShortcutsContext.Provider value={value}>
       {children}
+      <CreateMenu open={createOpen} onOpenChange={setCreateOpen} />
       <QuickCaptureDialog open={captureOpen} onOpenChange={setCaptureOpen} />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
       <ShortcutsHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />

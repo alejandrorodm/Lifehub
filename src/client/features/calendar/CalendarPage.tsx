@@ -22,6 +22,7 @@ import { EventFormDialog } from "./EventFormDialog";
 import { useEventsInRange } from "./useEvents";
 import type { EventOccurrenceDto } from "@shared/schemas/events";
 import { PageHeader } from "@client/components/ui/PageHeader";
+import { sectionHeader } from "@client/app/navigation";
 import { PageTabs } from "@client/components/ui/PageTabs";
 
 type ViewMode = "month" | "week" | "day";
@@ -116,6 +117,7 @@ export function CalendarPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader
+        {...sectionHeader("/calendar")}
         title="Calendario"
         description={<span className="capitalize">{label}</span>}
         actions={

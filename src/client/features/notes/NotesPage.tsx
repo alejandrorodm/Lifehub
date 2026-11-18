@@ -8,6 +8,7 @@ import { useRegisterNewHandler } from "@client/app/shortcuts/ShortcutsContext";
 import { useNoteList, useCreateNote } from "./useNotes";
 import type { NoteListStatus } from "@shared/schemas/notes";
 import { PageHeader } from "@client/components/ui/PageHeader";
+import { sectionHeader } from "@client/app/navigation";
 import { PageTabs } from "@client/components/ui/PageTabs";
 
 const STATUS_FILTERS: { value: NoteListStatus; label: string }[] = [
@@ -45,6 +46,7 @@ export function NotesPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader
+        {...sectionHeader("/notes")}
         title="Notas"
         actions={
           <Button

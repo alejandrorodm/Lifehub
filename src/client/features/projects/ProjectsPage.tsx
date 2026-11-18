@@ -12,6 +12,7 @@ import { PROJECT_STATUS_CLASS, PROJECT_STATUS_LABELS } from "./projectDisplay";
 import { GithubImportDialog } from "./GithubImportDialog";
 import type { ProjectStatus } from "@shared/schemas/projects";
 import { PageHeader } from "@client/components/ui/PageHeader";
+import { sectionHeader } from "@client/app/navigation";
 import { PageTabs } from "@client/components/ui/PageTabs";
 
 const STATUS_FILTERS: { value: ProjectStatus | "all"; label: string }[] = [
@@ -51,7 +52,7 @@ export function ProjectsPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <PageHeader title="Proyectos">
+      <PageHeader {...sectionHeader("/projects")} title="Proyectos">
         <PageTabs
           label="Estado de los proyectos"
           tabs={STATUS_FILTERS}

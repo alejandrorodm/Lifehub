@@ -23,6 +23,7 @@ import {
 import { ListViewSettingsDialog } from "./ListViewSettingsDialog";
 import type { TaskDto, TaskView } from "@shared/schemas/tasks";
 import { PageHeader } from "@client/components/ui/PageHeader";
+import { sectionHeader } from "@client/app/navigation";
 import { PageTabs } from "@client/components/ui/PageTabs";
 import { useGoogleTaskLists } from "../settings/useGoogleCalendar";
 import { useProjectList } from "../projects/useProjects";
@@ -377,7 +378,7 @@ export function TasksPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <PageHeader title="Tareas">
+      <PageHeader {...sectionHeader("/tasks")} title="Tareas">
         <PageTabs
           label="Vista de tareas"
           tabs={VIEWS}

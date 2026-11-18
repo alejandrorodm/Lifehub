@@ -5,6 +5,7 @@ import { useToast } from "@client/components/ui/Toast";
 import { useRegisterNewHandler, useShortcuts } from "@client/app/shortcuts/ShortcutsContext";
 import { useInboxItems, useConvertInboxItemToTask, useArchiveInboxItem } from "./useInbox";
 import { PageHeader } from "@client/components/ui/PageHeader";
+import { sectionHeader } from "@client/app/navigation";
 
 export function InboxPage() {
   const { data: items, isLoading } = useInboxItems();
@@ -18,6 +19,7 @@ export function InboxPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader
+        {...sectionHeader("/inbox")}
         title="Inbox"
         description={
           <>

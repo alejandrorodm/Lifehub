@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@client/components/ui/Button";
 import { PageHeader } from "@client/components/ui/PageHeader";
+import { sectionHeader } from "@client/app/navigation";
 import { useToday } from "@client/lib/useToday";
 import { formatMonthLong } from "@client/components/charts/chartUtils";
 import { shiftMonth } from "@shared/domain/finance";
@@ -14,6 +15,7 @@ import { AccountsTab } from "./AccountsTab";
 import { ContributionsTab } from "./ContributionsTab";
 import { TransactionDialog } from "./TransactionDialog";
 import { PageTabs } from "@client/components/ui/PageTabs";
+import { useRegisterNewHandler } from "@client/app/shortcuts/ShortcutsContext";
 
 const TABS = [
   { value: "summary", label: "Resumen" },
@@ -37,6 +39,7 @@ export function FinancePage() {
   const currentMonth = today.slice(0, 7);
   const [searchParams, setSearchParams] = useSearchParams();
   const [addingTransaction, setAddingTransaction] = useState(false);
+  useRegisterNewHandler(() => setAddingTransaction(true));
 
   const tabParam = searchParams.get("tab");
   const tab: Tab = isTab(tabParam) ? tabParam : "summary";
@@ -61,6 +64,7 @@ export function FinancePage() {
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader
+        {...sectionHeader("/finance")}
         title="Finanzas"
         description="Gastos, presupuestos, metas de ahorro y la evolución de tu dinero."
         actions={

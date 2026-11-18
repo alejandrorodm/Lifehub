@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { PageHeader } from "@client/components/ui/PageHeader";
+import { sectionHeader } from "@client/app/navigation";
 import { Button } from "@client/components/ui/Button";
 import { IconButton } from "@client/components/ui/IconButton";
 import { Checkbox } from "@client/components/ui/Checkbox";
@@ -47,10 +48,14 @@ export function ShoppingPage() {
   const { data: lists, isLoading, isError, refetch } = useShoppingLists();
 
   const requestedId = params.get("list");
-  const selected = lists?.find((l) => l.id === requestedId) ?? (isMobile ? undefined : lists?.[0]);
+  // `?add=1` (menú "Crear"): abre la primera lista con el campo de alta enfocado, también en móvil.
+  const wantsAdd = params.has("add");
+  const selected =
+    lists?.find((l) => l.id === requestedId) ?? (isMobile && !wantsAdd ? undefined : lists?.[0]);
 
   const select = (id: string | null) => {
     const next = new URLSearchParams(params);
+    next.delete("add");
     if (id) next.set("list", id);
     else next.delete("list");
     setParams(next, { replace: !isMobile });
@@ -64,6 +69,7 @@ export function ShoppingPage() {
     <div className="flex flex-1 flex-col">
       {!showDetailOnly && (
         <PageHeader
+          {...sectionHeader("/shopping")}
           title="Lista de la compra"
           actions={
             lists && lists.length > 0 ? (
@@ -119,6 +125,7 @@ export function ShoppingPage() {
               list={selected}
               onBack={isMobile ? () => select(null) : undefined}
               onDeleted={() => select(null)}
+              autoFocusAdd={wantsAdd}
             />
           )}
         </div>
@@ -191,10 +198,13 @@ function ListDetail({
   list,
   onBack,
   onDeleted,
+  autoFocusAdd = false,
 }: {
   list: ShoppingListDto;
   onBack?: () => void;
   onDeleted: () => void;
+  /** Enfoca el campo de alta al abrir la lista (llegada desde el menú "Crear"). */
+  autoFocusAdd?: boolean;
 }) {
   const { data: items, isLoading, isError, refetch } = useShoppingItems(list.id);
   const clearChecked = useClearCheckedItems();
@@ -223,7 +233,7 @@ function ListDetail({
         </IconButton>
       </div>
 
-      <AddItemForm listId={list.id} />
+      <AddItemForm listId={list.id} autoFocus={autoFocusAdd} />
 
       {isLoading ? (
         <div className="space-y-2 px-4 pt-3 md:px-0">
@@ -328,7 +338,7 @@ function ListDetail({
 }
 
 /** Campo de alta rápida; en móvil queda fijo sobre la barra inferior, al alcance del pulgar. */
-function AddItemForm({ listId }: { listId: string }) {
+function AddItemForm({ listId, autoFocus }: { listId: string; autoFocus: boolean }) {
   const [value, setValue] = useState("");
   const createItem = useCreateShoppingItem(listId);
   const { show } = useToast();
@@ -369,6 +379,7 @@ function AddItemForm({ listId }: { listId: string }) {
         autoComplete="off"
         enterKeyHint="done"
         maxLength={200}
+        autoFocus={autoFocus}
       />
       <IconButton
         type="submit"

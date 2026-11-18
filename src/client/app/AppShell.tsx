@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { Search, Plus, LogOut, MoreHorizontal } from "lucide-react";
+import { Button } from "@client/components/ui/Button";
+import { SectionIcon } from "@client/components/ui/SectionIcon";
+import { SECTION_TONE } from "@client/components/ui/sectionTone";
 import { IconButton } from "@client/components/ui/IconButton";
 import {
   fixedNavItems,
@@ -25,7 +28,7 @@ function NavBadge({ item }: { item: NavItem }) {
   return (
     <span
       aria-hidden="true"
-      className="ml-auto rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-semibold leading-none text-accent-contrast"
+      className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold leading-none text-accent-contrast"
     >
       {data.open}
     </span>
@@ -38,7 +41,10 @@ function NavBadgeDot({ item }: { item: NavItem }) {
   if (item.to !== "/inbox" || !data || data.open === 0) return null;
   return (
     <>
-      <span aria-hidden="true" className="absolute right-[calc(50%-1.25rem)] top-1 size-2 rounded-full bg-accent" />
+      <span
+        aria-hidden="true"
+        className="absolute right-[calc(50%-1.5rem)] top-1.5 size-2 rounded-full bg-accent ring-2 ring-bg-elevated"
+      />
       <span className="sr-only">({data.open} sin procesar)</span>
     </>
   );
@@ -52,12 +58,14 @@ function SidebarLink({ item }: { item: NavItem }) {
       end={item.to === "/"}
       className={({ isActive }) =>
         cn(
-          "flex items-center gap-3 rounded-md px-2.5 py-[7px] text-sm font-medium transition-colors",
-          isActive ? "bg-bg-subtle text-text" : "text-text-muted hover:bg-bg-subtle/70 hover:text-text",
+          "flex items-center gap-3 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+          isActive
+            ? "bg-bg-elevated font-semibold text-text shadow-sm ring-1 ring-border/70"
+            : "text-text-muted hover:bg-bg-subtle hover:text-text",
         )
       }
     >
-      <Icon className="size-4 shrink-0" aria-hidden />
+      <SectionIcon icon={Icon} tone={item.tone} size="sm" />
       <span>{item.label}</span>
       <NavBadge item={item} />
     </NavLink>
@@ -73,7 +81,7 @@ function BottomNavLink({ item }: { item: NavItem }) {
       className={({ isActive }) =>
         cn(
           "group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
-          isActive ? "text-text" : "text-text-muted",
+          isActive ? "font-semibold text-text" : "text-text-muted",
         )
       }
     >
@@ -81,8 +89,10 @@ function BottomNavLink({ item }: { item: NavItem }) {
         <>
           <span
             className={cn(
-              "flex h-7 w-12 items-center justify-center rounded-full transition-colors",
-              isActive ? "bg-accent-soft text-accent" : "group-active:bg-bg-subtle",
+              "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
+              isActive
+                ? cn(SECTION_TONE[item.tone].soft, SECTION_TONE[item.tone].fg)
+                : "group-active:bg-bg-subtle",
             )}
           >
             <Icon className="size-5" aria-hidden />
@@ -116,12 +126,14 @@ function MoreMenuSheet({
               onClick={() => onOpenChange(false)}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center justify-center gap-1.5 rounded-lg px-2 py-3.5 text-[13px] font-medium transition-colors",
-                  isActive ? "bg-accent-soft text-accent" : "bg-bg-subtle/60 text-text active:bg-bg-subtle",
+                  "flex flex-col items-center justify-center gap-2 rounded-lg border px-2 py-3.5 text-[13px] font-medium shadow-sm transition-[border-color,transform] active:scale-[0.97]",
+                  isActive
+                    ? "border-accent bg-bg-elevated text-text"
+                    : "border-border/60 bg-bg-elevated text-text",
                 )
               }
             >
-              <Icon className="size-5 shrink-0" aria-hidden />
+              <SectionIcon icon={Icon} tone={item.tone} size="lg" />
               <span className="max-w-full truncate">{item.label}</span>
             </NavLink>
           );
@@ -154,19 +166,35 @@ function MoreMenuUser() {
 
 /** Barra superior móvil: marca y accesos a búsqueda y captura rápida (en escritorio están en la barra lateral). */
 function MobileTopBar() {
-  const { openPalette, openCapture } = useShortcuts();
+  const { openPalette, openCreate } = useShortcuts();
   return (
     <div className="flex h-14 items-center justify-between gap-2 px-4 pt-[env(safe-area-inset-top)] md:hidden">
-      <span className="text-[15px] font-semibold tracking-tight">LifeHub</span>
-      <div className="flex items-center gap-1">
+      <Brand />
+      <div className="flex items-center gap-2">
         <IconButton aria-label="Buscar" onClick={openPalette}>
           <Search className="size-5" aria-hidden />
         </IconButton>
-        <IconButton aria-label="Captura rápida" variant="primary" onClick={openCapture} className="size-9">
-          <Plus className="size-5" aria-hidden />
-        </IconButton>
+        <Button size="sm" onClick={openCreate} aria-haspopup="dialog">
+          <Plus className="size-4" aria-hidden />
+          Crear
+        </Button>
       </div>
     </div>
+  );
+}
+
+/** Marca de la app: monograma en el acento y nombre. */
+function Brand() {
+  return (
+    <span className="flex items-center gap-2">
+      <span
+        aria-hidden="true"
+        className="flex size-7 items-center justify-center rounded-[10px] bg-accent text-sm font-bold text-accent-contrast"
+      >
+        L
+      </span>
+      <span className="text-[17px] font-bold tracking-tight">LifeHub</span>
+    </span>
   );
 }
 
@@ -193,26 +221,21 @@ function UserMenu() {
 }
 
 function ShellHeaderActions() {
-  const { openPalette, openCapture } = useShortcuts();
+  const { openPalette, openCreate } = useShortcuts();
   return (
-    <div className="flex items-center gap-1 px-1 pb-3">
+    <div className="flex flex-col gap-2 px-1 pb-4">
+      <Button onClick={openCreate} aria-haspopup="dialog" className="w-full">
+        <Plus className="size-4" aria-hidden />
+        Crear
+      </Button>
       <button
         type="button"
         onClick={openPalette}
-        className="flex flex-1 items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm text-text-muted hover:border-border-strong hover:text-text"
+        className="flex items-center gap-2 rounded-full border border-border bg-bg-elevated px-3.5 py-2 text-sm text-text-muted hover:border-border-strong hover:text-text"
       >
         <Search className="size-3.5" aria-hidden />
         <span className="flex-1 text-left">Buscar</span>
         <kbd className="rounded border border-border px-1 text-[10px]">⌘K</kbd>
-      </button>
-      <button
-        type="button"
-        onClick={openCapture}
-        aria-label="Captura rápida"
-        title="Captura rápida (C)"
-        className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border text-text-muted hover:border-border-strong hover:text-text"
-      >
-        <Plus className="size-4" aria-hidden />
       </button>
     </div>
   );
@@ -240,10 +263,10 @@ function AppShellContent() {
       {/* Navegación lateral — escritorio y tablet */}
       <nav
         aria-label="Navegación principal"
-        className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto border-r border-border bg-bg p-3 md:flex"
+        className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-bg-subtle/50 p-3 md:flex"
       >
-        <div className="mb-2 flex items-center justify-between px-2 pt-1">
-          <span className="text-base font-semibold tracking-tight">LifeHub</span>
+        <div className="mb-4 flex items-center justify-between px-2 pt-2">
+          <Brand />
           <UserMenu />
         </div>
         <ShellHeaderActions />
@@ -284,7 +307,7 @@ function AppShellContent() {
           aria-expanded={moreOpen}
           className="group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-text-muted"
         >
-          <span className="flex h-7 w-12 items-center justify-center rounded-full group-active:bg-bg-subtle">
+          <span className="flex h-8 w-14 items-center justify-center rounded-full group-active:bg-bg-subtle">
             <MoreHorizontal className="size-5" aria-hidden />
           </span>
           <span>Más</span>

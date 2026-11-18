@@ -10,6 +10,7 @@ import { PROJECT_STATUS_LABELS } from "@client/features/projects/projectDisplay"
 import { useReviewSummary } from "./useReview";
 import type { ReviewPeriod } from "@shared/schemas/review";
 import { PageHeader } from "@client/components/ui/PageHeader";
+import { sectionHeader } from "@client/app/navigation";
 
 const PERIOD_OPTIONS: { value: ReviewPeriod; label: string }[] = [
   { value: "week", label: "Esta semana" },
@@ -46,6 +47,7 @@ export function ReviewPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader
+        {...sectionHeader("/review")}
         title="Revisión"
         description={
           summary ? `${summary.startDate} → ${summary.endDate}` : "Resumen agregado de tu actividad."

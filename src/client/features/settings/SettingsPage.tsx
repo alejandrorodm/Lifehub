@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@client/components/ui/EmptyState";
 import { PageHeader } from "@client/components/ui/PageHeader";
+import { sectionHeader } from "@client/app/navigation";
 
 const WIPE_CONFIRM_PHRASE = "BORRAR TODO";
 
@@ -647,6 +648,7 @@ export function SettingsPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader
+        {...sectionHeader("/settings")}
         title="Ajustes"
         description="Apariencia, preferencias, navegación, integraciones y datos."
       />
