@@ -19,6 +19,7 @@
 | 18  | Finanzas completas: gastos, presupuestos, metas y gráficas | ✅ Implementada (rama `feat/finance-budgets`) |
 | 19  | Mejoras de UI: gasto rápido, iconos, widget de finanzas, barra móvil configurable, cabeceras | ✅ Implementada (rama `feat/ui-improvements`) |
 | 20  | UI móvil "neutro sobrio" y listas de la compra             | ✅ Implementada (rama `feat/mobile-redesign-shopping`) |
+| 21  | Rediseño "cálido y amable": color por sección, menú "Crear" e inicio con accesos | ✅ Implementada (rama `feat/warm-redesign`) |
 
 ## Situación inicial
 
@@ -877,3 +878,20 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 **Probado:** `npm run typecheck` y `npm run lint` sin errores; `npm test` 396/396; `npm run test:e2e` 84 pasan y 1 fallo intermitente de temporización en `shell.spec.ts` (atajo pulsado antes de hidratar), corregido con reintento y verificado (6/6 del spec). Capturas revisadas en Mobile y Desktop, temas claro y oscuro.
 
 **Pendiente:** sin desplegar ni push. La barra inferior de cada perfil no cambia sola: "Compra" se puede fijar en Ajustes → Navegación. Pestañas del detalle de proyecto siguen con su estilo propio.
+
+## Fase 21 — Rediseño "cálido y amable" e intuitivo (rama `feat/warm-redesign`, 2026-11-18)
+
+**Nota sobre el alcance:** pedido por el usuario ("Rediseña completamente la aplicación para que sea atractiva y muy intuitiva para el usuario y poder realizar todas las tareas de manera sencilla"). Dirección visual elegida por el usuario: "Cálido y amable", que sustituye a "Neutro sobrio". Detalle en `odd/tasks/fase-21-rediseno-calido.md`.
+
+**Implementado:**
+
+- Sistema visual: neutros cálidos (crema y arena), acento terracota, tema oscuro marrón cálido, radios mayores, sombras suaves con tinte cálido, botones en píldora. Contrastes AA comprobados en ambos temas. Color de la barra del sistema y del manifiesto actualizados.
+- Color por sección (13 secciones) como tokens `--color-section-*`, con `SectionIcon` y `SECTION_TONE`; se usa en la barra lateral, la barra inferior (indicador activo del color de la sección), el menú "Más" (baldosas) y la cabecera de cada pantalla (`sectionHeader`).
+- Menú **"Crear"** siempre a mano (barra superior en móvil, barra lateral en escritorio): tarea, movimiento, compra, nota, evento, hábito e idea rápida al inbox. Reutiliza la acción "nueva" que cada pantalla ya registraba para la tecla N (`startNew`), sin duplicar formularios; oculta las acciones de secciones ocultas. Finanzas registra ahora su acción "nueva" (la tecla N abre "Nuevo movimiento") y Compra acepta `?add=1` (abre la primera lista con el campo de alta enfocado).
+- Inicio: saludo destacado, accesos rápidos de color con contador (tareas pendientes, inbox sin procesar, hábitos hechos hoy, artículos por comprar; se sustituyen por otras secciones si alguna está oculta), widgets con icono de sección y enlace "Ver todo", margen lateral de 16 px en móvil (antes 24 px).
+- Skill `lifehub-ui` actualizada con la nueva dirección.
+
+**Probado:** `npm run typecheck` y `npm run lint` sin errores; `npm test` 401/401 (5 nuevos: acciones de "Crear" y `startNew`); `npm run test:e2e` 86/86 (incluido axe). Capturas revisadas en Mobile y Desktop, temas claro y oscuro (inicio, tareas, finanzas, compra, hábitos, ajustes y menú "Crear").
+
+**Pendiente:** sin desplegar ni push. Finanzas en móvil tiene tres accesos a "añadir movimiento" (Crear, botón de cabecera y botón flotante), anterior a esta fase; se podría simplificar.
+

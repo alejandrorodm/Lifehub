@@ -3,26 +3,36 @@ name: lifehub-ui
 description: LifeHub mobile-first UI rules and design tokens. Trigger: any change under src/client (pages, components, styles), new screens, or UI/UX polish in LifeHub.
 ---
 
-# LifeHub UI — mobile-first, sober neutral
+# LifeHub UI — mobile-first, warm and friendly
 
 Read `AGENTS.md` (UI and accessibility rules) first; this skill adds the visual
-direction chosen by the user on 2026-11-04 ("Neutro sobrio") and the mobile
-ergonomics every screen must meet. For broader aesthetic guidance see the
-`frontend-design` skill, but this brief wins where they differ: LifeHub is a
-quiet daily tool, not a marketing page.
+direction chosen by the user on 2026-11-18 ("Cálido y amable", phase 21, which
+replaced "Neutro sobrio") and the mobile ergonomics every screen must meet. For
+broader aesthetic guidance see the `frontend-design` skill, but this brief wins
+where they differ: LifeHub is a friendly daily tool, not a marketing page.
 
 ## Visual direction
 
-- One family: Inter Variable for everything, headings included (semibold,
-  tight tracking). No serif display, no decorative gradients, no emoji icons.
-- Cool, near-monochrome greys (`--color-bg`, `--color-bg-subtle`,
-  `--color-border`) plus a single restrained indigo accent. Colour carries
-  meaning (state, priority, chart series), never decoration.
-- Hierarchy through spacing and weight, not boxes. Prefer plain lists separated
-  by hairline dividers over rows of identical cards. Use `Card` only for a real
-  group (a widget, a form section).
+- One family: Inter Variable for everything; headings bold with tight tracking.
+  No serif display, no decorative gradients, no emoji icons.
+- Warm neutrals (cream `--color-bg`, sand `--color-bg-subtle`) and a terracotta
+  accent for the primary action. Dark theme is warm brown, never blue-grey.
+- Every section has its own colour (`--color-section-<id>` and `-soft`). Use it
+  through `SectionIcon` and `SECTION_TONE` (`components/ui/sectionTone.ts`) for
+  navigation, page headers (`<PageHeader {...sectionHeader("/tasks")} />`) and
+  home widgets. Never invent a colour for a section outside the tokens.
+- Surfaces: `Card` and widgets are soft white with `shadow-sm` and large radii
+  (12-24 px); buttons are pills. Lists inside a surface use hairline dividers.
 - Sentence case everywhere; no ALL-CAPS labels; no `→` appended to buttons.
 - UI copy in Spanish, code and identifiers in English.
+- New text colours must keep AA (4.5:1) on `bg`, `bg-elevated` and their soft tone.
+
+## Creating things
+
+- "Crear" (top bar on mobile, sidebar on desktop) opens `CreateMenu`. Actions are
+  declared in `app/shortcuts/createActions.ts`. A screen that can create
+  something registers it with `useRegisterNewHandler`; the menu reuses that same
+  handler through `startNew(path)`, so never duplicate the form logic.
 
 ## Tokens and primitives (never hard-code values)
 
@@ -31,7 +41,7 @@ quiet daily tool, not a marketing page.
   (`bg-bg-elevated`, `text-text-muted`, `border-border`, `rounded-md`...).
 - Build with `src/client/components/ui/*`: `Button`, `IconButton`, `Input`,
   `Select`, `Dialog`, `Sheet`, `PageHeader`, `PageTabs`, `EmptyState`,
-  `Skeleton`, `Card`, `Toast`. Extend a primitive instead of restyling it ad hoc.
+  `Skeleton`, `Card`, `Toast`, `SectionIcon`. Extend a primitive instead of restyling it ad hoc.
 - Icons: `lucide-react` only, `aria-hidden` when next to text, `aria-label` on
   icon-only buttons.
 
