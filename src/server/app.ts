@@ -27,6 +27,7 @@ import { githubRoutes } from "./modules/github/routes";
 import { reviewRoutes } from "./modules/review/routes";
 import { marketsRoutes } from "./modules/markets/routes";
 import { mcpRoutes } from "./modules/mcp/routes";
+import { agentRunnerRoutes, agentsRoutes } from "./modules/agents/routes";
 import { mcpTokenRoutes } from "./modules/mcp/tokenRoutes";
 import { config } from "./config";
 
@@ -75,12 +76,16 @@ export function createApp(): Hono {
     .route("/finance", financeRoutes)
     .route("/review", reviewRoutes)
     .route("/markets", marketsRoutes)
-    .route("/mcp/tokens", mcpTokenRoutes);
+    .route("/mcp/tokens", mcpTokenRoutes)
+    .route("/agents", agentsRoutes);
 
   app.route("/api", api);
 
   // Servidor MCP para clientes de IA externos (token propio, no cookie de sesión).
   app.route("/mcp", mcpRoutes);
+
+  // Ejecutor de agentes de Claude en el PC del usuario (token propio, no cookie de sesión).
+  app.route("/runner", agentRunnerRoutes);
 
   // Digital Asset Links: verifica ante Android que la APK (TWA, ver
   // deploy/android/) y este dominio son del mismo dueño, para que la app

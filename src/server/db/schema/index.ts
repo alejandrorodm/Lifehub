@@ -12,3 +12,4 @@ export * from "./mcp";
 export * from "./finance";
 export * from "./markets";
 export * from "./shopping";
+export * from "./agents";
