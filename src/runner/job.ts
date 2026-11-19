@@ -10,7 +10,7 @@ import { branchName, buildPrompt, isPrOfRepo, RESULT_FILE, tail, type AgentResul
 export type SessionState = "busy" | "idle" | "missing";
 
 export interface StartSessionOptions {
-  sessionId: string;
+  /** Único por trabajo: con él se localiza la sesión en `claude agents`. */
   name: string;
   prompt: string;
   cwd: string;
@@ -37,7 +37,8 @@ export interface RunnerDeps {
     prepareDetached(worktree: string, baseBranch: string): Promise<void>;
   };
   claude: {
-    start(options: StartSessionOptions): Promise<void>;
+    /** Arranca la sesión en segundo plano y devuelve el id que le dio Claude (`claude --bg` no acepta uno propio). */
+    start(options: StartSessionOptions): Promise<string>;
     status(sessionId: string): Promise<SessionState>;
     stop(sessionId: string): Promise<void>;
   };
@@ -49,7 +50,6 @@ export interface RunnerDeps {
   shell(command: string, cwd: string, timeoutMs: number): Promise<{ ok: boolean; output: string }>;
   gh: { merge(prUrl: string, cwd: string): Promise<void> };
   clock: { now(): number; sleep(ms: number): Promise<void> };
-  newSessionId(): string;
   log(message: string): void;
 }
 
@@ -84,6 +84,14 @@ function withRetries(deps: RunnerDeps): RunnerDeps["api"] {
     reportJob: (jobId, body) => retry(`Informe «${body.status}»`, () => deps.api.reportJob(jobId, body)),
     reportDeploy: (runId, body) => retry("Informe de despliegue", () => deps.api.reportDeploy(runId, body)),
   };
+}
+
+/** Nombre visible de la sesión; el sufijo con el id del trabajo lo hace único. */
+function sessionName(claim: JobClaim): string {
+  const prefix = `LifeHub ${claim.job.position + 1}/${claim.job.total}: `;
+  const suffix = ` [${claim.job.id.slice(-6)}]`;
+  const title = claim.task.title.length > 60 ? `${claim.task.title.slice(0, 59)}…` : claim.task.title;
+  return `${prefix}${title}${suffix}`;
 }
 
 function notConfigured(repo: string): string {
@@ -136,14 +144,10 @@ async function implement(
     return;
   }
 
-  const sessionId = deps.newSessionId();
-  const ack = await deps.api.reportJob(jobId, { status: "running", sessionId, branch });
-  if (ack.runStatus === "cancelled") return;
-
+  let sessionId: string;
   try {
-    await deps.claude.start({
-      sessionId,
-      name: `LifeHub ${claim.job.position + 1}/${claim.job.total}: ${claim.task.title}`.slice(0, 80),
+    sessionId = await deps.claude.start({
+      name: sessionName(claim),
       prompt: buildPrompt({
         task: claim.task,
         repo: claim.run.repo,
@@ -161,6 +165,12 @@ async function implement(
     });
   } catch (error) {
     await fail(`No se pudo arrancar la sesión de Claude: ${messageOf(error)}`);
+    return;
+  }
+
+  const ack = await deps.api.reportJob(jobId, { status: "running", sessionId, branch });
+  if (ack.runStatus === "cancelled") {
+    await deps.claude.stop(sessionId).catch(() => {});
     return;
   }
 

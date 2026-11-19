@@ -16,7 +16,7 @@ const config = parseRunnerConfig(
   { LIFEHUB_RUNNER_TOKEN: "lhr_x" },
 );
 
-const SESSION = "11111111-2222-4333-8444-555555555555";
+const SESSION = "c74cb9be";
 
 function claim(repo = "me/app"): Extract<AgentClaimDto, { kind: "job" }> {
   return {
@@ -91,7 +91,8 @@ function fakeDeps(options: FakeOptions = {}) {
     },
     claude: {
       async start(opts) {
-        calls.push(`start ${opts.sessionId} ${opts.cwd} ${opts.permissionMode}`);
+        calls.push(`start ${opts.cwd} ${opts.permissionMode} ${opts.name}`);
+        return SESSION;
       },
       async status() {
         if (options.statusErrorsAt?.includes(polls - 1)) throw new Error("claude agents: EAGAIN");
@@ -131,7 +132,6 @@ function fakeDeps(options: FakeOptions = {}) {
         now += ms;
       },
     },
-    newSessionId: () => SESSION,
     log: () => {},
   };
   return { deps, calls, reports, shellTimeouts };
@@ -148,7 +148,7 @@ describe("runJob", () => {
     expect(calls).toEqual([
       `prepareBranch ${worktree} main agent/1-do-it-abcdef`,
       "clearResult",
-      `start ${SESSION} ${worktree} auto`,
+      `start ${worktree} auto LifeHub 1/1: Do it [abcdef]`,
       `discardUncommitted ${worktree}`,
       `shell npm test @ ${worktree}`,
       "merge https://github.com/me/app/pull/9",
@@ -224,11 +224,21 @@ describe("runJob", () => {
     expect(reports.at(-1)!.body).toMatchObject({ status: "failed", error: expect.stringMatching(/1 min/) });
   });
 
-  it("stops the session as soon as the run is cancelled in LifeHub", async () => {
+  it("reports the id Claude gave the session, and stops it if the run was cancelled meanwhile", async () => {
     const { deps, calls, reports } = fakeDeps({ runStatus: "cancelled" });
     await runJob(claim(), config, deps);
-    expect(calls.some((c) => c.startsWith("start"))).toBe(false);
-    expect(statuses(reports)).toEqual(["running"]);
+    expect(reports).toEqual([
+      { id: "job-abcdef", body: { status: "running", sessionId: SESSION, branch: "agent/1-do-it-abcdef" } },
+    ]);
+    expect(calls).toContain(`stop ${SESSION}`);
+  });
+
+  it("gives every session a unique, readable name (it is how the runner finds its id)", async () => {
+    const { deps, calls } = fakeDeps({ resultAt: 0 });
+    await runJob({ ...claim(), task: { ...claim().task, title: "x".repeat(200) } }, config, deps);
+    const start = calls.find((c) => c.startsWith("start"))!;
+    expect(start).toMatch(/\[abcdef\]$/);
+    expect(start.length).toBeLessThan(140);
   });
 
   it("refuses a repo that is not in the runner's own config, without touching git", async () => {

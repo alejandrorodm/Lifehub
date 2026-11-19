@@ -1,5 +1,4 @@
 import { execFile, spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -24,15 +23,21 @@ async function run(command: string, args: string[], cwd?: string): Promise<strin
 
 const git = (cwd: string, ...args: string[]) => run("git", args, cwd);
 
-/** Que el resultado del agente no aparezca nunca como cambio en git (sirve a todos los worktrees del repo). */
+/**
+ * Lo que nunca debe aparecer como cambio en git (sirve a todos los worktrees del repo):
+ * el resultado del agente y `.atl/`, que crean herramientas locales al abrir Claude.
+ */
+const EXCLUDED_PATHS = [`/${path.dirname(RESULT_FILE)}/`, "/.atl/"];
+
 export async function excludeResultFile(worktree: string): Promise<void> {
   const commonDir = path.resolve(worktree, await git(worktree, "rev-parse", "--git-common-dir"));
   const excludeFile = path.join(commonDir, "info", "exclude");
-  const entry = `/${path.dirname(RESULT_FILE)}/`;
-  const current = await fs.readFile(excludeFile, "utf8").catch(() => "");
-  if (current.split("\n").includes(entry)) return;
+  let current = await fs.readFile(excludeFile, "utf8").catch(() => "");
+  const missing = EXCLUDED_PATHS.filter((entry) => !current.split("\n").includes(entry));
+  if (missing.length === 0) return;
   await fs.mkdir(path.dirname(excludeFile), { recursive: true });
-  await fs.appendFile(excludeFile, `${current.endsWith("\n") || current === "" ? "" : "\n"}${entry}\n`);
+  if (current !== "" && !current.endsWith("\n")) current += "\n";
+  await fs.writeFile(excludeFile, `${current}${missing.join("\n")}\n`);
 }
 
 /** Si el usuario ya aceptó la confianza de Claude Code en esa carpeta (las sesiones `--bg` la exigen). */
@@ -48,7 +53,11 @@ export async function isTrustedByClaude(dir: string): Promise<boolean> {
 }
 
 interface ClaudeSessionInfo {
-  sessionId?: string;
+  /** Id corto: el que aceptan `claude attach`, `logs` y `stop`. */
+  id?: string;
+  name?: string;
+  cwd?: string;
+  startedAt?: number;
   status?: string;
 }
 
@@ -56,8 +65,8 @@ async function listClaudeSessions(): Promise<ClaudeSessionInfo[]> {
   return JSON.parse(await run("claude", ["agents", "--json", "--all"])) as ClaudeSessionInfo[];
 }
 
-async function claudeStatus(sessionId: string): Promise<SessionState> {
-  const session = (await listClaudeSessions()).find((s) => s.sessionId === sessionId);
+async function claudeStatus(id: string): Promise<SessionState> {
+  const session = (await listClaudeSessions()).find((s) => s.id === id);
   if (!session) return "missing";
   if (session.status === "busy") return "busy";
   if (session.status === "idle") return "idle";
@@ -135,8 +144,6 @@ export function createSystem(config: RunnerConfig): { deps: RunnerDeps; api: Run
       async start(options) {
         const args = [
           "--bg",
-          "--session-id",
-          options.sessionId,
           "--name",
           options.name,
           "--permission-mode",
@@ -145,11 +152,15 @@ export function createSystem(config: RunnerConfig): { deps: RunnerDeps; api: Run
           options.prompt,
         ];
         const output = await run("claude", args, options.cwd).catch((error: Error) => error.message);
-        // `--bg` vuelve enseguida: se confirma que la sesión existe (p. ej. falla si la carpeta no es de confianza).
+        // `--bg` vuelve enseguida y no admite un id propio: se busca la sesión por su nombre (único por trabajo).
         for (let attempt = 0; attempt < 15; attempt++) {
-          if ((await claudeStatus(options.sessionId)) !== "missing") return;
+          const session = (await listClaudeSessions())
+            .filter((s) => s.name === options.name && s.cwd === options.cwd && s.id)
+            .sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0))[0];
+          if (session?.id) return session.id;
           await sleep(1000);
         }
+        // P. ej. "Workspace not trusted": el mensaje de Claude explica el motivo.
         throw new Error(output || "La sesión no apareció en `claude agents`.");
       },
       status: claudeStatus,
@@ -208,7 +219,6 @@ export function createSystem(config: RunnerConfig): { deps: RunnerDeps; api: Run
       },
     },
     clock: { now: () => Date.now(), sleep },
-    newSessionId: () => randomUUID(),
     log: (message) => console.log(`[${new Date().toISOString()}] ${message}`),
   };
 

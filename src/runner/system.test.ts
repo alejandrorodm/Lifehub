@@ -70,6 +70,10 @@ describe("git del ejecutor (repo real)", () => {
     await excludeResultFile(worktree);
     const exclude = fs.readFileSync(path.join(clone, ".git", "info", "exclude"), "utf8");
     expect(exclude.split("\n").filter((line) => line === "/.lifehub-agent/")).toHaveLength(1);
+    // `.atl/` lo crean herramientas locales al abrir Claude en el worktree: nunca debe acabar en una PR.
+    expect(exclude.split("\n").filter((line) => line === "/.atl/")).toHaveLength(1);
+    fs.mkdirSync(path.join(worktree, ".atl"), { recursive: true });
+    fs.writeFileSync(path.join(worktree, ".atl", "skill-registry.md"), "x");
 
     fs.mkdirSync(path.join(worktree, ".lifehub-agent"), { recursive: true });
     fs.writeFileSync(path.join(worktree, RESULT_FILE), "{}");

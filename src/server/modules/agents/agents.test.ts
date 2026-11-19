@@ -157,6 +157,27 @@ describe("validación de entradas", () => {
   });
 });
 
+describe("id de sesión", () => {
+  it("accepts the short id Claude gives background sessions and rejects anything shell-like", async () => {
+    const token = await setup();
+    addTask(USER_A, "First", 0);
+    await ui(cookieA, "POST", "/runs", { googleTaskListId: LIST });
+    const step = await claim(token);
+    if (step.kind !== "job") throw new Error("expected a job");
+    for (const sessionId of ["$(rm -rf ~)", "a b", "x".repeat(65)]) {
+      const res = await runner(token, "PATCH", `/jobs/${step.job.id}`, { status: "running", sessionId });
+      expect(res.status, sessionId).toBe(400);
+    }
+    const ok = await runner(token, "PATCH", `/jobs/${step.job.id}`, {
+      status: "running",
+      sessionId: "c74cb9be",
+    });
+    expect(ok.status).toBe(200);
+    const [run] = await getRuns();
+    expect(run!.jobs[0]!.sessionId).toBe("c74cb9be");
+  });
+});
+
 describe("crear una ejecución", () => {
   it("needs a linked list with pending tasks", async () => {
     expect((await ui(cookieA, "POST", "/runs", { googleTaskListId: LIST })).status).toBe(400);

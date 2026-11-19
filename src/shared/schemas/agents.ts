@@ -126,7 +126,11 @@ export type AgentClaimDto =
 /** Lo que el ejecutor puede decir de un trabajo. `queued`, `skipped` y `cancelled` los decide el servidor. */
 export const AgentJobReportSchema = z.object({
   status: z.enum(["running", "waiting", "checking", "merged", "failed"]),
-  sessionId: z.string().uuid().optional(),
+  /** Id que `claude --bg` da a la sesión (el que aceptan `claude attach`, `logs` y `stop`). */
+  sessionId: z
+    .string()
+    .regex(/^[A-Za-z0-9][A-Za-z0-9-]{3,63}$/, "Id de sesión no válido.")
+    .optional(),
   branch: z.string().trim().min(1).max(200).optional(),
   prUrl: GithubPullUrlSchema.optional(),
   error: z.string().max(2000).optional(),
