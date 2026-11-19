@@ -55,6 +55,7 @@ export const agentRunnerRoutes = new Hono()
     if (!principal) throw AppError.unauthorized("Token de ejecutor no válido o revocado.");
     return runWithUserId(principal.userId, next);
   })
+  .post("/reset", (c) => c.json(service.resetInterrupted()))
   .post("/claim", (c) => c.json(service.claimNext()))
   .patch("/jobs/:id", async (c) => {
     const body = parseOrThrow(AgentJobReportSchema, await readJson(c));

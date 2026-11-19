@@ -11,7 +11,7 @@ export type RunStep =
 /**
  * Qué toca hacer a continuación en una ejecución. Las tareas van de una en una
  * y en orden (cada una parte del código con la anterior ya fusionada), y el
- * despliegue solo llega cuando todas están fusionadas.
+ * despliegue solo llega cuando todas están fusionadas (o saltadas por estar ya hechas).
  */
 export function nextRunStep(runStatus: AgentRunStatus, jobs: readonly { status: AgentJobStatus }[]): RunStep {
   if (FINISHED_RUN_STATUSES.includes(runStatus)) return { kind: "done" };
@@ -21,7 +21,9 @@ export function nextRunStep(runStatus: AgentRunStatus, jobs: readonly { status: 
   const queued = jobs.findIndex((job) => job.status === "queued");
   if (queued !== -1) return { kind: "job", index: queued };
 
-  if (jobs.length > 0 && jobs.every((job) => job.status === "merged")) return { kind: "deploy" };
+  // Las tareas saltadas se completaron a mano antes de su turno: no impiden desplegar lo fusionado.
+  const allSettled = jobs.every((job) => job.status === "merged" || job.status === "skipped");
+  if (allSettled && jobs.some((job) => job.status === "merged")) return { kind: "deploy" };
   return { kind: "done" };
 }
 

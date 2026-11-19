@@ -4,7 +4,20 @@ import { z } from "zod";
 export const GithubRepoSchema = z
   .string()
   .trim()
-  .regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/, "Usa el formato propietario/repositorio.");
+  .regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/, "Usa el formato propietario/repositorio.")
+  .refine(
+    (value) => value.split("/").every((segment) => segment !== "." && segment !== ".."),
+    "Usa el formato propietario/repositorio.",
+  );
+
+/** URL de una pull request de GitHub (lo único que el ejecutor puede guardar como enlace). */
+export const GithubPullUrlSchema = z
+  .string()
+  .max(500)
+  .regex(
+    /^https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/pull\/\d+$/,
+    "Debe ser la URL de una pull request de GitHub.",
+  );
 
 export const AGENT_RUN_STATUSES = [
   "queued",
@@ -115,7 +128,7 @@ export const AgentJobReportSchema = z.object({
   status: z.enum(["running", "waiting", "checking", "merged", "failed"]),
   sessionId: z.string().uuid().optional(),
   branch: z.string().trim().min(1).max(200).optional(),
-  prUrl: z.string().url().max(500).optional(),
+  prUrl: GithubPullUrlSchema.optional(),
   error: z.string().max(2000).optional(),
 });
 export type AgentJobReportInput = z.infer<typeof AgentJobReportSchema>;

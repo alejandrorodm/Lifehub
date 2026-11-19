@@ -341,28 +341,31 @@ export function reportJob(jobId: string, input: AgentJobReportInput): AgentRepor
 
   const now = new Date();
   const finished = input.status === "merged" || input.status === "failed";
-  db.update(agentJobs)
-    .set({
-      status: input.status,
-      ...(input.sessionId !== undefined && { sessionId: input.sessionId }),
-      ...(input.branch !== undefined && { branch: input.branch }),
-      ...(input.prUrl !== undefined && { prUrl: input.prUrl }),
-      ...(input.error !== undefined && { error: input.error }),
-      ...(finished && { finishedAt: now }),
-    })
-    .where(eq(agentJobs.id, job.id))
-    .run();
+  db.transaction(() => {
+    db.update(agentJobs)
+      .set({
+        status: input.status,
+        ...(input.sessionId !== undefined && { sessionId: input.sessionId }),
+        ...(input.branch !== undefined && { branch: input.branch }),
+        ...(input.prUrl !== undefined && { prUrl: input.prUrl }),
+        ...(input.error !== undefined && { error: input.error }),
+        ...(finished && { finishedAt: now }),
+      })
+      .where(eq(agentJobs.id, job.id))
+      .run();
 
-  if (input.status === "merged" && job.taskId) {
-    // Misma ruta que marcar la tarea a mano: respeta la recurrencia y sincroniza con Google Tasks.
-    try {
-      if (tasksService.getTask(job.taskId).status !== "done") {
-        tasksService.updateTask(job.taskId, { status: "done" });
+    if (input.status === "merged" && job.taskId) {
+      // Misma ruta que marcar la tarea a mano: respeta la recurrencia y sincroniza con Google Tasks.
+      // En la misma transacción: o queda fusionado y completada, o ninguna de las dos.
+      try {
+        if (tasksService.getTask(job.taskId).status !== "done") {
+          tasksService.updateTask(job.taskId, { status: "done" });
+        }
+      } catch (error) {
+        if (!(error instanceof AppError && error.code === "NOT_FOUND")) throw error;
       }
-    } catch (error) {
-      if (!(error instanceof AppError && error.code === "NOT_FOUND")) throw error;
     }
-  }
+  });
 
   if (input.status === "failed") {
     db.transaction((tx) => {
@@ -399,4 +402,58 @@ export function reportDeploy(runId: string, input: AgentDeployReportInput): Agen
     .where(eq(agentRuns.id, run.id))
     .run();
   return { runStatus: input.status };
+}
+
+/**
+ * El ejecutor acaba de arrancar: ningún trabajo suyo puede seguir vivo. Los que
+ * quedaron a medias (se reinició el PC o el servicio) se marcan como fallidos,
+ * para que la ejecución no se quede bloqueada para siempre. Su sesión de Claude
+ * puede seguir existiendo; el usuario puede conectarse a ella y terminarla.
+ */
+export function resetInterrupted(): { reset: number } {
+  const db = getDb();
+  const userId = getCurrentUserId();
+  const now = new Date();
+  return db.transaction(() => {
+    const stuckJobs = db
+      .select()
+      .from(agentJobs)
+      .where(and(eq(agentJobs.userId, userId), inArray(agentJobs.status, ACTIVE_JOB_STATUSES)))
+      .all();
+    const deploying = db
+      .select()
+      .from(agentRuns)
+      .where(and(eq(agentRuns.userId, userId), eq(agentRuns.status, "deploying")))
+      .all();
+
+    for (const job of stuckJobs) {
+      db.update(agentJobs)
+        .set({
+          status: "failed",
+          finishedAt: now,
+          error: "El ejecutor se reinició mientras trabajaba en ella.",
+        })
+        .where(eq(agentJobs.id, job.id))
+        .run();
+      db.update(agentRuns)
+        .set({
+          status: "failed",
+          finishedAt: now,
+          error: `El ejecutor se reinició durante «${job.taskTitle}».`,
+        })
+        .where(eq(agentRuns.id, job.runId))
+        .run();
+      db.update(agentJobs)
+        .set({ status: "skipped", finishedAt: now })
+        .where(and(eq(agentJobs.runId, job.runId), eq(agentJobs.status, "queued")))
+        .run();
+    }
+    for (const run of deploying) {
+      db.update(agentRuns)
+        .set({ status: "failed", finishedAt: now, error: "El ejecutor se reinició durante el despliegue." })
+        .where(eq(agentRuns.id, run.id))
+        .run();
+    }
+    return { reset: stuckJobs.length + deploying.length };
+  });
 }

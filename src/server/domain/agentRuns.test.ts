@@ -27,6 +27,11 @@ describe("nextRunStep", () => {
     }
   });
 
+  it("deploys when some jobs merged and the rest were skipped (completed by hand)", () => {
+    expect(nextRunStep("running", jobs("merged", "skipped", "merged"))).toEqual({ kind: "deploy" });
+    expect(nextRunStep("running", jobs("skipped", "skipped"))).toEqual({ kind: "done" });
+  });
+
   it("never deploys after a failed job", () => {
     expect(nextRunStep("running", jobs("merged", "failed", "skipped"))).toEqual({ kind: "done" });
   });

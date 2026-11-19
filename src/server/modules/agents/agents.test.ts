@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { Hono } from "hono";
+import { eq } from "drizzle-orm";
 import type { AgentClaimDto, AgentRunDto } from "@shared/schemas/agents";
 
 // LIFEHUB_DATA_DIR debe fijarse antes de importar módulos que lean la configuración.
@@ -78,6 +79,8 @@ function addTask(
   return task.id;
 }
 
+const eqId = (id: string) => eq(schema.tasks.id, id);
+
 function ui(cookie: string, method: string, url: string, body?: unknown) {
   return app.request(`/api/agents${url}`, {
     method,
@@ -126,6 +129,31 @@ describe("enlaces lista ↔ repo", () => {
       { googleTaskListId: LIST, listTitle: "L", repo: "me/two" },
     ]);
     expect(await (await ui(cookieB, "GET", "/links")).json()).toEqual([]);
+  });
+});
+
+describe("validación de entradas", () => {
+  it("rejects repo names with dot segments", async () => {
+    for (const repo of ["../x", "me/..", "./x", "me/."]) {
+      const res = await ui(cookieA, "PUT", `/links/${LIST}`, { listTitle: "L", repo });
+      expect(res.status, repo).toBe(400);
+    }
+  });
+
+  it("only accepts GitHub pull request URLs from the runner", async () => {
+    const token = await setup();
+    addTask(USER_A, "First", 0);
+    await ui(cookieA, "POST", "/runs", { googleTaskListId: LIST });
+    const step = await claim(token);
+    if (step.kind !== "job") throw new Error("expected a job");
+    for (const prUrl of [
+      "javascript:alert(1)",
+      "https://evil.example/me/x/pull/1",
+      "http://github.com/me/x/pull/1",
+    ]) {
+      const res = await runner(token, "PATCH", `/jobs/${step.job.id}`, { status: "checking", prUrl });
+      expect(res.status, prUrl).toBe(400);
+    }
   });
 });
 
@@ -194,6 +222,51 @@ describe("API del ejecutor", () => {
     expect(runA!.status).toBe("queued");
     expect(runA!.jobs.map((job) => job.status)).toEqual(["queued"]);
     expect(await getRuns(cookieB)).toEqual([]);
+  });
+
+  it("cannot report on another profile's job", async () => {
+    const tokenA = await setup(cookieA);
+    addTask(USER_A, "A's task", 0);
+    await ui(cookieA, "POST", "/runs", { googleTaskListId: LIST });
+    const step = await claim(tokenA);
+    if (step.kind !== "job") throw new Error("expected a job");
+    const tokenB = await setup(cookieB);
+
+    expect((await runner(tokenB, "PATCH", `/jobs/${step.job.id}`, { status: "merged" })).status).toBe(404);
+    const [runA] = await getRuns(cookieA);
+    expect(runA!.jobs[0]!.status).toBe("running");
+  });
+
+  it("deploys after merging the tasks that were left once others were completed by hand", async () => {
+    const token = await setup();
+    addTask(USER_A, "First", 0);
+    const second = addTask(USER_A, "Second", 1);
+    await ui(cookieA, "POST", "/runs", { googleTaskListId: LIST });
+    const step = await claim(token);
+    if (step.kind !== "job") throw new Error("expected a job");
+    await runner(token, "PATCH", `/jobs/${step.job.id}`, {
+      status: "merged",
+      prUrl: "https://github.com/me/lifehub/pull/1",
+    });
+    getDb().update(schema.tasks).set({ status: "done" }).where(eqId(second)).run();
+
+    expect((await claim(token)).kind).toBe("deploy");
+  });
+
+  it("frees a run stuck on a job when the runner restarts", async () => {
+    const token = await setup();
+    addTask(USER_A, "First", 0);
+    addTask(USER_A, "Second", 1);
+    await ui(cookieA, "POST", "/runs", { googleTaskListId: LIST });
+    await claim(token);
+
+    const res = await runner(token, "POST", "/reset");
+    expect(await res.json()).toEqual({ reset: 1 });
+    const [run] = await getRuns();
+    expect(run!.status).toBe("failed");
+    expect(run!.error).toMatch(/reinici/);
+    expect(run!.jobs.map((job) => job.status)).toEqual(["failed", "skipped"]);
+    expect(await (await runner(token, "POST", "/reset")).json()).toEqual({ reset: 0 });
   });
 
   it("runs the tasks one at a time, marks each merged task done and then deploys once", async () => {
