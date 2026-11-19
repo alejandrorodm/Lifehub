@@ -15,11 +15,20 @@ const RepoConfigSchema = z.object({
 });
 
 const RunnerConfigFileSchema = z.object({
-  serverUrl: z.string().url(),
+  // El token viaja en cada petición: solo por https, salvo a esta misma máquina (pruebas locales).
+  serverUrl: z
+    .string()
+    .url()
+    .refine((value) => {
+      const url = new URL(value);
+      return url.protocol === "https:" || ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname);
+    }, "serverUrl debe usar https (salvo 127.0.0.1 o localhost)."),
   /** Carpeta de los worktrees (uno fijo por repo, en el que hay que confiar una vez con `claude`). */
   worktreesDir: AbsolutePath,
   pollSeconds: z.number().int().positive().default(15),
   sessionTimeoutMinutes: z.number().int().positive().default(180),
+  /** Tiempo máximo de las comprobaciones y del despliegue (se matan con todo lo que hayan lanzado). */
+  commandTimeoutMinutes: z.number().int().positive().default(30),
   // `bypassPermissions` queda fuera a propósito: el agente trabaja sin nadie mirando.
   permissionMode: z.enum(["auto", "acceptEdits"]).default("auto"),
   model: z.string().min(1).optional(),
@@ -48,7 +57,8 @@ export function parseRunnerConfig(raw: unknown, env: Record<string, string | und
   const file = RunnerConfigFileSchema.parse(raw);
   const repos: Record<string, RepoConfig> = {};
   for (const [repo, repoConfig] of Object.entries(file.repos)) {
-    repos[repo] = { ...repoConfig, worktree: path.join(file.worktreesDir, repo.replace("/", "-")) };
+    // `__` y no `-`: un propietario de GitHub no puede llevar `_`, así que dos repos nunca comparten carpeta.
+    repos[repo] = { ...repoConfig, worktree: path.join(file.worktreesDir, repo.replace("/", "__")) };
   }
   return { ...file, token, repos };
 }

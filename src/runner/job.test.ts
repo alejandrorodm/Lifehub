@@ -38,11 +38,17 @@ interface FakeOptions {
   runStatus?: AgentRunStatus;
   mergeError?: string;
   deployOk?: boolean;
+  /** Cuántas veces falla (error de red) el informe con ese estado antes de funcionar. */
+  reportFailures?: Partial<Record<string, number>>;
+  /** Sondeos en los que `claude agents` falla. */
+  statusErrorsAt?: number[];
+  headIsPushedThrows?: boolean;
 }
 
 function fakeDeps(options: FakeOptions = {}) {
   const calls: string[] = [];
   const reports: { id: string; body: Record<string, unknown> }[] = [];
+  const shellTimeouts: number[] = [];
   let polls = 0;
   let now = 0;
   const sessions = options.sessions ?? ["busy"];
@@ -50,8 +56,15 @@ function fakeDeps(options: FakeOptions = {}) {
   const deps: RunnerDeps = {
     api: {
       async reportJob(id, body) {
+        const pending = options.reportFailures?.[body.status] ?? 0;
+        if (pending > 0) {
+          options.reportFailures![body.status] = pending - 1;
+          throw new Error("fetch failed");
+        }
         reports.push({ id, body });
-        return { runStatus: options.runStatus ?? "running" };
+        return {
+          runStatus: typeof options.runStatus === "function" ? "running" : (options.runStatus ?? "running"),
+        };
       },
       async reportDeploy(id, body) {
         reports.push({ id, body });
@@ -63,7 +76,11 @@ function fakeDeps(options: FakeOptions = {}) {
         calls.push(`prepareBranch ${worktree} ${base} ${branch}`);
       },
       async headIsPushed() {
+        if (options.headIsPushedThrows) throw new Error("git se rompió");
         return options.pushed ?? true;
+      },
+      async discardUncommitted(worktree) {
+        calls.push(`discardUncommitted ${worktree}`);
       },
       async finishBranch(_worktree, _base, branch) {
         calls.push(`finishBranch ${branch}`);
@@ -77,6 +94,7 @@ function fakeDeps(options: FakeOptions = {}) {
         calls.push(`start ${opts.sessionId} ${opts.cwd} ${opts.permissionMode}`);
       },
       async status() {
+        if (options.statusErrorsAt?.includes(polls - 1)) throw new Error("claude agents: EAGAIN");
         // Estado de la sesión en el sondeo que acaba de leer el resultado.
         return sessions[Math.min(Math.max(polls - 1, 0), sessions.length - 1)]!;
       },
@@ -95,8 +113,9 @@ function fakeDeps(options: FakeOptions = {}) {
           : null;
       },
     },
-    async shell(command, cwd) {
+    async shell(command, cwd, timeoutMs) {
       calls.push(`shell ${command} @ ${cwd}`);
+      shellTimeouts.push(timeoutMs);
       const ok = command === "./deploy.sh" ? (options.deployOk ?? true) : (options.checksOk ?? true);
       return { ok, output: ok ? "fine" : "FAIL: 1 test failed" };
     },
@@ -115,7 +134,7 @@ function fakeDeps(options: FakeOptions = {}) {
     newSessionId: () => SESSION,
     log: () => {},
   };
-  return { deps, calls, reports };
+  return { deps, calls, reports, shellTimeouts };
 }
 
 const statuses = (reports: { body: Record<string, unknown> }[]) => reports.map((r) => r.body.status);
@@ -125,11 +144,12 @@ describe("runJob", () => {
     const { deps, calls, reports } = fakeDeps({ resultAt: 1 });
     await runJob(claim(), config, deps);
 
-    const worktree = "/w/me-app";
+    const worktree = "/w/me__app";
     expect(calls).toEqual([
       `prepareBranch ${worktree} main agent/1-do-it-abcdef`,
       "clearResult",
       `start ${SESSION} ${worktree} auto`,
+      `discardUncommitted ${worktree}`,
       `shell npm test @ ${worktree}`,
       "merge https://github.com/me/app/pull/9",
       `stop ${SESSION}`,
@@ -221,6 +241,66 @@ describe("runJob", () => {
   });
 });
 
+describe("runJob ante fallos (revisión)", () => {
+  it("never merges a PR from a different repo than the run's", async () => {
+    const { deps, calls, reports } = fakeDeps({
+      resultAt: 0,
+      result: { status: "done", prUrl: "https://github.com/someone/other/pull/1" },
+    });
+    await runJob(claim(), config, deps);
+    expect(calls.some((c) => c.startsWith("merge"))).toBe(false);
+    expect(reports.at(-1)!.body).toMatchObject({
+      status: "failed",
+      error: expect.stringContaining("me/app"),
+    });
+  });
+
+  it("stops the session when the run is cancelled while checking", async () => {
+    const { deps, calls } = fakeDeps({ resultAt: 0, runStatus: "cancelled" });
+    // El primer informe (running) ya devuelve cancelada: se comprueba el otro camino con un ack por estado.
+    let count = 0;
+    deps.api.reportJob = async () => ({ runStatus: count++ === 0 ? "running" : "cancelled" });
+    await runJob(claim(), config, deps);
+    expect(calls).toContain(`stop ${SESSION}`);
+    expect(calls.some((c) => c.startsWith("shell") || c.startsWith("merge"))).toBe(false);
+  });
+
+  it("runs the checks on exactly the committed tree (uncommitted leftovers discarded first)", async () => {
+    const { deps, calls } = fakeDeps({ resultAt: 0 });
+    await runJob(claim(), config, deps);
+    expect(calls.indexOf("discardUncommitted /w/me__app")).toBeLessThan(
+      calls.indexOf("shell npm test @ /w/me__app"),
+    );
+  });
+
+  it("gives local commands the configured time limit", async () => {
+    const { deps, shellTimeouts } = fakeDeps({ resultAt: 0 });
+    await runJob(claim(), config, deps);
+    expect(shellTimeouts).toEqual([30 * 60_000]);
+  });
+
+  it("survives a transient `claude agents` error and keeps watching the session", async () => {
+    const { deps, reports } = fakeDeps({ resultAt: 2, statusErrorsAt: [0] });
+    await runJob(claim(), config, deps);
+    expect(reports.at(-1)!.body.status).toBe("merged");
+  });
+
+  it("retries reports after network errors, including the merged one", async () => {
+    const { deps, reports } = fakeDeps({ resultAt: 1, reportFailures: { running: 2, merged: 3 } });
+    await runJob(claim(), config, deps);
+    expect(statuses(reports)).toEqual(["running", "running", "checking", "merged"]);
+  });
+
+  it("reports an unexpected error as a failure instead of abandoning the job", async () => {
+    const { deps, reports } = fakeDeps({ resultAt: 0, headIsPushedThrows: true });
+    await runJob(claim(), config, deps);
+    expect(reports.at(-1)!.body).toMatchObject({
+      status: "failed",
+      error: expect.stringContaining("git se rompió"),
+    });
+  });
+});
+
 describe("runDeploy", () => {
   const deployClaim: Extract<AgentClaimDto, { kind: "deploy" }> = {
     kind: "deploy",
@@ -230,7 +310,7 @@ describe("runDeploy", () => {
   it("deploys the up-to-date base branch with the command from the local config", async () => {
     const { deps, calls, reports } = fakeDeps();
     await runDeploy(deployClaim, config, deps);
-    expect(calls).toEqual(["prepareDetached /w/me-app main", "shell ./deploy.sh @ /w/me-app"]);
+    expect(calls).toEqual(["prepareDetached /w/me__app main", "shell ./deploy.sh @ /w/me__app"]);
     expect(reports).toEqual([{ id: "run-1", body: { status: "succeeded" } }]);
   });
 

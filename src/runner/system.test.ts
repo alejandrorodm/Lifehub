@@ -54,6 +54,17 @@ const { deps } = createSystem(
 );
 
 describe("git del ejecutor (repo real)", () => {
+  it("discards uncommitted changes and untracked files, keeping ignored ones", async () => {
+    fs.writeFileSync(path.join(worktree, "stray.txt"), "x");
+    fs.writeFileSync(path.join(worktree, "README.md"), "a medias\n");
+    fs.mkdirSync(path.join(worktree, "node_modules"), { recursive: true });
+    fs.writeFileSync(path.join(worktree, "node_modules", "keep.js"), "");
+    await deps.git.discardUncommitted(worktree);
+    expect(sh(worktree, "status", "--porcelain")).toBe("");
+    expect(fs.existsSync(path.join(worktree, "stray.txt"))).toBe(false);
+    expect(fs.existsSync(path.join(worktree, "node_modules", "keep.js"))).toBe(true);
+  });
+
   it("keeps the agent's result file out of git, once", async () => {
     await excludeResultFile(worktree);
     await excludeResultFile(worktree);
@@ -121,9 +132,17 @@ describe("git del ejecutor (repo real)", () => {
   });
 
   it("runs local commands and reports their exit status and output", async () => {
-    expect(await deps.shell("echo ok", worktree)).toEqual({ ok: true, output: "ok\n" });
-    const failed = await deps.shell("echo boom >&2; exit 3", worktree);
+    expect(await deps.shell("echo ok", worktree, 10_000)).toEqual({ ok: true, output: "ok\n" });
+    const failed = await deps.shell("echo boom >&2; exit 3", worktree, 10_000);
     expect(failed.ok).toBe(false);
     expect(failed.output).toContain("boom");
+  });
+
+  it("kills a local command that runs past its time limit, with everything it started", async () => {
+    const started = Date.now();
+    const result = await deps.shell("sleep 30 & sleep 30", worktree, 300);
+    expect(Date.now() - started).toBeLessThan(5_000);
+    expect(result.ok).toBe(false);
+    expect(result.output).toMatch(/Tiempo agotado/);
   });
 });

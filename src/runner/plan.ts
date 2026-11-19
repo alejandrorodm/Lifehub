@@ -78,6 +78,11 @@ export function parseAgentResult(text: string): AgentResult | null {
   return parsed.success ? parsed.data : null;
 }
 
+/** Si la PR es del repo de la ejecución: el agente no puede hacer que se fusione otra cosa. */
+export function isPrOfRepo(prUrl: string, repo: string): boolean {
+  return prUrl.toLowerCase().startsWith(`https://github.com/${repo.toLowerCase()}/pull/`);
+}
+
 /** Final de una salida larga, que es donde suelen estar los fallos de los tests. */
 export function tail(text: string, max: number): string {
   return text.length <= max ? text : `…${text.slice(-max)}`;

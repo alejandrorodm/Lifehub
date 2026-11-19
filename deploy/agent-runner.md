@@ -20,10 +20,12 @@ Botón "Implementar con Claude"
 1. Deja el worktree del repo en una rama nueva (`agent/<n>-<título>-<id>`) desde `origin/main` recién descargado.
 2. Lanza una sesión de Claude Code en segundo plano con el encargo: implementar con tests, pasar las comprobaciones, hacer commit y push, y abrir la PR. El agente no fusiona ni despliega.
 3. Mientras trabaja, LifeHub muestra el id de la sesión. Desde cualquier dispositivo: `ssh <tu-pc>` y luego `claude attach <id>`. Si Claude se queda esperando una respuesta tuya, LifeHub lo marca como "Esperándote".
-4. Cuando el agente termina, el ejecutor comprueba que el último commit está subido y **repite él mismo** las comprobaciones (`checkCommand`). Solo entonces fusiona la PR (squash, con `--match-head-commit`, para que GitHub no fusione otra cosa que lo comprobado). La tarea queda completada en LifeHub y en Google Tasks.
+4. Cuando el agente termina, el ejecutor comprueba varias cosas antes de fusionar. La PR tiene que ser del repo de la ejecución. Descarta lo que haya quedado sin commit y comprueba que el último commit está subido. Después **repite él mismo** las comprobaciones (`checkCommand`). Solo entonces fusiona la PR: squash, con `--match-head-commit`, para que GitHub no fusione otra cosa que lo comprobado. La tarea queda completada en LifeHub y en Google Tasks.
 5. Pasa a la siguiente tarea. Cuando están todas fusionadas, despliega `origin/main` con `deployCommand`.
 
-Si algo falla (las comprobaciones, la fusión, se agota el tiempo o Claude se declara bloqueado), la ejecución se detiene y la PR queda abierta. La sesión sigue viva para que puedas conectarte y ver qué pasó.
+Si algo falla (las comprobaciones, la fusión, se agota el tiempo o Claude se declara bloqueado), la ejecución se detiene y la PR queda abierta. La sesión sigue viva para que puedas conectarte y ver qué pasó. Los cortes de red breves con LifeHub se reintentan (unos 60 s) antes de rendirse.
+
+**Ojo:** el texto de cada tarea (título, descripción, checklist) es el encargo que recibe un agente con acceso a tu PC. Escribe las tareas tú y no enlaces listas en las que otras personas puedan escribir.
 
 ## Instalación
 
@@ -52,7 +54,7 @@ Necesitas `claude` (Claude Code con sesión iniciada), `gh` autenticado con perm
    }
    ```
 
-   Opcionales: `baseBranch` (por defecto `main`), `pollSeconds` (15), `sessionTimeoutMinutes` (180), `model` y `permissionMode` (`auto` por defecto, o `acceptEdits`). `bypassPermissions` no se admite, porque el agente trabaja sin nadie mirando.
+   `serverUrl` tiene que ser `https://` (solo se admite `http://` hacia `127.0.0.1` o `localhost`), porque el token viaja en cada petición. Opcionales: `baseBranch` (por defecto `main`), `pollSeconds` (15), `sessionTimeoutMinutes` (180), `commandTimeoutMinutes` (30, tiempo máximo de las comprobaciones y del despliegue), `model` y `permissionMode` (`auto` por defecto, o `acceptEdits`). `bypassPermissions` no se admite, porque el agente trabaja sin nadie mirando.
 
 3. **Worktrees.** Desde el clon de LifeHub:
 
@@ -63,7 +65,7 @@ Necesitas `claude` (Claude Code con sesión iniciada), `gh` autenticado con perm
    Crea un worktree fijo por repo y te dice qué falta. Claude Code solo arranca sesiones en segundo plano en carpetas en las que confías, así que entra una vez en cada worktree, acepta la confianza y sal:
 
    ```bash
-   cd ~/repos/lifehub-agent-worktrees/tu-usuario-Lifehub && claude   # acepta y escribe /exit
+   cd ~/repos/lifehub-agent-worktrees/tu-usuario__Lifehub && claude   # acepta y escribe /exit
    ```
 
    Es un único worktree por repo porque las tareas van una detrás de otra. Entre tareas se reutiliza, y conserva `node_modules` para no reinstalar cada vez.

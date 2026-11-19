@@ -109,6 +109,10 @@ export function createSystem(config: RunnerConfig): { deps: RunnerDeps; api: Run
         // Sin -x: se conservan los ignorados (node_modules...) para no reinstalar en cada tarea.
         await git(worktree, "clean", "-fd");
       },
+      async discardUncommitted(worktree) {
+        await git(worktree, "reset", "--hard", "HEAD");
+        await git(worktree, "clean", "-fd");
+      },
       async headIsPushed(worktree, branch) {
         const head = await git(worktree, "rev-parse", "HEAD");
         const remote = await git(worktree, "ls-remote", "origin", `refs/heads/${branch}`);
@@ -162,15 +166,38 @@ export function createSystem(config: RunnerConfig): { deps: RunnerDeps; api: Run
         return text === null ? null : parseAgentResult(text);
       },
     },
-    shell(command, cwd) {
+    shell(command, cwd, timeoutMs) {
       // Los comandos de comprobación y despliegue vienen de la configuración local del usuario, no de LifeHub.
       return new Promise((resolve) => {
-        const child = spawn("bash", ["-c", command], { cwd, env: process.env });
+        // Grupo de procesos propio para poder matar también lo que lance (npm, tests...).
+        const child = spawn("bash", ["-c", command], { cwd, env: process.env, detached: true });
         let output = "";
+        let timedOut = false;
+        const timer = setTimeout(() => {
+          timedOut = true;
+          try {
+            process.kill(-child.pid!, "SIGKILL");
+          } catch {
+            // ya había terminado
+          }
+        }, timeoutMs);
         child.stdout.on("data", (chunk: Buffer) => (output += chunk.toString()));
         child.stderr.on("data", (chunk: Buffer) => (output += chunk.toString()));
-        child.on("error", (error) => resolve({ ok: false, output: `${output}\n${error.message}` }));
-        child.on("close", (code) => resolve({ ok: code === 0, output }));
+        child.on("error", (error) => {
+          clearTimeout(timer);
+          resolve({ ok: false, output: `${output}\n${error.message}` });
+        });
+        child.on("close", (code) => {
+          clearTimeout(timer);
+          if (timedOut) {
+            resolve({
+              ok: false,
+              output: `${output}\nTiempo agotado: «${command}» pasó de ${Math.round(timeoutMs / 1000)} s.`,
+            });
+          } else {
+            resolve({ ok: code === 0, output });
+          }
+        });
       });
     },
     gh: {

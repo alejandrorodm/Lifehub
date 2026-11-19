@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { branchName, buildPrompt, parseAgentResult, tail } from "./plan";
+import { branchName, buildPrompt, isPrOfRepo, parseAgentResult, tail } from "./plan";
 import { parseRunnerConfig } from "./config";
 
 describe("branchName", () => {
@@ -77,6 +77,15 @@ describe("parseAgentResult", () => {
   });
 });
 
+describe("isPrOfRepo", () => {
+  it("matches only pull requests of that exact repo (GitHub names are case-insensitive)", () => {
+    expect(isPrOfRepo("https://github.com/me/app/pull/3", "me/app")).toBe(true);
+    expect(isPrOfRepo("https://github.com/Me/App/pull/3", "me/app")).toBe(true);
+    expect(isPrOfRepo("https://github.com/me/app-evil/pull/3", "me/app")).toBe(false);
+    expect(isPrOfRepo("https://github.com/someone/app/pull/3", "me/app")).toBe(false);
+  });
+});
+
 describe("tail", () => {
   it("keeps the end of long output, where test failures are", () => {
     expect(tail("abcdef", 3)).toBe("…def");
@@ -105,7 +114,7 @@ describe("parseRunnerConfig", () => {
     expect(config.permissionMode).toBe("auto");
     expect(config.repos["me/lifehub"]).toMatchObject({
       baseBranch: "main",
-      worktree: "/home/me/repos/lifehub-agent-worktrees/me-lifehub",
+      worktree: "/home/me/repos/lifehub-agent-worktrees/me__lifehub",
     });
   });
 
@@ -115,6 +124,37 @@ describe("parseRunnerConfig", () => {
     expect(() =>
       parseRunnerConfig({ ...base, worktreesDir: "relative/dir" }, { LIFEHUB_RUNNER_TOKEN: "lhr_abc" }),
     ).toThrow();
+  });
+
+  it("gives each repo its own worktree even when names would collide with a dash", () => {
+    const config = parseRunnerConfig(
+      {
+        ...base,
+        repos: {
+          "a-b/c": { path: "/r/1", checkCommand: "t", deployCommand: "d" },
+          "a/b-c": { path: "/r/2", checkCommand: "t", deployCommand: "d" },
+        },
+      },
+      { LIFEHUB_RUNNER_TOKEN: "lhr_abc" },
+    );
+    expect(config.repos["a-b/c"]!.worktree).not.toBe(config.repos["a/b-c"]!.worktree);
+  });
+
+  it("only sends the token over https, except to this machine", () => {
+    const env = { LIFEHUB_RUNNER_TOKEN: "lhr_abc" };
+    expect(() => parseRunnerConfig({ ...base, serverUrl: "http://lifehub.example.com" }, env)).toThrow(
+      /https/,
+    );
+    expect(parseRunnerConfig({ ...base, serverUrl: "http://127.0.0.1:3131" }, env).serverUrl).toBe(
+      "http://127.0.0.1:3131",
+    );
+    expect(parseRunnerConfig({ ...base, serverUrl: "http://localhost:3131" }, env).serverUrl).toBe(
+      "http://localhost:3131",
+    );
+  });
+
+  it("defaults local commands to a 30 minute limit", () => {
+    expect(parseRunnerConfig(base, { LIFEHUB_RUNNER_TOKEN: "lhr_abc" }).commandTimeoutMinutes).toBe(30);
   });
 
   it("refuses an unsafe permission mode", () => {
