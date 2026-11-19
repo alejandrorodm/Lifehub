@@ -22,7 +22,26 @@
   },
   "appVersionName": "1.0.2",
   "appVersionCode": 3,
-  "shortcuts": [],
+  "shortcuts": [
+    {
+      "name": "Añadir tarea",
+      "shortName": "Nueva tarea",
+      "url": "https://lifehub.alejandrorodm.com/tasks?new=1",
+      "chosenIconUrl": "https://lifehub.alejandrorodm.com/icons/icon-192.png"
+    },
+    {
+      "name": "Hoy",
+      "shortName": "Hoy",
+      "url": "https://lifehub.alejandrorodm.com/",
+      "chosenIconUrl": "https://lifehub.alejandrorodm.com/icons/icon-192.png"
+    },
+    {
+      "name": "Tareas",
+      "shortName": "Tareas",
+      "url": "https://lifehub.alejandrorodm.com/tasks",
+      "chosenIconUrl": "https://lifehub.alejandrorodm.com/icons/icon-192.png"
+    }
+  ],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://lifehub.alejandrorodm.com/manifest.webmanifest",
   "fallbackType": "customtabs",
@@ -35,6 +54,15 @@
   "isMetaQuest": false,
   "fullScopeUrl": "https://lifehub.alejandrorodm.com/",
   "minSdkVersion": 24,
+  "shareTarget": {
+    "action": "https://lifehub.alejandrorodm.com/tasks",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "orientation": "default",
   "fingerprints": [],
   "additionalTrustedOrigins": [],

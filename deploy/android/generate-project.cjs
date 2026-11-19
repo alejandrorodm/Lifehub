@@ -15,6 +15,7 @@
 const fs = require("fs");
 const path = require("path");
 const { TwaManifest, TwaGenerator, ConsoleLog } = require("@bubblewrap/core");
+const Color = require("color");
 const { generateManifestChecksumFile } = require("@bubblewrap/cli/dist/lib/cmds/shared.js");
 
 const LOCAL_MANIFEST_URL = process.env.LOCAL_MANIFEST_URL || "http://127.0.0.1:4555/manifest.webmanifest";
@@ -37,6 +38,16 @@ async function main() {
     const previous = JSON.parse(fs.readFileSync(manifestFile, "utf-8"));
     twaManifest.appVersionName = previous.appVersionName ?? "1.0.0";
     twaManifest.appVersionCode = previous.appVersionCode ?? 1;
+    // The web manifest has no dark or navigation-bar colours, so keep the ones chosen here.
+    for (const key of [
+      "themeColorDark",
+      "navigationColor",
+      "navigationColorDark",
+      "navigationDividerColor",
+      "navigationDividerColorDark",
+    ]) {
+      if (previous[key]) twaManifest[key] = new Color(previous[key]);
+    }
   } else {
     twaManifest.appVersionName = "1.0.0";
     twaManifest.appVersionCode = 1;
