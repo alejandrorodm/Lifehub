@@ -1,0 +1,24 @@
+# Servicio de usuario (systemd --user) para el ejecutor de agentes de Claude.
+# Corre en tu PC, no en el VPS. Ver deploy/agent-runner.md.
+#
+#   cp deploy/lifehub-runner.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now lifehub-runner
+#   loginctl enable-linger "$USER"   # que siga funcionando sin sesión abierta
+[Unit]
+Description=LifeHub: ejecutor de agentes de Claude
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Ajusta la ruta al clon de LifeHub y a tu Node (nvm, etc.).
+WorkingDirectory=%h/repos/Lifehub
+Environment=PATH=%h/.local/bin:%h/.nvm/versions/node/v24.15.0/bin:/usr/local/bin:/usr/bin:/bin
+# LIFEHUB_RUNNER_TOKEN=lhr_... (y, si hace falta, SSH_AUTH_SOCK para el despliegue).
+EnvironmentFile=%h/.config/lifehub-runner/env
+ExecStart=/usr/bin/env npm run runner
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target

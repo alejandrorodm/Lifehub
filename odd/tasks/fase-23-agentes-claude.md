@@ -15,9 +15,9 @@ Rama: `feat/claude-agent-jobs` (desde `feat/warm-redesign`, lo que está en prod
 
 | ID | Specs | Ruta | Estado | Commit |
 | -- | ----- | ---- | ------ | ------ |
-| T1 | S1 | inline | ✅ tabla `agent_list_links`, `PUT/DELETE /api/agents/links/:listId` | (servidor) |
-| T2 | S2, S5 | inline | ✅ ejecuciones y trabajos, `/runner` con token `lhr_` (hash SHA-256), dominio `nextRunStep`/`canReportJob`; 23 tests (8 dominio RED→GREEN, 15 API escritos tras el código y validados con 2 mutaciones) | (servidor) |
-| T3 | S3, S4 | inline | pendiente | |
+| T1 | S1 | inline | ✅ tabla `agent_list_links`, `PUT/DELETE /api/agents/links/:listId` | 85d2b64 |
+| T2 | S2, S5 | inline | ✅ ejecuciones y trabajos, `/runner` con token `lhr_` (hash SHA-256), dominio `nextRunStep`/`canReportJob`; 23 tests (8 dominio RED→GREEN, 15 API escritos tras el código y validados con 2 mutaciones) | 85d2b64, 9f614b6 |
+| T3 | S3, S4 | inline | ✅ `src/runner` (`npm run runner`, `setup`), worktree fijo por repo, re-comprueba y fusiona con `--match-head-commit`, servicio systemd de usuario, `deploy/agent-runner.md`; 29 tests (RED→GREEN) + e2e local con claude/gh falsos | (ejecutor) |
 | T4 | S2, S4 | inline | pendiente | |
 | T5 | — | inline | pendiente (cierre: docs, checks, push y despliegue si el usuario lo pide) | |
 
@@ -32,3 +32,6 @@ T1: enlace lista ↔ repo. T2: cola de trabajos y API del ejecutor con token. T3
 - L5 (2026-11-19): la fase 22 queda en pausa (T1 en el commit local 66fcec5, sin consentimiento de revisión respondido).
 - L6 (2026-11-19): decisión de seguridad — el comando de despliegue y la ruta local de cada repo viven en la configuración del ejecutor en el PC, no en LifeHub: si alguien entrase en el VPS no podría decidir qué comando se ejecuta en el PC. El ejecutor solo acepta repos que tenga en su configuración. Las tablas de agentes no van en la exportación JSON (estado operativo; el token es un secreto).
 - L7 (2026-11-19): T1+T2 verificados — typecheck y lint limpios, vitest 424/424. Comprobación por mutación: quitar el filtro de token revocado o el de perfil en `claimNext` hace fallar los tests (el segundo obligó a reforzar el test de aislamiento).
+- L8 (2026-11-19): revisión nativa de 85d2b64 (riesgo y fiabilidad) aprobada y confirmada; sus 6 avisos no bloqueantes se arreglaron en 9f614b6 (`POST /runner/reset` para trabajos colgados, desplegar si el resto se saltó, informe de fusión atómico, URL de PR solo de github.com, repos sin `.`/`..`, test de aislamiento al informar).
+- L9 (2026-11-19): hallazgo — Claude Code no arranca sesiones `--bg` en carpetas sin confianza aceptada, y la confianza no se hereda de la carpeta padre (probado con una sesión real). Solución: un worktree fijo por repo, en el que el usuario confía una vez; el ejecutor lo comprueba al arrancar leyendo `~/.claude.json` (sin modificarlo).
+- L10 (2026-11-19): e2e local del ejecutor contra un LifeHub real con `claude` y `gh` falsos y un remoto git desnudo: 2 tareas en orden, ambas fusionadas con el commit comprobado, tareas completadas, despliegue del `main` final, ramas remotas borradas, sesiones paradas.
