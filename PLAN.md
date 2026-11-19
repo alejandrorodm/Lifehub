@@ -946,5 +946,5 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 
 **Probado:** `npm run typecheck` y `npm run lint` sin errores; `npm test` 479/479; `npm run test:e2e` 86/86 (incluido axe). La prueba e2e «la paleta de comandos registra un gasto» es intermitente también en la base (el texto del toast aparece dos veces por la región `aria-live`). Capturas revisadas en Mobile y Desktop, temas claro y oscuro (inicio, tareas, calendario, finanzas, notas, hábitos, ajustes e inbox).
 
-**Pendiente:** sin desplegar ni push. Los iconos de la PWA/APK no cambian.
+**Desplegado** (`fcc1425`, 2026-11-19) y push a `main`. **Pendiente:** los iconos de la PWA/APK no cambian.
 
