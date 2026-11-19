@@ -14,10 +14,10 @@ export function FinanceWidget() {
   const { data: summary, isLoading, isError } = useFinanceSummary(month);
   const { data: goals } = useGoalList();
 
-  if (isLoading) return <Skeleton className="m-4 h-24" />;
+  if (isLoading) return <Skeleton className="my-4 h-24" />;
   if (isError || !summary) {
     return (
-      <p className="flex items-center gap-2 px-4 py-6 text-sm text-text-muted">
+      <p className="flex items-center gap-2 py-4 text-sm text-text-muted">
         <AlertTriangle className="size-4 text-danger" aria-hidden />
         No se pudieron cargar tus finanzas.
       </p>
@@ -29,7 +29,7 @@ export function FinanceWidget() {
   const nextGoal = pickNextGoal(goals ?? []);
 
   return (
-    <div className="flex flex-1 flex-col gap-4 px-4 py-4">
+    <div className="flex flex-1 flex-col gap-4 py-4">
       <Link to="/finance" className="group block rounded-md focus-visible:outline-2">
         <p className="flex items-center gap-1.5 text-xs text-text-muted">
           <Wallet className="size-3.5" aria-hidden />

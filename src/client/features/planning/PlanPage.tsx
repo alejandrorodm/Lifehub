@@ -14,7 +14,6 @@ import {
 import { CalendarCheck, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { Button } from "@client/components/ui/Button";
 import { PageHeader } from "@client/components/ui/PageHeader";
-import { sectionHeader } from "@client/app/navigation";
 import { EmptyState } from "@client/components/ui/EmptyState";
 import { Skeleton } from "@client/components/ui/Skeleton";
 import { Card } from "@client/components/ui/Card";
@@ -106,7 +105,6 @@ export function PlanPage() {
     >
       <div className="flex flex-1 flex-col">
         <PageHeader
-          {...sectionHeader("/")}
           title="Plan del día"
           description={dayLabel}
           actions={

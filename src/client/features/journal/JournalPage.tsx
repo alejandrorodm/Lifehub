@@ -8,7 +8,6 @@ import { useToday } from "@client/lib/useToday";
 import { useJournalEntry, useCreateNote } from "@client/features/notes/useNotes";
 import { NoteEditor } from "@client/features/notes/NoteEditor";
 import { PageHeader } from "@client/components/ui/PageHeader";
-import { sectionHeader } from "@client/app/navigation";
 
 export function JournalPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -24,7 +23,6 @@ export function JournalPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader
-        {...sectionHeader("/journal")}
         title="Diario"
         description={
           <span className="capitalize">{format(dateObj, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}</span>

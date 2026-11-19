@@ -2,20 +2,7 @@ import { useId, useMemo, type ReactNode } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Link } from "react-router-dom";
-import {
-  ListChecks,
-  CalendarClock,
-  Flame,
-  Bell,
-  FolderKanban,
-  CheckCircle2,
-  Plus,
-  Lightbulb,
-  Wallet,
-  ChevronRight,
-  type LucideIcon,
-} from "lucide-react";
-import { EmptyState } from "@client/components/ui/EmptyState";
+import { CalendarClock, Flame, Plus, Lightbulb } from "lucide-react";
 import { Checkbox } from "@client/components/ui/Checkbox";
 import { Button } from "@client/components/ui/Button";
 import { useToday } from "@client/lib/useToday";
@@ -35,8 +22,6 @@ import { DASHBOARD_WIDGETS } from "@shared/schemas/settings";
 import type { DashboardWidgetId } from "@shared/schemas/settings";
 import { DASHBOARD_WIDGET_LABELS } from "./dashboardWidgets";
 import { FinanceWidget } from "@client/features/finance/FinanceWidget";
-import { SectionIcon } from "@client/components/ui/SectionIcon";
-import type { SectionTone } from "@client/components/ui/sectionTone";
 import { QuickTiles } from "./QuickTiles";
 
 function useGreeting(): string {
@@ -47,43 +32,27 @@ function useGreeting(): string {
   return "Buenas noches";
 }
 
-interface WidgetMeta {
-  icon: LucideIcon;
-  tone: SectionTone;
-  /** Pantalla con el detalle completo ("Ver todo"). */
-  to?: string;
-}
-
-const WIDGET_META: Record<DashboardWidgetId, WidgetMeta> = {
-  "priority-overdue": { icon: ListChecks, tone: "tasks", to: "/tasks" },
-  "today-agenda": { icon: CalendarClock, tone: "calendar", to: "/calendar" },
-  "habits-today": { icon: Flame, tone: "habits", to: "/habits" },
-  reminders: { icon: Bell, tone: "today" },
-  "active-projects": { icon: FolderKanban, tone: "projects", to: "/projects" },
-  "quick-capture": { icon: Lightbulb, tone: "inbox" },
-  finance: { icon: Wallet, tone: "finance", to: "/finance" },
+/** Pantalla con el detalle completo de cada bloque ("Ver todo"). */
+const WIDGET_LINK: Partial<Record<DashboardWidgetId, string>> = {
+  "priority-overdue": "/tasks",
+  "today-agenda": "/calendar",
+  "habits-today": "/habits",
+  "active-projects": "/projects",
+  finance: "/finance",
 };
 
-function Widget({ title, meta, children }: { title: string; meta: WidgetMeta; children: ReactNode }) {
+function Widget({ title, to, children }: { title: string; to?: string; children: ReactNode }) {
   // useId en vez del título: un id con espacios rompe aria-labelledby (la región se quedaba sin nombre).
   const headingId = useId();
   return (
-    <section
-      className="flex flex-col overflow-hidden rounded-lg border border-border/60 bg-bg-elevated shadow-sm"
-      aria-labelledby={headingId}
-    >
-      <div className="flex items-center gap-2.5 px-4 pb-2 pt-3.5">
-        <SectionIcon icon={meta.icon} tone={meta.tone} size="sm" />
-        <h2 id={headingId} className="flex-1 truncate text-[15px] font-semibold">
+    <section className="flex min-w-0 flex-col" aria-labelledby={headingId}>
+      <div className="flex items-baseline justify-between gap-3 border-b border-border pb-2">
+        <h2 id={headingId} className="truncate text-[15px] font-semibold tracking-normal">
           {title}
         </h2>
-        {meta.to && (
-          <Link
-            to={meta.to}
-            className="-mr-1 inline-flex items-center gap-0.5 rounded-full px-2 py-1 text-xs font-medium text-text-muted hover:bg-bg-subtle hover:text-text"
-          >
+        {to && (
+          <Link to={to} className="shrink-0 text-[13px] text-text-muted hover:text-text hover:underline">
             Ver todo
-            <ChevronRight className="size-3.5" aria-hidden />
           </Link>
         )}
       </div>
@@ -92,22 +61,24 @@ function Widget({ title, meta, children }: { title: string; meta: WidgetMeta; ch
   );
 }
 
+/** Vacío de un bloque de inicio: una línea, sin icono, para no llenar la portada de ilustraciones. */
+function WidgetEmpty({ title, description }: { title: string; description: string }) {
+  return (
+    <p className="py-4 text-sm">
+      <span className="text-text">{title}.</span> <span className="text-text-muted">{description}</span>
+    </p>
+  );
+}
+
 function PriorityWidget() {
   const { data: tasks, isLoading } = usePriorityAndOverdue();
   const today = useToday();
   const updateTask = useUpdateTask();
 
-  if (isLoading) return <div className="h-32" />;
+  if (isLoading) return <div className="h-24" />;
 
   if (!tasks || tasks.length === 0) {
-    return (
-      <EmptyState
-        icon={ListChecks}
-        title="Vas al día"
-        description="Sin tareas urgentes ni atrasadas."
-        className="py-10"
-      />
-    );
+    return <WidgetEmpty title="Vas al día" description="Sin tareas urgentes ni atrasadas." />;
   }
 
   return (
@@ -115,7 +86,7 @@ function PriorityWidget() {
       {tasks.map((task) => {
         const isOverdue = task.dueDate !== null && task.dueDate < today;
         return (
-          <li key={task.id} className="flex items-center gap-3 px-4 py-2.5">
+          <li key={task.id} className="flex items-center gap-3 py-2.5">
             <Checkbox
               checked={false}
               onCheckedChange={() => updateTask.mutate({ id: task.id, patch: { status: "done" } })}
@@ -145,15 +116,13 @@ function PriorityWidget() {
 function ActiveProjectsWidget() {
   const { data: projects, isLoading } = useActiveProjects();
 
-  if (isLoading) return <div className="h-32" />;
+  if (isLoading) return <div className="h-24" />;
 
   if (!projects || projects.length === 0) {
     return (
-      <EmptyState
-        icon={FolderKanban}
+      <WidgetEmpty
         title="Sin proyectos activos"
         description="Marca un proyecto como activo para seguir su progreso aquí."
-        className="py-10"
       />
     );
   }
@@ -161,7 +130,7 @@ function ActiveProjectsWidget() {
   return (
     <ul className="divide-y divide-border">
       {projects.map((project) => (
-        <li key={project.id} className="px-4 py-2.5">
+        <li key={project.id} className="py-2.5">
           <div className="flex items-center justify-between gap-2">
             <Link to={`/projects/${project.id}`} className="truncate text-sm text-text hover:underline">
               {project.name}
@@ -180,27 +149,17 @@ function ActiveProjectsWidget() {
 function AgendaWidget() {
   const { data: occurrences, isLoading } = useUpcomingEvents(7, 6);
 
-  if (isLoading) return <div className="h-32" />;
+  if (isLoading) return <div className="h-24" />;
 
   if (!occurrences || occurrences.length === 0) {
-    return (
-      <EmptyState
-        icon={CalendarClock}
-        title="Sin eventos próximos"
-        description="Crea uno desde el calendario."
-        className="py-10"
-      />
-    );
+    return <WidgetEmpty title="Sin eventos próximos" description="Crea uno desde el calendario." />;
   }
 
   return (
     <ul className="divide-y divide-border">
       {occurrences.map((occ) => (
-        <li key={occ.id} className="px-4 py-2.5">
-          <Link to="/calendar" className="truncate text-sm text-text hover:underline">
-            {occ.title}
-          </Link>
-          <div className="text-xs text-text-muted">
+        <li key={occ.id} className="flex items-baseline gap-3 py-2.5">
+          <span className="w-24 shrink-0 text-xs tabular-nums text-text-muted">
             {occ.allDay
               ? "Todo el día"
               : new Date(occ.startAt).toLocaleString("es", {
@@ -209,9 +168,13 @@ function AgendaWidget() {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
-            {" · "}
-            {KIND_LABEL[occ.kind]}
-          </div>
+          </span>
+          <span className="min-w-0 flex-1">
+            <Link to="/calendar" className="block truncate text-sm text-text hover:underline">
+              {occ.title}
+            </Link>
+            <span className="block text-xs text-text-muted">{KIND_LABEL[occ.kind]}</span>
+          </span>
         </li>
       ))}
     </ul>
@@ -221,23 +184,16 @@ function AgendaWidget() {
 function RemindersWidget() {
   const { data: reminders, isLoading } = useUpcomingReminders();
 
-  if (isLoading) return <div className="h-32" />;
+  if (isLoading) return <div className="h-24" />;
 
   if (!reminders || reminders.length === 0) {
-    return (
-      <EmptyState
-        icon={Bell}
-        title="Sin recordatorios"
-        description="Añade uno desde una tarea o un evento."
-        className="py-10"
-      />
-    );
+    return <WidgetEmpty title="Sin recordatorios" description="Añade uno desde una tarea o un evento." />;
   }
 
   return (
     <ul className="divide-y divide-border">
       {reminders.map((r) => (
-        <li key={r.id} className="px-4 py-2.5">
+        <li key={r.id} className="py-2.5">
           <p className="truncate text-sm text-text">{r.title}</p>
           <p className="text-xs text-text-muted">
             {new Date(r.remindAt).toLocaleString("es", {
@@ -260,26 +216,21 @@ function HabitsWidget() {
   const setHabitLog = useSetHabitLog();
   const setStepLog = useSetRoutineStepLog();
 
-  if (loadingHabits || loadingRoutines) return <div className="h-32" />;
+  if (loadingHabits || loadingRoutines) return <div className="h-24" />;
 
   const habitList = habits ?? [];
   const routineList = routines ?? [];
 
   if (habitList.length === 0 && routineList.length === 0) {
     return (
-      <EmptyState
-        icon={Flame}
-        title="Nada programado hoy"
-        description="Crea un hábito o una rutina desde Hábitos."
-        className="py-10"
-      />
+      <WidgetEmpty title="Nada programado hoy" description="Crea un hábito o una rutina desde Hábitos." />
     );
   }
 
   return (
     <ul className="divide-y divide-border">
       {habitList.map((habit) => (
-        <li key={habit.id} className="flex items-center gap-3 px-4 py-2.5">
+        <li key={habit.id} className="flex items-center gap-3 py-2.5">
           <Checkbox
             checked={habit.loggedToday}
             onCheckedChange={(checked) => setHabitLog.mutate({ id: habit.id, date: today, done: checked })}
@@ -289,7 +240,7 @@ function HabitsWidget() {
             {habit.name}
           </Link>
           {habit.currentStreak > 0 && (
-            <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-accent">
+            <span className="inline-flex shrink-0 items-center gap-1 text-xs tabular-nums text-text-muted">
               <Flame className="size-3.5" aria-hidden />
               {habit.currentStreak}
             </span>
@@ -297,7 +248,7 @@ function HabitsWidget() {
         </li>
       ))}
       {routineList.map((routine) => (
-        <li key={routine.id} className="px-4 py-2.5">
+        <li key={routine.id} className="py-2.5">
           <Link to="/habits" className="text-sm font-medium text-text hover:underline">
             {routine.name}
           </Link>
@@ -325,16 +276,16 @@ function QuickCaptureWidget() {
   const { openCapture, openCreate } = useShortcuts();
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-8 text-center">
-      <p className="max-w-xs text-sm text-text-muted">
+    <div className="flex flex-col items-start gap-3 py-4">
+      <p className="max-w-sm text-sm text-text-muted">
         Apunta una idea para ordenarla luego, o crea directamente una tarea, un gasto o una nota.
       </p>
-      <div className="flex flex-wrap justify-center gap-2">
-        <Button onClick={openCapture}>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" onClick={openCapture}>
           <Lightbulb className="size-4" aria-hidden />
           Idea rápida
         </Button>
-        <Button variant="secondary" onClick={openCreate}>
+        <Button size="sm" variant="secondary" onClick={openCreate}>
           <Plus className="size-4" aria-hidden />
           Crear
         </Button>
@@ -354,19 +305,15 @@ const WIDGET_RENDERERS: Record<DashboardWidgetId, () => ReactNode> = {
   finance: () => <FinanceWidget />,
 };
 
-function SummaryBar() {
+/** Una frase con lo hecho hoy; nada si aún no hay nada que contar. */
+function DoneToday() {
   const { data } = useTasksSummary();
-  if (!data) return null;
+  if (!data || data.completedToday === 0) return null;
+  const n = data.completedToday;
   return (
-    <div className="flex flex-wrap gap-2 text-sm text-text-muted">
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-bg-elevated px-3 py-1 shadow-sm ring-1 ring-border/60">
-        <strong className="font-semibold text-text">{data.pending}</strong> pendientes
-      </span>
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-bg-elevated px-3 py-1 shadow-sm ring-1 ring-border/60">
-        <CheckCircle2 className="size-4 text-success" aria-hidden />
-        <strong className="font-semibold text-text">{data.completedToday}</strong> completadas hoy
-      </span>
-    </div>
+    <p className="mt-2 text-sm text-text-muted">
+      {n === 1 ? "Llevas 1 tarea hecha hoy." : `Llevas ${n} tareas hechas hoy.`}
+    </p>
   );
 }
 
@@ -377,29 +324,29 @@ export function TodayPage() {
   const widgetIds = settings?.dashboardWidgets ?? [...DASHBOARD_WIDGETS];
 
   return (
-    <div className="flex flex-1 flex-col gap-6 px-4 pb-6 pt-4 md:px-6 md:pt-7">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-text-muted first-letter:uppercase">{today}</p>
-          <h1 className="mt-0.5 text-3xl font-bold md:text-4xl">{greeting}</h1>
+    <div className="flex flex-1 flex-col gap-8 px-4 pb-10 pt-6 md:gap-10 md:px-6 md:pt-10">
+      <header>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-text-muted">{greeting}</p>
+          <Link
+            to="/plan"
+            className="-my-2 inline-flex h-10 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-text-muted hover:bg-bg-subtle hover:text-text md:h-8"
+          >
+            <CalendarClock className="size-4" aria-hidden />
+            Plan del día
+          </Link>
         </div>
-        <Link
-          to="/plan"
-          className="inline-flex h-10 items-center gap-1.5 rounded-full border border-border bg-bg-elevated px-4 text-sm font-semibold text-text shadow-sm hover:border-border-strong md:h-9"
-        >
-          <CalendarClock className="size-4 text-accent" aria-hidden />
-          Plan del día
-        </Link>
-        <div className="w-full">
-          <SummaryBar />
-        </div>
+        <h1 className="mt-1 text-[34px] font-semibold leading-[1.05] tracking-[-0.03em] first-letter:uppercase md:text-[44px]">
+          {today}
+        </h1>
+        <DoneToday />
       </header>
 
       <QuickTiles />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-x-12 gap-y-10 md:grid-cols-2">
         {widgetIds.map((widgetId) => (
-          <Widget key={widgetId} title={DASHBOARD_WIDGET_LABELS[widgetId]} meta={WIDGET_META[widgetId]}>
+          <Widget key={widgetId} title={DASHBOARD_WIDGET_LABELS[widgetId]} to={WIDGET_LINK[widgetId]}>
             {WIDGET_RENDERERS[widgetId]()}
           </Widget>
         ))}

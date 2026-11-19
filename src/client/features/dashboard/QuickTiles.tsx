@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { SectionIcon } from "@client/components/ui/SectionIcon";
 import { mobileNavItem } from "@client/app/navigation";
 import { useSettings } from "@client/features/settings/useSettings";
 import { useTasksSummary } from "@client/features/tasks/useTasks";
@@ -18,16 +17,13 @@ function Tile({ id, value, caption }: { id: MobileNavId; value: ReactNode; capti
   return (
     <Link
       to={item.to}
-      className="flex min-w-0 flex-col gap-3 rounded-lg border border-border/60 bg-bg-elevated p-3.5 shadow-sm transition-[border-color,transform] hover:border-border-strong active:scale-[0.98]"
+      className="group flex min-w-0 flex-col gap-1 px-3 py-3 first:pl-0 md:px-5 md:first:pl-0"
     >
-      <span className="flex items-center justify-between gap-2">
-        <SectionIcon icon={item.icon} tone={item.tone} />
-        <span className="text-2xl font-bold tabular-nums leading-none text-text">{value}</span>
+      <span className="truncate text-[13px] text-text-muted group-hover:text-text">{item.label}</span>
+      <span className="truncate text-[22px] font-semibold leading-none tabular-nums tracking-tight text-text md:text-[26px]">
+        {value}
       </span>
-      <span className="min-w-0">
-        <span className="block truncate text-[15px] font-semibold text-text">{item.label}</span>
-        <span className="block truncate text-xs text-text-muted">{caption}</span>
-      </span>
+      <span className="truncate text-xs text-text-subtle">{caption}</span>
     </Link>
   );
 }
@@ -58,11 +54,11 @@ function ShoppingTile() {
 
 function CalendarTile() {
   const { data } = useUpcomingEvents(7, 6);
-  return <Tile id="calendar" value={data?.length ?? DASH} caption="próximos 7 días" />;
+  return <Tile id="calendar" value={data?.length ?? DASH} caption="en 7 días" />;
 }
 
 function PlainTile({ id, caption }: { id: MobileNavId; caption: string }) {
-  return <Tile id={id} value="" caption={caption} />;
+  return <Tile id={id} value={DASH} caption={caption} />;
 }
 
 const TILE_RENDERERS: Partial<Record<MobileNavId, () => ReactNode>> = {
@@ -71,11 +67,11 @@ const TILE_RENDERERS: Partial<Record<MobileNavId, () => ReactNode>> = {
   habits: () => <HabitsTile />,
   shopping: () => <ShoppingTile />,
   calendar: () => <CalendarTile />,
-  finance: () => <PlainTile id="finance" caption="Gastos y metas" />,
-  notes: () => <PlainTile id="notes" caption="Tus notas" />,
+  finance: () => <PlainTile id="finance" caption="gastos y metas" />,
+  notes: () => <PlainTile id="notes" caption="tus notas" />,
 };
 
-/** Accesos rápidos de inicio: las secciones más usadas, con su color y un contador del día. */
+/** Resumen de inicio: las secciones más usadas con su cifra del día, en una franja entre líneas finas. */
 export function QuickTiles() {
   const { data: settings } = useSettings();
   const visible: readonly NavSectionId[] = settings?.visibleNavSections ?? NAV_SECTIONS;
@@ -84,7 +80,10 @@ export function QuickTiles() {
   ).slice(0, 4);
 
   return (
-    <nav aria-label="Accesos rápidos" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <nav
+      aria-label="Accesos rápidos"
+      className="grid grid-cols-4 divide-x divide-border border-y border-border"
+    >
       {ids.map((id) => (
         <div key={id} className="contents">
           {TILE_RENDERERS[id]?.()}

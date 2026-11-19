@@ -1,11 +1,13 @@
 /*
- * Tokens de diseño de LifeHub — dirección "cálido y amable" (fase 21).
- * Neutros cálidos (crema y arena), un acento terracota y un color propio por
- * sección (navegación, cabeceras e inicio) para orientarse de un vistazo.
- * Todos los textos cumplen AA (≥ 4.5:1) sobre fondo, superficie y su tono suave.
+ * Tokens de diseño de LifeHub — dirección "papel y tinta" (fase 24).
+ * Neutros casi sin tinte (papel), texto de tinta y un único acento verde pino
+ * para la acción principal, el foco y el estado activo. Las secciones no
+ * tienen color propio: se reconocen por icono y nombre. Superficies planas
+ * con borde fino; las sombras quedan para lo que flota (menús, diálogos).
+ * Todos los textos cumplen AA (≥ 4.5:1) sobre fondo, superficie y fondo sutil.
  *
  * Los colores y radios se declaran dentro de @theme para que Tailwind
- * genere utilidades (bg-accent, text-section-tasks, rounded-md…) que
+ * genere utilidades (bg-accent, text-text-muted, rounded-md…) que
  * referencian estas variables; el tema oscuro solo redefine las mismas
  * variables, sin duplicar lógica. El espaciado usa la escala de 4px de Tailwind.
  */
@@ -13,73 +15,47 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme {
-  /* Neutros cálidos (crema y arena) */
-  --color-bg: #faf6f0;
-  --color-bg-elevated: #fffdfa;
-  --color-bg-subtle: #f2ebe1;
-  --color-border: #ebe2d6;
-  --color-border-strong: #d8cbba;
-  --color-text: #2b2118;
-  --color-text-muted: #6b5b4e;
-  --color-text-subtle: #76665a;
+  /* Papel */
+  --color-bg: #f7f7f5;
+  --color-bg-elevated: #ffffff;
+  --color-bg-subtle: #efefec;
+  --color-border: #e3e3df;
+  --color-border-strong: #cdcdc7;
 
-  /* Acento (terracota) */
-  --color-accent: #b4482a;
-  --color-accent-hover: #9a3b1f;
+  /* Tinta */
+  --color-text: #1d1d1b;
+  --color-text-muted: #5c5c57;
+  --color-text-subtle: #6a6a64;
+
+  /* Acento (verde pino) */
+  --color-accent: #2f5d50;
+  --color-accent-hover: #244a40;
   --color-accent-contrast: #ffffff;
-  --color-accent-soft: #fbe8df;
+  --color-accent-soft: #e4ece8;
 
   /* Semánticos */
-  --color-success: #15803d;
-  --color-success-soft: #e9f7ee;
-  --color-warning: #b45309;
-  --color-warning-soft: #fdf3e1;
-  --color-danger: #b91c1c;
-  --color-danger-soft: #fdecea;
-  --color-info: #0369a1;
-  --color-info-soft: #e8f4fb;
+  --color-success: #2f6b3a;
+  --color-success-soft: #e7f0e8;
+  --color-warning: #94590b;
+  --color-warning-soft: #f6eedf;
+  --color-danger: #b42318;
+  --color-danger-soft: #f9e9e7;
+  --color-info: #2b5c8a;
+  --color-info-soft: #e6eef5;
 
   /* Prioridad */
-  --color-priority-low: #7a6c60;
-  --color-priority-normal: #0369a1;
-  --color-priority-high: #b45309;
-  --color-priority-urgent: #b91c1c;
+  --color-priority-low: #8a8a83;
+  --color-priority-normal: #2b5c8a;
+  --color-priority-high: #94590b;
+  --color-priority-urgent: #b42318;
 
-  /* Color por sección: tono (icono y texto) y fondo suave. */
-  --color-section-today: #a8401f;
-  --color-section-today-soft: #fbe8df;
-  --color-section-inbox: #2a66a3;
-  --color-section-inbox-soft: #e3eefa;
-  --color-section-tasks: #3a5fc8;
-  --color-section-tasks-soft: #e6ecfb;
-  --color-section-calendar: #7a4fc0;
-  --color-section-calendar-soft: #efe7fa;
-  --color-section-notes: #8a5a00;
-  --color-section-notes-soft: #fbefd3;
-  --color-section-journal: #a63d63;
-  --color-section-journal-soft: #fbe6ee;
-  --color-section-projects: #4a5ab8;
-  --color-section-projects-soft: #e8eafa;
-  --color-section-habits: #b23b0b;
-  --color-section-habits-soft: #fdeadd;
-  --color-section-finance: #1a7350;
-  --color-section-finance-soft: #ddf3e8;
-  --color-section-shopping: #a04a08;
-  --color-section-shopping-soft: #fdecd9;
-  --color-section-markets: #0d6e6e;
-  --color-section-markets-soft: #d9f2f1;
-  --color-section-review: #5d6b7a;
-  --color-section-review-soft: #e9edf1;
-  --color-section-settings: #6b5b4e;
-  --color-section-settings-soft: #efe8de;
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
 
   --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
-  /* Una sola familia: los titulares se distinguen por peso y tracking. */
+  /* Una sola familia: los titulares se distinguen por tamaño, peso y tracking. */
   --font-display: var(--font-sans);
 }
 
@@ -97,10 +73,10 @@
   --color-chart-7: #6250d6;
   --color-chart-8: #e34948;
 
-  /* Sombras suaves con tinte cálido: separan superficies sin bordes marcados. */
-  --shadow-sm: 0 1px 2px 0 rgb(60 36 20 / 0.05), 0 1px 3px 0 rgb(60 36 20 / 0.04);
-  --shadow-md: 0 6px 16px -4px rgb(60 36 20 / 0.10), 0 2px 4px -2px rgb(60 36 20 / 0.05);
-  --shadow-lg: 0 20px 44px -12px rgb(60 36 20 / 0.22);
+  /* Sombras solo para lo que flota sobre el contenido (menús, diálogos, toasts). */
+  --shadow-sm: 0 1px 0 0 rgb(20 20 18 / 0.03);
+  --shadow-md: 0 4px 12px -2px rgb(20 20 18 / 0.08), 0 1px 3px 0 rgb(20 20 18 / 0.06);
+  --shadow-lg: 0 16px 40px -12px rgb(20 20 18 / 0.2), 0 2px 6px 0 rgb(20 20 18 / 0.06);
 
   /* Altura de la barra inferior móvil (sin la zona segura). */
   --mobile-nav-height: 4rem;
@@ -116,61 +92,34 @@
 }
 
 :root[data-theme="dark"] {
-  /* Oscuro cálido (marrón tostado, no gris azulado). */
-  --color-bg: #17130f;
-  --color-bg-elevated: #211b16;
-  --color-bg-subtle: #2b241e;
-  --color-border: #362d25;
-  --color-border-strong: #4a3f35;
-  --color-text: #f4ede4;
-  --color-text-muted: #bcae9f;
-  --color-text-subtle: #a69786;
+  /* Tinta sobre papel invertida: grafito neutro, nunca negro puro ni azulado. */
+  --color-bg: #161615;
+  --color-bg-elevated: #1e1e1c;
+  --color-bg-subtle: #262624;
+  --color-border: #31312e;
+  --color-border-strong: #484843;
+  --color-text: #ecece8;
+  --color-text-muted: #a8a8a1;
+  --color-text-subtle: #96968f;
 
-  --color-accent: #ef8f66;
-  --color-accent-hover: #f4a785;
-  --color-accent-contrast: #2a1409;
-  --color-accent-soft: #3d2216;
+  --color-accent: #8fc1af;
+  --color-accent-hover: #a9d1c2;
+  --color-accent-contrast: #0f201a;
+  --color-accent-soft: #1e2d28;
 
-  --color-success: #4ade80;
-  --color-success-soft: #10291a;
-  --color-warning: #fbbf24;
-  --color-warning-soft: #33240a;
-  --color-danger: #f87171;
-  --color-danger-soft: #361615;
-  --color-info: #38bdf8;
-  --color-info-soft: #0d2534;
+  --color-success: #86c495;
+  --color-success-soft: #18261b;
+  --color-warning: #e2b25c;
+  --color-warning-soft: #2c2312;
+  --color-danger: #f08a7e;
+  --color-danger-soft: #331a17;
+  --color-info: #8db6e0;
+  --color-info-soft: #172330;
 
-  --color-priority-low: #a69786;
-  --color-priority-normal: #38bdf8;
-  --color-priority-high: #fbbf24;
-  --color-priority-urgent: #f87171;
-
-  --color-section-today: #ef8f66;
-  --color-section-today-soft: #3d2216;
-  --color-section-inbox: #79b2ec;
-  --color-section-inbox-soft: #16283b;
-  --color-section-tasks: #8fa8f2;
-  --color-section-tasks-soft: #1b2443;
-  --color-section-calendar: #b99af0;
-  --color-section-calendar-soft: #2b1f42;
-  --color-section-notes: #e7b54f;
-  --color-section-notes-soft: #3a2a0b;
-  --color-section-journal: #ee8fb0;
-  --color-section-journal-soft: #3d1a28;
-  --color-section-projects: #9aa6ee;
-  --color-section-projects-soft: #1f2340;
-  --color-section-habits: #f59a63;
-  --color-section-habits-soft: #3e2112;
-  --color-section-finance: #5fcf9c;
-  --color-section-finance-soft: #11301f;
-  --color-section-shopping: #f2a35b;
-  --color-section-shopping-soft: #3c2410;
-  --color-section-markets: #5cc9c6;
-  --color-section-markets-soft: #0f2f2f;
-  --color-section-review: #a8b5c3;
-  --color-section-review-soft: #232a31;
-  --color-section-settings: #bcae9f;
-  --color-section-settings-soft: #2e2620;
+  --color-priority-low: #8e8e87;
+  --color-priority-normal: #8db6e0;
+  --color-priority-high: #e2b25c;
+  --color-priority-urgent: #f08a7e;
 
   --color-chart-1: #3987e5;
   --color-chart-2: #d95926;
@@ -181,9 +130,9 @@
   --color-chart-7: #9085e9;
   --color-chart-8: #e66767;
 
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
-  --shadow-md: 0 6px 16px -4px rgb(0 0 0 / 0.45);
-  --shadow-lg: 0 20px 44px -12px rgb(0 0 0 / 0.6);
+  --shadow-sm: 0 1px 0 0 rgb(0 0 0 / 0.2);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 16px 40px -12px rgb(0 0 0 / 0.7);
 }
 
 @media (prefers-reduced-motion: reduce) {

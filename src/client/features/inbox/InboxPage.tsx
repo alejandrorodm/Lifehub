@@ -5,7 +5,6 @@ import { useToast } from "@client/components/ui/Toast";
 import { useRegisterNewHandler, useShortcuts } from "@client/app/shortcuts/ShortcutsContext";
 import { useInboxItems, useConvertInboxItemToTask, useArchiveInboxItem } from "./useInbox";
 import { PageHeader } from "@client/components/ui/PageHeader";
-import { sectionHeader } from "@client/app/navigation";
 
 export function InboxPage() {
   const { data: items, isLoading } = useInboxItems();
@@ -19,14 +18,14 @@ export function InboxPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader
-        {...sectionHeader("/inbox")}
         title="Inbox"
         description={
           <>
             Captura cualquier cosa sin decidir todavía dónde va.
             <span className="hidden md:inline">
               {" "}
-              Pulsa <kbd className="rounded border border-border px-1">C</kbd> en cualquier pantalla para añadir algo.
+              Pulsa <kbd className="rounded border border-border px-1">C</kbd> en cualquier pantalla para
+              añadir algo.
             </span>
           </>
         }

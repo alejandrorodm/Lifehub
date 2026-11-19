@@ -18,7 +18,6 @@ import {
 import { formatPrice } from "./price";
 import type { WatchlistAssetType, WatchlistAssetDto, NewsCategory, NewsItem } from "@shared/schemas/markets";
 import { PageHeader } from "@client/components/ui/PageHeader";
-import { sectionHeader } from "@client/app/navigation";
 
 const ASSET_TYPE_LABELS: Record<WatchlistAssetType, string> = { crypto: "Cripto", stock: "Acción" };
 const ASSET_TYPE_OPTIONS = (Object.keys(ASSET_TYPE_LABELS) as WatchlistAssetType[]).map((value) => ({
@@ -258,12 +257,11 @@ export function MarketsPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader
-        {...sectionHeader("/markets")}
         title="Mercados"
         description="Noticias de crypto y acciones, y objetivos de precio de tu lista de seguimiento."
       />
 
-      <div className="mx-auto w-full max-w-2xl flex-1 space-y-8 p-6">
+      <div className="w-full max-w-2xl flex-1 space-y-8 px-4 py-6 md:px-6">
         <section className="space-y-3">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-text-muted">
             <Newspaper className="size-4" aria-hidden />

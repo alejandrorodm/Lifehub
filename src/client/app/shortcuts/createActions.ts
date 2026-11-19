@@ -9,14 +9,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { NavSectionId } from "@shared/schemas/settings";
-import type { SectionTone } from "@client/components/ui/sectionTone";
 
 export interface CreateAction {
   id: string;
   label: string;
   description: string;
   icon: LucideIcon;
-  tone: SectionTone;
   /**
    * `new`: va a la sección y lanza su acción "nueva" (la misma que la tecla N);
    * `link`: abre la ruta tal cual; `capture`: abre la captura rápida al inbox.
@@ -32,7 +30,6 @@ const ALL_ACTIONS: CreateAction[] = [
     label: "Tarea",
     description: "Algo que tienes que hacer",
     icon: ListChecks,
-    tone: "tasks",
     run: { kind: "new", to: "/tasks" },
   },
   {
@@ -40,7 +37,6 @@ const ALL_ACTIONS: CreateAction[] = [
     label: "Movimiento",
     description: "Un gasto o un ingreso",
     icon: Wallet,
-    tone: "finance",
     run: { kind: "new", to: "/finance" },
     sectionId: "finance",
   },
@@ -49,7 +45,6 @@ const ALL_ACTIONS: CreateAction[] = [
     label: "Compra",
     description: "Añadir a la lista",
     icon: ShoppingCart,
-    tone: "shopping",
     run: { kind: "link", to: "/shopping?add=1" },
     sectionId: "shopping",
   },
@@ -58,7 +53,6 @@ const ALL_ACTIONS: CreateAction[] = [
     label: "Nota",
     description: "Escribe lo que quieras",
     icon: StickyNote,
-    tone: "notes",
     run: { kind: "new", to: "/notes" },
     sectionId: "notes",
   },
@@ -67,7 +61,6 @@ const ALL_ACTIONS: CreateAction[] = [
     label: "Evento",
     description: "Una cita en el calendario",
     icon: CalendarPlus,
-    tone: "calendar",
     run: { kind: "new", to: "/calendar" },
   },
   {
@@ -75,7 +68,6 @@ const ALL_ACTIONS: CreateAction[] = [
     label: "Hábito",
     description: "Algo que repetir a diario",
     icon: Flame,
-    tone: "habits",
     run: { kind: "new", to: "/habits" },
     sectionId: "habits",
   },
@@ -84,7 +76,6 @@ const ALL_ACTIONS: CreateAction[] = [
     label: "Idea rápida",
     description: "Al inbox, ya la ordenarás",
     icon: Lightbulb,
-    tone: "inbox",
     run: { kind: "capture" },
   },
 ];

@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@client/components/ui/Button";
 import { PageHeader } from "@client/components/ui/PageHeader";
-import { sectionHeader } from "@client/app/navigation";
 import { useToday } from "@client/lib/useToday";
 import { formatMonthLong } from "@client/components/charts/chartUtils";
 import { shiftMonth } from "@shared/domain/finance";
@@ -64,7 +63,6 @@ export function FinancePage() {
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader
-        {...sectionHeader("/finance")}
         title="Finanzas"
         description="Gastos, presupuestos, metas de ahorro y la evolución de tu dinero."
         actions={
@@ -119,7 +117,7 @@ export function FinancePage() {
       <div
         role="tabpanel"
         aria-label={TABS.find((t) => t.value === tab)!.label}
-        className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-6"
+        className="w-full flex-1 px-4 py-4 md:px-6 md:py-6"
       >
         {tab === "summary" && (
           <SummaryTab

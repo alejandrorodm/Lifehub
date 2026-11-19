@@ -929,3 +929,22 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 
 **Pendiente (del usuario):** desplegar y configurar el ejecutor en el PC: token, `config.json`, `npm run runner -- setup`, aceptar la confianza del worktree y arrancar el servicio.
 
+## Fase 24 — Rediseño "papel y tinta" (rama `feat/paper-ink-redesign`, 2026-11-19)
+
+**Nota sobre el alcance:** pedido por el usuario ("reorganiza las vistas para darle un toque más profesional y descargado (que no parezca hecha por IA, algo bonito)"). Dirección visual elegida por el usuario: "Papel y tinta", que sustituye a "Cálido y amable" (crema, terracota y un color por sección era justo el patrón típico de una interfaz generada por IA).
+
+**Implementado:**
+
+- Sistema visual: papel casi neutro, texto de tinta y un único acento verde pino; tema oscuro grafito neutro. Radios pequeños (4-8 px), superficies planas con borde fino y sombras solo en lo que flota. Botones rectangulares. Contrastes AA comprobados en ambos temas. Color de la barra del sistema y del manifiesto actualizados.
+- Fuera el color por sección: se eliminan los tokens `--color-section-*`, `SectionIcon`, `SECTION_TONE`, `sectionHeader` y el campo `tone` de la navegación y de "Crear". Las secciones se reconocen por icono monocromo y nombre.
+- Navegación: barra lateral más estrecha y sin baldosas de color (activo con fondo sutil e icono en el acento), barra inferior con indicador fino en el acento, menú "Más" y menú "Crear" como listas. Marca tipográfica. Contenido limitado a 1152 px de ancho en pantallas grandes.
+- Cabeceras de página sin icono; pestañas subrayadas.
+- Inicio: la fecha como titular, el saludo y "Plan del día" en una línea encima, una frase con las tareas hechas hoy, un resumen de cifras en una franja entre líneas finas y los bloques como secciones con titular y línea fina (vacíos en una línea de texto) en vez de tarjetas.
+- Finanzas: las cifras del resumen en un panel dividido por líneas finas (2 columnas en móvil) en vez de una tarjeta por cifra.
+- Finanzas, Ajustes, Revisión, Mercados y Papelera alinean su contenido con la cabecera (antes centrado) y usan el margen de 16 px en móvil.
+- Skill `lifehub-ui` actualizada con la nueva dirección.
+
+**Probado:** `npm run typecheck` y `npm run lint` sin errores; `npm test` 479/479; `npm run test:e2e` 86/86 (incluido axe). La prueba e2e «la paleta de comandos registra un gasto» es intermitente también en la base (el texto del toast aparece dos veces por la región `aria-live`). Capturas revisadas en Mobile y Desktop, temas claro y oscuro (inicio, tareas, calendario, finanzas, notas, hábitos, ajustes e inbox).
+
+**Pendiente:** sin desplegar ni push. Los iconos de la PWA/APK no cambian.
+

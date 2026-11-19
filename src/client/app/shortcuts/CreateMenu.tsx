@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { Sheet } from "@client/components/ui/Sheet";
-import { SectionIcon } from "@client/components/ui/SectionIcon";
 import { useSettings } from "@client/features/settings/useSettings";
 import { NAV_SECTIONS } from "@shared/schemas/settings";
 import { createActions, type CreateAction } from "./createActions";
@@ -34,22 +33,25 @@ function CreateMenuActions({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <ul className="grid grid-cols-2 gap-2.5">
-      {actions.map((action) => (
-        <li key={action.id} className={action.run.kind === "capture" ? "col-span-2" : undefined}>
-          <button
-            type="button"
-            onClick={() => run(action)}
-            className="flex h-full w-full flex-col items-start gap-2.5 rounded-lg border border-border/60 bg-bg-elevated p-3 text-left shadow-sm sm:flex-row sm:items-center sm:gap-3 transition-[border-color,transform] hover:border-border-strong active:scale-[0.98]"
-          >
-            <SectionIcon icon={action.icon} tone={action.tone} size="lg" />
-            <span className="min-w-0">
-              <span className="block truncate text-[15px] font-semibold text-text">{action.label}</span>
-              <span className="block text-xs text-text-muted">{action.description}</span>
-            </span>
-          </button>
-        </li>
-      ))}
+    <ul className="-mx-2 flex flex-col">
+      {actions.map((action) => {
+        const Icon = action.icon;
+        return (
+          <li key={action.id}>
+            <button
+              type="button"
+              onClick={() => run(action)}
+              className="flex w-full items-center gap-3.5 rounded-md px-2 py-2.5 text-left hover:bg-bg-subtle active:bg-bg-subtle"
+            >
+              <Icon className="size-5 shrink-0 text-text-muted" strokeWidth={1.75} aria-hidden />
+              <span className="min-w-0">
+                <span className="block truncate text-[15px] font-medium text-text">{action.label}</span>
+                <span className="block truncate text-[13px] text-text-muted">{action.description}</span>
+              </span>
+            </button>
+          </li>
+        );
+      })}
     </ul>
   );
 }

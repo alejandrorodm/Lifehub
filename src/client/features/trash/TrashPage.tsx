@@ -82,7 +82,7 @@ export function TrashPage() {
         description="Tareas, notas, proyectos y eventos eliminados. Restaurar los devuelve a su sitio."
       />
 
-      <div className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-6">
+      <div className="w-full max-w-2xl flex-1 space-y-6 px-4 py-6 md:px-6">
         <TrashSection
           title="Tareas"
           icon={ListChecks}

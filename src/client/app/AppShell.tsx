@@ -2,8 +2,6 @@ import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { Search, Plus, LogOut, MoreHorizontal } from "lucide-react";
 import { Button } from "@client/components/ui/Button";
-import { SectionIcon } from "@client/components/ui/SectionIcon";
-import { SECTION_TONE } from "@client/components/ui/sectionTone";
 import { IconButton } from "@client/components/ui/IconButton";
 import {
   fixedNavItems,
@@ -26,10 +24,7 @@ function NavBadge({ item }: { item: NavItem }) {
   const { data } = useInboxCount();
   if (item.to !== "/inbox" || !data || data.open === 0) return null;
   return (
-    <span
-      aria-hidden="true"
-      className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold leading-none text-accent-contrast"
-    >
+    <span aria-hidden="true" className="ml-auto text-xs font-medium tabular-nums text-text-muted">
       {data.open}
     </span>
   );
@@ -43,7 +38,7 @@ function NavBadgeDot({ item }: { item: NavItem }) {
     <>
       <span
         aria-hidden="true"
-        className="absolute right-[calc(50%-1.5rem)] top-1.5 size-2 rounded-full bg-accent ring-2 ring-bg-elevated"
+        className="absolute right-[calc(50%-1.1rem)] top-2.5 size-2 rounded-full bg-accent ring-2 ring-bg-elevated"
       />
       <span className="sr-only">({data.open} sin procesar)</span>
     </>
@@ -58,16 +53,27 @@ function SidebarLink({ item }: { item: NavItem }) {
       end={item.to === "/"}
       className={({ isActive }) =>
         cn(
-          "flex items-center gap-3 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+          "group flex items-center gap-3 rounded-md px-2.5 py-[7px] text-sm transition-colors",
           isActive
-            ? "bg-bg-elevated font-semibold text-text shadow-sm ring-1 ring-border/70"
-            : "text-text-muted hover:bg-bg-subtle hover:text-text",
+            ? "bg-bg-subtle font-medium text-text"
+            : "text-text-muted hover:bg-bg-subtle/70 hover:text-text",
         )
       }
     >
-      <SectionIcon icon={Icon} tone={item.tone} size="sm" />
-      <span>{item.label}</span>
-      <NavBadge item={item} />
+      {({ isActive }) => (
+        <>
+          <Icon
+            className={cn(
+              "size-[18px] shrink-0",
+              isActive ? "text-accent" : "text-text-subtle group-hover:text-text",
+            )}
+            strokeWidth={1.75}
+            aria-hidden
+          />
+          <span>{item.label}</span>
+          <NavBadge item={item} />
+        </>
+      )}
     </NavLink>
   );
 }
@@ -80,23 +86,21 @@ function BottomNavLink({ item }: { item: NavItem }) {
       end={item.to === "/"}
       className={({ isActive }) =>
         cn(
-          "group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
-          isActive ? "font-semibold text-text" : "text-text-muted",
+          "group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px]",
+          isActive ? "font-medium text-accent" : "text-text-muted",
         )
       }
     >
       {({ isActive }) => (
         <>
           <span
+            aria-hidden="true"
             className={cn(
-              "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
-              isActive
-                ? cn(SECTION_TONE[item.tone].soft, SECTION_TONE[item.tone].fg)
-                : "group-active:bg-bg-subtle",
+              "absolute inset-x-[30%] top-0 h-0.5 rounded-b-sm transition-colors",
+              isActive ? "bg-accent" : "bg-transparent",
             )}
-          >
-            <Icon className="size-5" aria-hidden />
-          </span>
+          />
+          <Icon className="size-[22px]" strokeWidth={isActive ? 2 : 1.75} aria-hidden />
           <span className="max-w-full truncate px-1">{item.label}</span>
           <NavBadgeDot item={item} />
         </>
@@ -116,7 +120,7 @@ function MoreMenuSheet({
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title="Más" footer={<MoreMenuUser />}>
-      <nav aria-label="Más secciones" className="grid grid-cols-3 gap-2">
+      <nav aria-label="Más secciones" className="-mx-2 flex flex-col">
         {items.map((item) => {
           const Icon = item.icon;
           return (
@@ -126,15 +130,13 @@ function MoreMenuSheet({
               onClick={() => onOpenChange(false)}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center justify-center gap-2 rounded-lg border px-2 py-3.5 text-[13px] font-medium shadow-sm transition-[border-color,transform] active:scale-[0.97]",
-                  isActive
-                    ? "border-accent bg-bg-elevated text-text"
-                    : "border-border/60 bg-bg-elevated text-text",
+                  "flex h-12 items-center gap-3.5 rounded-md px-2 text-[15px] active:bg-bg-subtle",
+                  isActive ? "font-medium text-accent" : "text-text",
                 )
               }
             >
-              <SectionIcon icon={Icon} tone={item.tone} size="lg" />
-              <span className="max-w-full truncate">{item.label}</span>
+              <Icon className="size-5 shrink-0 text-text-muted" strokeWidth={1.75} aria-hidden />
+              <span className="truncate">{item.label}</span>
             </NavLink>
           );
         })}
@@ -183,17 +185,12 @@ function MobileTopBar() {
   );
 }
 
-/** Marca de la app: monograma en el acento y nombre. */
+/** Marca de la app: logotipo tipográfico, con un punto en el acento. */
 function Brand() {
   return (
-    <span className="flex items-center gap-2">
-      <span
-        aria-hidden="true"
-        className="flex size-7 items-center justify-center rounded-[10px] bg-accent text-sm font-bold text-accent-contrast"
-      >
-        L
-      </span>
-      <span className="text-[17px] font-bold tracking-tight">LifeHub</span>
+    <span className="flex items-baseline text-[17px] font-semibold tracking-tight text-text">
+      LifeHub
+      <span aria-hidden="true" className="ml-0.5 size-1.5 rounded-[1px] bg-accent" />
     </span>
   );
 }
@@ -223,7 +220,7 @@ function UserMenu() {
 function ShellHeaderActions() {
   const { openPalette, openCreate } = useShortcuts();
   return (
-    <div className="flex flex-col gap-2 px-1 pb-4">
+    <div className="flex flex-col gap-2 px-1 pb-5">
       <Button onClick={openCreate} aria-haspopup="dialog" className="w-full">
         <Plus className="size-4" aria-hidden />
         Crear
@@ -231,11 +228,11 @@ function ShellHeaderActions() {
       <button
         type="button"
         onClick={openPalette}
-        className="flex items-center gap-2 rounded-full border border-border bg-bg-elevated px-3.5 py-2 text-sm text-text-muted hover:border-border-strong hover:text-text"
+        className="flex items-center gap-2 rounded-md border border-border bg-bg-elevated px-3 py-[7px] text-sm text-text-muted hover:border-border-strong hover:text-text"
       >
-        <Search className="size-3.5" aria-hidden />
+        <Search className="size-4" strokeWidth={1.75} aria-hidden />
         <span className="flex-1 text-left">Buscar</span>
-        <kbd className="rounded border border-border px-1 text-[10px]">⌘K</kbd>
+        <kbd className="font-sans text-xs text-text-subtle">Ctrl K</kbd>
       </button>
     </div>
   );
@@ -263,9 +260,9 @@ function AppShellContent() {
       {/* Navegación lateral — escritorio y tablet */}
       <nav
         aria-label="Navegación principal"
-        className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-bg-subtle/50 p-3 md:flex"
+        className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto border-r border-border bg-bg p-3 md:flex"
       >
-        <div className="mb-4 flex items-center justify-between px-2 pt-2">
+        <div className="mb-5 flex items-center justify-between px-2.5 pt-2">
           <Brand />
           <UserMenu />
         </div>
@@ -278,7 +275,7 @@ function AppShellContent() {
             <SidebarLink key={item.to} item={item} />
           ))}
         </div>
-        <div className="mt-2 flex flex-col gap-0.5 border-t border-border pt-2">
+        <div className="mt-3 flex flex-col gap-0.5 border-t border-border pt-3">
           {secondaryNavItems.map((item) => (
             <SidebarLink key={item.to} item={item} />
           ))}
@@ -287,7 +284,11 @@ function AppShellContent() {
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col pb-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom))] md:pb-0">
         <MobileTopBar />
-        <main id="main-content" className="flex min-w-0 flex-1 flex-col" tabIndex={-1}>
+        <main
+          id="main-content"
+          className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col"
+          tabIndex={-1}
+        >
           <Outlet />
         </main>
       </div>
@@ -295,7 +296,7 @@ function AppShellContent() {
       {/* Navegación inferior — móvil: 4 secciones elegidas en Ajustes + "Más" */}
       <nav
         aria-label="Navegación principal"
-        className="fixed inset-x-0 bottom-0 z-[var(--z-sidebar)] flex h-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom))] border-t border-border bg-bg-elevated/90 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+        className="fixed inset-x-0 bottom-0 z-[var(--z-sidebar)] flex h-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom))] border-t border-border bg-bg/95 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
       >
         {mobileNav.bar.map((item) => (
           <BottomNavLink key={item.to} item={item} />
@@ -305,11 +306,9 @@ function AppShellContent() {
           onClick={() => setMoreOpen(true)}
           aria-haspopup="dialog"
           aria-expanded={moreOpen}
-          className="group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-text-muted"
+          className="group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px] text-text-muted"
         >
-          <span className="flex h-8 w-14 items-center justify-center rounded-full group-active:bg-bg-subtle">
-            <MoreHorizontal className="size-5" aria-hidden />
-          </span>
+          <MoreHorizontal className="size-[22px]" strokeWidth={1.75} aria-hidden />
           <span>Más</span>
         </button>
       </nav>

@@ -11,7 +11,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { PageHeader } from "@client/components/ui/PageHeader";
-import { sectionHeader } from "@client/app/navigation";
 import { Button } from "@client/components/ui/Button";
 import { IconButton } from "@client/components/ui/IconButton";
 import { Checkbox } from "@client/components/ui/Checkbox";
@@ -69,7 +68,6 @@ export function ShoppingPage() {
     <div className="flex flex-1 flex-col">
       {!showDetailOnly && (
         <PageHeader
-          {...sectionHeader("/shopping")}
           title="Lista de la compra"
           actions={
             lists && lists.length > 0 ? (

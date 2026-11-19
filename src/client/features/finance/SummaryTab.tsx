@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { ArrowDownRight, ArrowUpRight, PiggyBank, Receipt, AlertTriangle } from "lucide-react";
-import { Card } from "@client/components/ui/Card";
 import { Skeleton } from "@client/components/ui/Skeleton";
 import { EmptyState } from "@client/components/ui/EmptyState";
 import { Button } from "@client/components/ui/Button";
@@ -54,13 +53,16 @@ function DeltaBadge({
   );
 }
 
+/** Panel de cifras: una sola superficie dividida por líneas finas, en vez de una tarjeta por cifra. */
+const KPI_PANEL = "grid gap-px overflow-hidden rounded-lg border border-border bg-border";
+
 function Kpi({ label, value, children }: { label: string; value: string; children?: ReactNode }) {
   return (
-    <Card className="p-4">
+    <div className="min-w-0 bg-bg-elevated p-4">
       <p className="text-xs text-text-muted">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums text-text">{value}</p>
+      <p className="mt-1 truncate text-xl font-semibold tabular-nums text-text">{value}</p>
       {children && <div className="mt-1">{children}</div>}
-    </Card>
+    </div>
   );
 }
 
@@ -107,7 +109,7 @@ export function SummaryTab({ month, onSelectMonth, onSelectCategory, onAddTransa
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={cn(KPI_PANEL, "grid-cols-2 lg:grid-cols-4")}>
         <Kpi label="Ingresos" value={formatCents(summary.incomeCents)}>
           <DeltaBadge current={summary.incomeCents} previous={summary.previous.incomeCents} goodWhenUp />
         </Kpi>
@@ -128,7 +130,7 @@ export function SummaryTab({ month, onSelectMonth, onSelectCategory, onAddTransa
         </Kpi>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className={cn(KPI_PANEL, "grid-cols-1 sm:grid-cols-3")}>
         <Kpi label="Dinero en cuentas" value={formatCents(summary.totals.assetsCents)} />
         <Kpi label="Asignado a metas" value={formatCents(summary.totals.allocatedToGoalsCents)} />
         <Kpi label="Sin asignar" value={formatCents(summary.totals.unallocatedCents)}>
