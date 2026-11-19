@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ChevronDown, ChevronRight, FolderKanban, ListChecks, Settings2 } from "lucide-react";
+import { Bot, ChevronDown, ChevronRight, FolderKanban, ListChecks, Settings2 } from "lucide-react";
 import { Button } from "@client/components/ui/Button";
 import { cn } from "@client/lib/utils";
 import { EmptyState } from "@client/components/ui/EmptyState";
@@ -12,7 +12,11 @@ import { useRegisterNewHandler } from "@client/app/shortcuts/ShortcutsContext";
 import { TaskRow } from "./TaskRow";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { useTaskList, useCreateTask, useUpdateTask, useDeleteTask } from "./useTasks";
-import { buildListColumns, type ListColumn, type ListRow } from "./taskListItems";
+import { buildListColumns, UNSYNCED_GROUP_KEY, type ListColumn, type ListRow } from "./taskListItems";
+import { IconButton } from "@client/components/ui/IconButton";
+import { AgentListSheet } from "../agents/AgentListSheet";
+import { useAgentRuns } from "../agents/useAgents";
+import { isRunActive } from "../agents/agentLabels";
 import {
   arrangeColumns,
   loadListViewPrefs,
@@ -116,6 +120,41 @@ function ColumnQuickAdd({
 /** Lista + selección por teclado de una vista. Se remonta al cambiar de vista
  *  (vía `key`), así la selección siempre empieza en el primer elemento sin
  *  necesitar un efecto que la reinicie desde fuera. */
+/** Botón "Claude" de una columna: abre el panel para implementar la lista y avisa si hay una ejecución en marcha. */
+function ColumnAgentButton({
+  listId,
+  listTitle,
+  pendingCount,
+}: {
+  listId: string;
+  listTitle: string;
+  pendingCount: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const { data: runs } = useAgentRuns();
+  const active = runs?.some((run) => run.googleTaskListId === listId && isRunActive(run.status)) ?? false;
+  return (
+    <>
+      <IconButton
+        aria-label={active ? `Claude está implementando ${listTitle}` : `Implementar ${listTitle} con Claude`}
+        title={active ? "Claude está trabajando en esta lista" : "Implementar con Claude"}
+        onClick={() => setOpen(true)}
+        className={cn("relative", active && "text-accent")}
+      >
+        <Bot className="size-4" aria-hidden />
+        {active && <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-accent" aria-hidden />}
+      </IconButton>
+      <AgentListSheet
+        open={open}
+        onOpenChange={setOpen}
+        listId={listId}
+        listTitle={listTitle}
+        pendingCount={pendingCount}
+      />
+    </>
+  );
+}
+
 function TaskListPanel({
   view,
   tasks,
@@ -214,19 +253,30 @@ function TaskListPanel({
                   board.width === "wide" ? "w-[90vw] sm:w-96" : "w-[85vw] sm:w-72",
                 )}
               >
-                {board.projectIdByTitle.has(column.title) ? (
-                  <h2 className="px-4 py-3 text-sm font-medium text-text">
-                    <Link
-                      to={`/projects/${board.projectIdByTitle.get(column.title)}`}
-                      className="inline-flex max-w-full items-center gap-1.5 rounded hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                    >
-                      <FolderKanban className="size-3.5 shrink-0" aria-hidden />
-                      <span className="truncate">{column.title}</span>
-                    </Link>
-                  </h2>
-                ) : (
-                  <h2 className="truncate px-4 py-3 text-sm font-medium text-text">{column.title}</h2>
-                )}
+                <div className="flex items-center gap-1 pr-2">
+                  {board.projectIdByTitle.has(column.title) ? (
+                    <h2 className="min-w-0 flex-1 px-4 py-3 text-sm font-medium text-text">
+                      <Link
+                        to={`/projects/${board.projectIdByTitle.get(column.title)}`}
+                        className="inline-flex max-w-full items-center gap-1.5 rounded hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      >
+                        <FolderKanban className="size-3.5 shrink-0" aria-hidden />
+                        <span className="truncate">{column.title}</span>
+                      </Link>
+                    </h2>
+                  ) : (
+                    <h2 className="min-w-0 flex-1 truncate px-4 py-3 text-sm font-medium text-text">
+                      {column.title}
+                    </h2>
+                  )}
+                  {column.key !== UNSYNCED_GROUP_KEY && (
+                    <ColumnAgentButton
+                      listId={column.key}
+                      listTitle={column.title}
+                      pendingCount={column.open.filter((row) => row.depth === 0).length}
+                    />
+                  )}
+                </div>
                 <ColumnQuickAdd
                   columnTitle={column.title}
                   onCreate={(title) =>

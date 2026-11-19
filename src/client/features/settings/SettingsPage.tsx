@@ -13,6 +13,7 @@ import { usePushStatus, useEnablePush, useDisablePush } from "./usePush";
 import { useGoogleStatus, useDisconnectGoogle, useSyncGoogleNow } from "./useGoogleCalendar";
 import { useGithubStatus, useDisconnectGithub } from "./useGithub";
 import { McpSection } from "./McpSection";
+import { AgentRunnerSection } from "../agents/AgentRunnerSection";
 import { api } from "@client/lib/api";
 import { DASHBOARD_WIDGETS, MOBILE_NAV_IDS, NAV_SECTIONS, type MobileNavId } from "@shared/schemas/settings";
 import type { Theme, DashboardWidgetId, NavSectionId } from "@shared/schemas/settings";
@@ -756,6 +757,7 @@ export function SettingsPage() {
           <GoogleCalendarSection />
           <GithubSection />
           <McpSection />
+          <AgentRunnerSection />
         </section>
 
         <section className="space-y-4">
