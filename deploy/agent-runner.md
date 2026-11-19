@@ -47,7 +47,7 @@ Necesitas `claude` (Claude Code con sesión iniciada), `gh` autenticado con perm
      "repos": {
        "tu-usuario/Lifehub": {
          "path": "/home/tu-usuario/repos/Lifehub",
-         "checkCommand": "npm install --no-audit --no-fund && npm run typecheck && npm run lint && npm test",
+         "checkCommand": "npm ci --no-audit --no-fund && npm run typecheck && npm run lint && npm test",
          "deployCommand": "deploy/deploy.sh"
        }
      }
