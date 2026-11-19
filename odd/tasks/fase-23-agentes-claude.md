@@ -17,9 +17,9 @@ Rama: `feat/claude-agent-jobs` (desde `feat/warm-redesign`, lo que está en prod
 | -- | ----- | ---- | ------ | ------ |
 | T1 | S1 | inline | ✅ tabla `agent_list_links`, `PUT/DELETE /api/agents/links/:listId` | 85d2b64 |
 | T2 | S2, S5 | inline | ✅ ejecuciones y trabajos, `/runner` con token `lhr_` (hash SHA-256), dominio `nextRunStep`/`canReportJob`; 23 tests (8 dominio RED→GREEN, 15 API escritos tras el código y validados con 2 mutaciones) | 85d2b64, 9f614b6 |
-| T3 | S3, S4 | inline | ✅ `src/runner` (`npm run runner`, `setup`), worktree fijo por repo, re-comprueba y fusiona con `--match-head-commit`, servicio systemd de usuario, `deploy/agent-runner.md`; 29 tests (RED→GREEN) + e2e local con claude/gh falsos | (ejecutor) |
-| T4 | S2, S4 | inline | pendiente | |
-| T5 | — | inline | pendiente (cierre: docs, checks, push y despliegue si el usuario lo pide) | |
+| T3 | S3, S4 | inline | ✅ `src/runner` (`npm run runner`, `setup`), worktree fijo por repo, re-comprueba y fusiona con `--match-head-commit`, servicio systemd de usuario, `deploy/agent-runner.md`; 29 tests (RED→GREEN) + e2e local con claude/gh falsos | 5ba3ce7, 3897ec0 |
+| T4 | S2, S4 | inline | ✅ botón Claude por columna, panel con enlace, ejecución y progreso (`claude attach`), sección en Ajustes; 5 tests de componente (RED→GREEN), capturas Mobile/Desktop claro/oscuro | 367d8b5 |
+| T5 | — | inline | ✅ PLAN y docs; checks completos. Push y despliegue: no pedidos | (docs) |
 
 T1: enlace lista ↔ repo. T2: cola de trabajos y API del ejecutor con token. T3: ejecutor en el PC. T4: interfaz (botón, estado, id de sesión, PR).
 
@@ -35,3 +35,5 @@ T1: enlace lista ↔ repo. T2: cola de trabajos y API del ejecutor con token. T3
 - L8 (2026-11-19): revisión nativa de 85d2b64 (riesgo y fiabilidad) aprobada y confirmada; sus 6 avisos no bloqueantes se arreglaron en 9f614b6 (`POST /runner/reset` para trabajos colgados, desplegar si el resto se saltó, informe de fusión atómico, URL de PR solo de github.com, repos sin `.`/`..`, test de aislamiento al informar).
 - L9 (2026-11-19): hallazgo — Claude Code no arranca sesiones `--bg` en carpetas sin confianza aceptada, y la confianza no se hereda de la carpeta padre (probado con una sesión real). Solución: un worktree fijo por repo, en el que el usuario confía una vez; el ejecutor lo comprueba al arrancar leyendo `~/.claude.json` (sin modificarlo).
 - L10 (2026-11-19): e2e local del ejecutor contra un LifeHub real con `claude` y `gh` falsos y un remoto git desnudo: 2 tareas en orden, ambas fusionadas con el commit comprobado, tareas completadas, despliegue del `main` final, ramas remotas borradas, sesiones paradas.
+- L11 (2026-11-19): revisión nativa de 9f614b6..5ba3ce7 (riesgo, resiliencia, fiabilidad) aprobada y confirmada; 12 avisos no bloqueantes, los relevantes corregidos en 3897ec0 (PR atada al repo de la ejecución, árbol limpio antes de comprobar, reintentos de informes, tolerancia a fallos puntuales de `claude agents`, red de seguridad para errores inesperados, parar sesión al cancelar durante la comprobación, límite de tiempo de comandos, https obligatorio, worktree `propietario__repo`). No corregidos: R1-server-content-drives-autonomous-agent (inherente: el texto de la tarea es el encargo; documentado en `deploy/agent-runner.md`) y R3-serve-loop-untested (sugerencia).
+- L12 (2026-11-19): cierre — typecheck y lint limpios, vitest 477/477, e2e 86 pasan / 97 saltadas (las de otro viewport, igual que antes), e2e local del ejecutor repetido tras los arreglos, capturas revisadas.

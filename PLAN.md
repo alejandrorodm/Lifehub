@@ -20,6 +20,8 @@
 | 19  | Mejoras de UI: gasto rápido, iconos, widget de finanzas, barra móvil configurable, cabeceras | ✅ Implementada (rama `feat/ui-improvements`) |
 | 20  | UI móvil "neutro sobrio" y listas de la compra             | ✅ Implementada (rama `feat/mobile-redesign-shopping`) |
 | 21  | Rediseño "cálido y amable": color por sección, menú "Crear" e inicio con accesos | ✅ Implementada (rama `feat/warm-redesign`) |
+| 22  | Servidor compilado, `main` al día, captura inteligente, sin conexión y Finanzas | ⏸ En pausa (T1 hecha en `feat/phase-22-improvements`) |
+| 23  | Implementar listas de tareas con sesiones de Claude en el PC: PR por tarea, fusión y despliegue | ✅ Implementada (rama `feat/claude-agent-jobs`), sin desplegar |
 
 ## Situación inicial
 
@@ -894,4 +896,36 @@ Reorganizo ligeramente la secuencia propuesta: **Proyectos se adelanta** (es el 
 **Probado:** `npm run typecheck` y `npm run lint` sin errores; `npm test` 401/401 (5 nuevos: acciones de "Crear" y `startNew`); `npm run test:e2e` 86/86 (incluido axe). Capturas revisadas en Mobile y Desktop, temas claro y oscuro (inicio, tareas, finanzas, compra, hábitos, ajustes y menú "Crear").
 
 **Pendiente:** sin desplegar ni push. Finanzas en móvil tiene tres accesos a "añadir movimiento" (Crear, botón de cabecera y botón flotante), anterior a esta fase; se podría simplificar.
+
+## Fase 23 — Implementar listas de tareas con sesiones de Claude (rama `feat/claude-agent-jobs`, 2026-11-19)
+
+**Nota sobre el alcance:** pedida por el usuario: "Relacionar listas Lifehub con proyectos de GitHub y poder hacer una sesión de Claude en la que se implementen de principio a fin cada una de las implementaciónes (tareas del Google tasks) con PR por implementación y despliegue completo dándole a un botón, tener id de la sesión y poder conectarme con ClaudeSSH a dicha sesión". Decisiones del usuario: las sesiones corren "en este pc al que me conecto a través de ssh desde mis dispositivos", con autonomía "Todo automático". Detalle en `odd/tasks/fase-23-agentes-claude.md`.
+
+**Implementado:**
+
+- Enlace lista de Google Tasks ↔ repo de GitHub (`agent_list_links`). Ejecuciones y trabajos (`agent_runs` y `agent_jobs`, migración `0015`, aditiva): una ejecución por pulsación, con un trabajo por tarea pendiente de primer nivel, en orden.
+- API del ejecutor en `/runner`, fuera de `/api`. Usa un token propio `lhr_…`, guardado como hash SHA-256 y revocable, en una tabla aparte de los de MCP. Rutas: `claim`, informes de trabajo y despliegue, y `reset` al arrancar. Solo ve las ejecuciones de su perfil.
+- Ejecutor en el PC (`src/runner`, `npm run runner`, `setup`). Usa un worktree fijo por repo y lanza `claude --bg --session-id <uuid>`, al que el usuario se conecta con `claude attach <id>`. Cuando Claude termina:
+  - repite él mismo las comprobaciones;
+  - fusiona con `gh pr merge --squash --match-head-commit`;
+  - despliega al final;
+  - en cuanto algo falla, se detiene y deja la PR abierta.
+
+  Tiene un servicio systemd de usuario y una guía en `deploy/agent-runner.md`.
+- Interfaz: un botón Claude en cada columna de "Por lista" y un panel con el enlace, el botón "Implementar con Claude" y el progreso de cada ejecución (estado, PR, rama y comando para conectarse). En Ajustes, la sección "Agentes de Claude" gestiona los tokens.
+
+**Decisiones:**
+
+- El VPS nunca llama al PC: es el ejecutor quien pregunta.
+- El comando de despliegue, las rutas y las comprobaciones viven solo en la configuración local del ejecutor, que rechaza los repos que no tenga configurados. Así, un servidor comprometido no puede elegir qué se ejecuta en el PC.
+- Un worktree fijo por repo, porque Claude Code no arranca sesiones `--bg` en carpetas sin confianza aceptada y esa confianza no se hereda de la carpeta padre. Lo comprobamos con una sesión real.
+- Las tablas de agentes no van en la exportación JSON: son estado operativo, y la de tokens guarda un secreto.
+
+**Verificado:** typecheck y lint limpios, vitest 477/477, e2e 86/86 pasando. Además:
+
+- Una prueba de extremo a extremo del ejecutor contra un LifeHub real, con `claude` y `gh` falsos y un remoto git desnudo.
+- Capturas de la interfaz en Mobile y Desktop, en claro y oscuro.
+- Dos revisiones nativas aprobadas, con sus avisos corregidos en 9f614b6 y 3897ec0.
+
+**Pendiente (del usuario):** desplegar y configurar el ejecutor en el PC: token, `config.json`, `npm run runner -- setup`, aceptar la confianza del worktree y arrancar el servicio.
 
